@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,8 +17,8 @@
   <div id="dropzone-overlay" class="dropzone-overlay hidden">
     <div class="dropzone-box">
       <div class="dropzone-icon">📥</div>
-      <h2>Suelta tu archivo MIDI aquí</h2>
-      <p>Formatos compatibles: .mid, .midi (Multi-pista automático)</p>
+      <h2 data-i18n="dropzone.title">Drop your MIDI file here</h2>
+      <p data-i18n="dropzone.subtitle">Supported formats: .mid, .midi (Automatic multi-track)</p>
     </div>
   </div>
 
@@ -32,33 +32,39 @@
       <div class="current-track-badge">
         <div class="pulse-indicator"></div>
         <div class="track-meta">
-          <span id="current-song-title" class="track-title">🎺 Funk & Jazz Band Jam</span>
-          <span id="current-song-bpm" class="track-bpm">116 BPM</span>
+          <span id="current-song-title" class="track-title">🎺 Funk & Soul Groove Jam</span>
+          <span id="current-song-bpm" class="track-bpm">114 BPM</span>
         </div>
       </div>
     </div>
 
     <div class="header-right">
+      <!-- Language Switcher Button -->
+      <button id="btn-toggle-lang" class="btn btn-secondary lang-toggle-btn" title="Switch language / Cambiar idioma" data-i18n-title="nav.langToggleTitle">
+        <span class="btn-icon">🌐</span>
+        <span id="current-lang-label">EN</span>
+      </button>
+
       <button id="btn-open-songs" class="btn btn-secondary">
         <span class="btn-icon">🎶</span>
-        <span>Canciones Demo</span>
+        <span data-i18n="nav.demoSongs">Demo Songs</span>
       </button>
 
       <label class="btn btn-primary file-upload-btn">
         <span class="btn-icon">📁</span>
-        <span>Cargar MIDI</span>
+        <span data-i18n="nav.loadMidi">Load MIDI</span>
         <input type="file" id="file-input" accept=".mid,.midi" style="display: none;" />
       </label>
 
-      <button id="btn-open-tracks" class="btn btn-icon-only" title="Mapeo de Pistas MIDI">
+      <button id="btn-open-tracks" class="btn btn-icon-only" title="MIDI Track Mapping" data-i18n-title="nav.tracksMap">
         <span>🎛️</span>
       </button>
 
-      <button id="btn-toggle-mixer" class="btn btn-icon-only" title="Mezclador de Audio">
+      <button id="btn-toggle-mixer" class="btn btn-icon-only" title="Audio Mixer" data-i18n-title="nav.audioMixer">
         <span>🎚️</span>
       </button>
 
-      <button id="btn-open-help" class="btn btn-icon-only" title="Guía de Controles">
+      <button id="btn-open-help" class="btn btn-icon-only" title="Controls Guide" data-i18n-title="nav.controlsGuide">
         <span>⌨️</span>
       </button>
     </div>
@@ -66,59 +72,57 @@
 
   <!-- Camera Presets Bar (Top Right Floating) -->
   <div class="camera-toolbar glass-panel">
-    <span class="toolbar-label">CÁMARA:</span>
-    <button id="btn-director-mode" class="cam-btn cam-action" title="Modo Director MIDIJam: Cambia de plano inteligentemente al compás de la música">🎬 Director Auto</button>
-    <button class="cam-btn active" data-preset="overview" title="Vista Panorámica General">🌐 Escenario</button>
-    <button class="cam-btn" data-preset="piano" title="Primer Plano Piano de Cola">🎹 Piano</button>
-    <button class="cam-btn" data-preset="drums" title="Vista Baterista">🥁 Batería</button>
-    <button class="cam-btn" data-preset="guitar" title="Primer Plano Guitarra">🎸 Guitarra</button>
-    <button class="cam-btn" data-preset="bass" title="Primer Plano Bajo">🎸 Bajo</button>
-    <button class="cam-btn" data-preset="trumpet" title="Primer Plano Trompeta">🎺 Trompeta</button>
-    <button class="cam-btn" data-preset="sax" title="Primer Plano Saxofón">🎷 Saxo</button>
-    <button class="cam-btn" data-preset="violin" title="Primer Plano Violín">🎻 Violín</button>
-    <button class="cam-btn" data-preset="flute" title="Primer Plano Flauta">🪈 Flauta</button>
-    <button class="cam-btn" data-preset="xylophone" title="Primer Plano Xilófono">🪵 Xilófono</button>
-    <button class="cam-btn" data-preset="synth" title="Primer Plano Sintetizador">🎹 Synth</button>
-    <button class="cam-btn" data-preset="guitar_2" title="Primer Plano Guitarra 2" style="display: none;">🎸 Guitarra 2</button>
-    <button class="cam-btn" data-preset="guitar_3" title="Primer Plano Guitarra 3" style="display: none;">🎸 Guitarra 3</button>
-    <button class="cam-btn" data-preset="guitar_4" title="Primer Plano Guitarra 4" style="display: none;">🎸 Guitarra 4</button>
-    <button class="cam-btn" data-preset="trumpet_2" title="Primer Plano Trompeta 2" style="display: none;">🎺 Trompeta 2</button>
-    <button class="cam-btn" data-preset="sax_2" title="Primer Plano Saxo 2" style="display: none;">🎷 Saxo 2</button>
-    <button class="cam-btn" data-preset="violin_2" title="Primer Plano Violín 2" style="display: none;">🎻 Violín 2</button>
-    <button class="cam-btn" data-preset="flute_2" title="Primer Plano Flauta 2" style="display: none;">🪈 Flauta 2</button>
-    <button class="cam-btn" data-preset="bass_2" title="Primer Plano Bajo 2" style="display: none;">🎸 Bajo 2</button>
-    <button class="cam-btn" data-preset="synth_2" title="Primer Plano Synth 2" style="display: none;">🎹 Synth 2</button>
-    <button class="cam-btn" data-preset="synth_3" title="Primer Plano Synth 3" style="display: none;">🎹 Synth 3</button>
-    <button class="cam-btn" data-preset="synth_4" title="Primer Plano Synth 4" style="display: none;">🎹 Synth 4</button>
-    <button class="cam-btn" data-preset="piano_2" title="Primer Plano Piano 2" style="display: none;">🎹 Piano 2</button>
-    <button class="cam-btn" data-preset="piano_3" title="Primer Plano Piano 3" style="display: none;">🎹 Piano 3</button>
-    <button class="cam-btn" data-preset="piano_4" title="Primer Plano Piano 4" style="display: none;">🎹 Piano 4</button>
-    <button id="btn-auto-rotate" class="cam-btn cam-action" title="Rotación Cinemática Automática">🔄 Giro</button>
+    <span class="toolbar-label" data-i18n="camera.label">CAMERA:</span>
+    <button id="btn-director-mode" class="cam-btn cam-action" title="MIDIJam Director Mode: Intelligently switches camera angles in time with the music" data-i18n="camera.directorAuto" data-i18n-title="camera.directorAutoTitle">🎬 Auto Director</button>
+    <button class="cam-btn active" data-preset="overview" title="General Panoramic Stage View" data-i18n="camera.stage" data-i18n-title="camera.stageTitle">🌐 Stage</button>
+    <button class="cam-btn" data-preset="piano" title="Grand Piano Close-up" data-i18n="camera.piano" data-i18n-title="camera.pianoTitle">🎹 Piano</button>
+    <button class="cam-btn" data-preset="drums" title="Drummer View" data-i18n="camera.drums" data-i18n-title="camera.drumsTitle">🥁 Drums</button>
+    <button class="cam-btn" data-preset="guitar" title="Lead Guitar Close-up" data-i18n="camera.guitar" data-i18n-title="camera.guitarTitle">🎸 Guitar</button>
+    <button class="cam-btn" data-preset="bass" title="Electric Bass Close-up" data-i18n="camera.bass" data-i18n-title="camera.bassTitle">🎸 Bass</button>
+    <button class="cam-btn" data-preset="trumpet" title="Trumpet Close-up" data-i18n="camera.trumpet" data-i18n-title="camera.trumpetTitle">🎺 Trumpet</button>
+    <button class="cam-btn" data-preset="sax" title="Alto Saxophone Close-up" data-i18n="camera.sax" data-i18n-title="camera.saxTitle">🎷 Sax</button>
+    <button class="cam-btn" data-preset="violin" title="Violin Close-up" data-i18n="camera.violin" data-i18n-title="camera.violinTitle">🎻 Violin</button>
+    <button class="cam-btn" data-preset="flute" title="Concert Flute Close-up" data-i18n="camera.flute" data-i18n-title="camera.fluteTitle">🪈 Flute</button>
+    <button class="cam-btn" data-preset="xylophone" title="Xylophone Close-up" data-i18n="camera.xylophone" data-i18n-title="camera.xylophoneTitle">🪵 Xylophone</button>
+    <button class="cam-btn" data-preset="synth" title="Synthesizer Close-up" data-i18n="camera.synth" data-i18n-title="camera.synthTitle">🎹 Synth</button>
+    <button class="cam-btn" data-preset="guitar_2" title="Guitar 2 Close-up" data-i18n="camera.guitar_2" style="display: none;">🎸 Guitar 2</button>
+    <button class="cam-btn" data-preset="guitar_3" title="Guitar 3 Close-up" data-i18n="camera.guitar_3" style="display: none;">🎸 Guitar 3</button>
+    <button class="cam-btn" data-preset="guitar_4" title="Guitar 4 Close-up" data-i18n="camera.guitar_4" style="display: none;">🎸 Guitar 4</button>
+    <button class="cam-btn" data-preset="trumpet_2" title="Trumpet 2 Close-up" data-i18n="camera.trumpet_2" style="display: none;">🎺 Trumpet 2</button>
+    <button class="cam-btn" data-preset="sax_2" title="Sax 2 Close-up" data-i18n="camera.sax_2" style="display: none;">🎷 Sax 2</button>
+    <button class="cam-btn" data-preset="violin_2" title="Violin 2 Close-up" data-i18n="camera.violin_2" style="display: none;">🎻 Violin 2</button>
+    <button class="cam-btn" data-preset="flute_2" title="Flute 2 Close-up" data-i18n="camera.flute_2" style="display: none;">🪈 Flute 2</button>
+    <button class="cam-btn" data-preset="bass_2" title="Bass 2 Close-up" data-i18n="camera.bass_2" style="display: none;">🎸 Bass 2</button>
+    <button class="cam-btn" data-preset="synth_2" title="Synth 2 Close-up" data-i18n="camera.synth_2" style="display: none;">🎹 Synth 2</button>
+    <button class="cam-btn" data-preset="synth_3" title="Synth 3 Close-up" data-i18n="camera.synth_3" style="display: none;">🎹 Synth 3</button>
+    <button class="cam-btn" data-preset="synth_4" title="Synth 4 Close-up" data-i18n="camera.synth_4" style="display: none;">🎹 Synth 4</button>
+    <button class="cam-btn" data-preset="piano_2" title="Piano 2 Close-up" data-i18n="camera.piano_2" style="display: none;">🎹 Piano 2</button>
+    <button class="cam-btn" data-preset="piano_3" title="Piano 3 Close-up" data-i18n="camera.piano_3" style="display: none;">🎹 Piano 3</button>
+    <button class="cam-btn" data-preset="piano_4" title="Piano 4 Close-up" data-i18n="camera.piano_4" style="display: none;">🎹 Piano 4</button>
+    <button id="btn-auto-rotate" class="cam-btn cam-action" title="Automatic Cinematic Orbit Rotation" data-i18n="camera.orbit" data-i18n-title="camera.orbitTitle">🔄 Orbit</button>
   </div>
 
   <!-- Free Camera Hint -->
   <div class="free-cam-hint">
-    <span>💡 <b>Cámara Libre:</b> Arrastrar para rotar | Clic derecho para desplazar | Rueda para zoom | Teclas <b>W A S D</b> para volar</span>
+    <span data-i18n-html="camera.freeCamHint">💡 <b>Free Camera:</b> Drag to rotate | Right-click to pan | Scroll to zoom | <b>W A S D</b> keys to fly</span>
   </div>
-
-
 
   <!-- Bottom Playback Control Bar -->
   <div class="playback-bar glass-panel">
     <div class="playback-controls">
       <!-- Stop Button -->
-      <button id="btn-stop" class="control-btn" title="Detener (Reiniciar a 0:00)">
+      <button id="btn-stop" class="control-btn" title="Stop (Reset to 0:00)" data-i18n-title="playback.stopTitle">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
       </button>
 
       <!-- Main Play/Pause Button -->
-      <button id="btn-play" class="control-btn play-btn" title="Reproducir / Pausar (Espacio)">
+      <button id="btn-play" class="control-btn play-btn" title="Play / Pause (Space)" data-i18n-title="playback.playTitle">
         <svg id="icon-play" viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
         <svg id="icon-pause" viewBox="0 0 24 24" width="26" height="26" fill="currentColor" style="display: none;"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
       </button>
 
       <!-- Loop Toggle -->
-      <button id="btn-loop" class="control-btn toggle-btn" title="Repetir Canción en Bucle">
+      <button id="btn-loop" class="control-btn toggle-btn" title="Loop Song Playback" data-i18n-title="playback.loopTitle">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
       </button>
     </div>
@@ -143,7 +147,7 @@
 
     <!-- Master Volume -->
     <div class="volume-container">
-      <button id="btn-master-mute" class="vol-icon-btn" title="Silenciar Master">
+      <button id="btn-master-mute" class="vol-icon-btn" title="Mute Master Volume" data-i18n-title="playback.muteTitle">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
       </button>
       <input type="range" id="master-volume" min="0" max="1" step="0.01" value="0.85" />
@@ -154,11 +158,11 @@
   <div id="modal-songs" class="modal-overlay hidden">
     <div class="modal-card glass-panel">
       <div class="modal-header">
-        <h2>🎶 Repertorio de Canciones Demo</h2>
+        <h2 data-i18n="demoModal.title">🎶 Demo Song Repertoire</h2>
         <button class="modal-close" id="btn-close-songs">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="modal-subtitle">Selecciona cualquier arreglo musical para reproducir la orquesta 3D al instante:</p>
+        <p class="modal-subtitle" data-i18n="demoModal.subtitle">Select any musical arrangement to play the 3D orchestra instantly:</p>
         <div id="demo-songs-list" class="demo-songs-grid"></div>
       </div>
     </div>
@@ -168,11 +172,11 @@
   <div id="drawer-mixer" class="side-drawer glass-panel hidden">
     <div class="drawer-header">
       <div class="drawer-title-group">
-        <h3>🎚️ Mezclador de Estudio</h3>
+        <h3 data-i18n="mixer.title">🎚️ Studio Mixer</h3>
         <div class="audio-output-selector">
-          <label for="select-midi-out">🔊 Salida:</label>
-          <select id="select-midi-out" class="midi-out-dropdown" title="Cambia entre Web Studio (SoundFonts GM) y MIDI Out de Windows (Modo MIDIJam Roland SC-55)">
-            <option value="internal">🔊 Web Studio (SoundFonts GM)</option>
+          <label for="select-midi-out" data-i18n="mixer.outputLabel">🔊 Output:</label>
+          <select id="select-midi-out" class="midi-out-dropdown">
+            <option value="internal" data-i18n="mixer.internalSoundfonts">🔊 Web Studio (GM SoundFonts)</option>
           </select>
         </div>
       </div>
@@ -184,13 +188,13 @@
         <div class="mixer-strip" data-inst="piano">
           <div class="strip-header">
             <span class="strip-icon">🎹</span>
-            <span class="strip-name">Piano</span>
+            <span class="strip-name" data-i18n="instruments.piano">Piano</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-piano"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.9" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -198,13 +202,13 @@
         <div class="mixer-strip" data-inst="drums">
           <div class="strip-header">
             <span class="strip-icon">🥁</span>
-            <span class="strip-name">Batería</span>
+            <span class="strip-name" data-i18n="instruments.drums">Drums</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-drums"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.95" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -212,13 +216,13 @@
         <div class="mixer-strip" data-inst="bass">
           <div class="strip-header">
             <span class="strip-icon">🎸</span>
-            <span class="strip-name">Bajo</span>
+            <span class="strip-name" data-i18n="instruments.bass">Bass</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-bass"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.9" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -226,13 +230,13 @@
         <div class="mixer-strip" data-inst="guitar">
           <div class="strip-header">
             <span class="strip-icon">🎸</span>
-            <span class="strip-name">Guitarra</span>
+            <span class="strip-name" data-i18n="instruments.guitar">Guitar</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-guitar"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -240,13 +244,13 @@
         <div class="mixer-strip" data-inst="guitar_2" style="display: none;">
           <div class="strip-header">
             <span class="strip-icon">🎸</span>
-            <span class="strip-name">Guitarra 2</span>
+            <span class="strip-name" data-i18n="instruments.guitar_2">Guitar 2</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-guitar_2"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -254,13 +258,13 @@
         <div class="mixer-strip" data-inst="guitar_3" style="display: none;">
           <div class="strip-header">
             <span class="strip-icon">🎸</span>
-            <span class="strip-name">Guitarra 3</span>
+            <span class="strip-name" data-i18n="instruments.guitar_3">Guitar 3</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-guitar_3"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -268,13 +272,13 @@
         <div class="mixer-strip" data-inst="guitar_4" style="display: none;">
           <div class="strip-header">
             <span class="strip-icon">🎸</span>
-            <span class="strip-name">Guitarra 4</span>
+            <span class="strip-name" data-i18n="instruments.guitar_4">Guitar 4</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-guitar_4"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -282,13 +286,13 @@
         <div class="mixer-strip" data-inst="trumpet">
           <div class="strip-header">
             <span class="strip-icon">🎺</span>
-            <span class="strip-name">Trompeta</span>
+            <span class="strip-name" data-i18n="instruments.trumpet">Trumpet</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-trumpet"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -296,13 +300,13 @@
         <div class="mixer-strip" data-inst="trumpet_2" style="display: none;">
           <div class="strip-header">
             <span class="strip-icon">🎺</span>
-            <span class="strip-name">Trompeta 2</span>
+            <span class="strip-name" data-i18n="instruments.trumpet_2">Trumpet 2</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-trumpet_2"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -310,13 +314,13 @@
         <div class="mixer-strip" data-inst="sax">
           <div class="strip-header">
             <span class="strip-icon">🎷</span>
-            <span class="strip-name">Saxo</span>
+            <span class="strip-name" data-i18n="instruments.sax">Sax</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-sax"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.9" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -324,13 +328,13 @@
         <div class="mixer-strip" data-inst="violin">
           <div class="strip-header">
             <span class="strip-icon">🎻</span>
-            <span class="strip-name">Violín</span>
+            <span class="strip-name" data-i18n="instruments.violin">Violin</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-violin"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -338,13 +342,13 @@
         <div class="mixer-strip" data-inst="flute">
           <div class="strip-header">
             <span class="strip-icon">🪈</span>
-            <span class="strip-name">Flauta</span>
+            <span class="strip-name" data-i18n="instruments.flute">Flute</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-flute"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -352,13 +356,13 @@
         <div class="mixer-strip" data-inst="xylophone">
           <div class="strip-header">
             <span class="strip-icon">🪵</span>
-            <span class="strip-name">Xilófono</span>
+            <span class="strip-name" data-i18n="instruments.xylophone">Xylophone</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-xylophone"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -366,13 +370,13 @@
         <div class="mixer-strip" data-inst="synth">
           <div class="strip-header">
             <span class="strip-icon">🎹</span>
-            <span class="strip-name">Synth</span>
+            <span class="strip-name" data-i18n="instruments.synth">Synth</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-synth"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -380,13 +384,13 @@
         <div class="mixer-strip" data-inst="synth_2" style="display: none;">
           <div class="strip-header">
             <span class="strip-icon">🎹</span>
-            <span class="strip-name">Synth 2</span>
+            <span class="strip-name" data-i18n="instruments.synth_2">Synth 2</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-synth_2"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -394,13 +398,13 @@
         <div class="mixer-strip" data-inst="synth_3" style="display: none;">
           <div class="strip-header">
             <span class="strip-icon">🎹</span>
-            <span class="strip-name">Synth 3</span>
+            <span class="strip-name" data-i18n="instruments.synth_3">Synth 3</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-synth_3"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -408,13 +412,13 @@
         <div class="mixer-strip" data-inst="synth_4" style="display: none;">
           <div class="strip-header">
             <span class="strip-icon">🎹</span>
-            <span class="strip-name">Synth 4</span>
+            <span class="strip-name" data-i18n="instruments.synth_4">Synth 4</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-synth_4"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -422,13 +426,13 @@
         <div class="mixer-strip" data-inst="piano_2" style="display: none;">
           <div class="strip-header">
             <span class="strip-icon">🎹</span>
-            <span class="strip-name">Piano 2</span>
+            <span class="strip-name" data-i18n="instruments.piano_2">Piano 2</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-piano_2"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.9" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -436,13 +440,13 @@
         <div class="mixer-strip" data-inst="piano_3" style="display: none;">
           <div class="strip-header">
             <span class="strip-icon">🎹</span>
-            <span class="strip-name">Piano 3</span>
+            <span class="strip-name" data-i18n="instruments.piano_3">Piano 3</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-piano_3"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.9" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
 
@@ -450,13 +454,13 @@
         <div class="mixer-strip" data-inst="piano_4" style="display: none;">
           <div class="strip-header">
             <span class="strip-icon">🎹</span>
-            <span class="strip-name">Piano 4</span>
+            <span class="strip-name" data-i18n="instruments.piano_4">Piano 4</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-piano_4"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.9" />
           <div class="strip-buttons">
-            <button class="btn-mute" title="Silenciar">M</button>
-            <button class="btn-solo" title="Solo">S</button>
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
           </div>
         </div>
       </div>
@@ -467,20 +471,20 @@
   <div id="modal-tracks" class="modal-overlay hidden">
     <div class="modal-card glass-panel">
       <div class="modal-header">
-        <h2>🎛️ Pistas del Archivo MIDI & Asignación 3D</h2>
+        <h2 data-i18n="tracksModal.title">🎛️ MIDI File Tracks & 3D Mapping</h2>
         <button class="modal-close" id="btn-close-tracks">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="modal-subtitle">Reasigna cada pista a cualquier instrumento de la banda en 3D si lo deseas:</p>
+        <p class="modal-subtitle" data-i18n="tracksModal.subtitle">Reassign each track to any 3D band instrument if you wish:</p>
         <div class="table-container">
           <table class="tracks-table">
             <thead>
               <tr>
-                <th>#</th>
-                <th>Nombre de Pista</th>
-                <th>Canal</th>
-                <th>Notas</th>
-                <th>Instrumento 3D Asignado</th>
+                <th data-i18n="tracksModal.colNum">#</th>
+                <th data-i18n="tracksModal.colName">Track Name</th>
+                <th data-i18n="tracksModal.colChannel">Channel</th>
+                <th data-i18n="tracksModal.colNotes">Notes</th>
+                <th data-i18n="tracksModal.colInst">Assigned 3D Instrument</th>
               </tr>
             </thead>
             <tbody id="tracks-table-body"></tbody>
@@ -494,29 +498,29 @@
   <div id="modal-help" class="modal-overlay hidden">
     <div class="modal-card glass-panel">
       <div class="modal-header">
-        <h2>⌨️ Guía de Controles & Atajos</h2>
+        <h2 data-i18n="helpModal.title">⌨️ Controls & Shortcuts Guide</h2>
         <button class="modal-close" id="btn-close-help">&times;</button>
       </div>
       <div class="modal-body help-grid">
         <div class="help-section">
-          <h3>🎮 Navegación de Cámara Libre</h3>
+          <h3 data-i18n="helpModal.camTitle">🎮 Free Camera Navigation</h3>
           <ul>
-            <li><kbd>Clic Izquierdo + Arrastrar</kbd> : Orbitar / Rotar cámara</li>
-            <li><kbd>Clic Derecho + Arrastrar</kbd> : Desplazar escenario (Pan)</li>
-            <li><kbd>Rueda del Ratón</kbd> : Zoom in / Zoom out</li>
-            <li><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> : Volar en el espacio libre</li>
-            <li><kbd>Q</kbd> / <kbd>E</kbd> : Bajar / Subir altura de cámara</li>
-            <li><kbd>Clic en Instrumento</kbd> : Enfocar cámara en ese instrumento</li>
+            <li><kbd>Left Click + Drag</kbd> : <span data-i18n="helpModal.leftClickDragDesc">Orbit / Rotate camera</span></li>
+            <li><kbd>Right Click + Drag</kbd> : <span data-i18n="helpModal.rightClickDragDesc">Pan stage</span></li>
+            <li><kbd>Mouse Wheel</kbd> : <span data-i18n="helpModal.mouseWheelDesc">Zoom in / Zoom out</span></li>
+            <li><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> : <span data-i18n="helpModal.wasdDesc">Fly freely in space</span></li>
+            <li><kbd>Q</kbd> / <kbd>E</kbd> : <span data-i18n="helpModal.qeDesc">Lower / Raise camera height</span></li>
+            <li><kbd>Click on Instrument</kbd> : <span data-i18n="helpModal.clickInstDesc">Focus camera on that instrument</span></li>
           </ul>
         </div>
         <div class="help-section">
-          <h3>🎵 Reproducción Musical</h3>
+          <h3 data-i18n="helpModal.musicTitle">🎵 Music Playback</h3>
           <ul>
-            <li><kbd>Espacio</kbd> : Reproducir / Pausar</li>
-            <li><kbd>R</kbd> : Reiniciar canción al inicio</li>
-            <li><kbd>L</kbd> : Activar / Desactivar bucle continuo</li>
-            <li><kbd>1</kbd> - <kbd>7</kbd> : Vistas rápidas de cámara</li>
-            <li><kbd>M</kbd> : Silenciar / Reactivar sonido general</li>
+            <li><kbd>Space</kbd> : <span data-i18n="helpModal.spaceDesc">Play / Pause</span></li>
+            <li><kbd>R</kbd> : <span data-i18n="helpModal.rDesc">Restart song to beginning</span></li>
+            <li><kbd>L</kbd> : <span data-i18n="helpModal.lDesc">Toggle continuous loop</span></li>
+            <li><kbd>1</kbd> - <kbd>7</kbd> : <span data-i18n="helpModal.numDesc">Quick camera presets</span></li>
+            <li><kbd>M</kbd> : <span data-i18n="helpModal.mDesc">Mute / Unmute master sound</span></li>
           </ul>
         </div>
       </div>
@@ -525,7 +529,7 @@
 
   <!-- Toast Notification -->
   <div id="toast" class="toast hidden">
-    <span id="toast-message">Notificación</span>
+    <span id="toast-message">Notification</span>
   </div>
 
   <script type="module" src="/src/main.js"></script>

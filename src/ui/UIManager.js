@@ -1,4 +1,5 @@
 import { DemoSongs } from '../audio/DemoSongs.js';
+import { i18n } from '../i18n/I18nManager.js';
 
 /**
  * UIManager handles DOM interactions, playback controls, modals,
@@ -23,6 +24,7 @@ export class UIManager {
     this._bindMidiOutputSelector();
     this._bindTrackInspectorModal();
     this._bindHelpModal();
+    this._bindLanguageSwitcher();
     this._bindGlobalKeyboardShortcuts();
     this._bindMidiPlayerCallbacks();
   }
@@ -48,6 +50,7 @@ export class UIManager {
       songBpm: document.getElementById('current-song-bpm'),
 
       // Header Buttons
+      btnToggleLang: document.getElementById('btn-toggle-lang'),
       btnOpenSongs: document.getElementById('btn-open-songs'),
       fileInput: document.getElementById('file-input'),
       btnOpenTracks: document.getElementById('btn-open-tracks'),
@@ -118,7 +121,7 @@ export class UIManager {
       const isLoop = !this.midiPlayer.isLooping;
       this.midiPlayer.setLooping(isLoop);
       this.dom.btnLoop.classList.toggle('active', isLoop);
-      this.showToast(isLoop ? '🔁 Repetición activada' : 'Repetición desactivada');
+      this.showToast(isLoop ? i18n.t('toasts.loopOn') : i18n.t('toasts.loopOff'));
     });
 
     // Seek Slider
@@ -143,7 +146,7 @@ export class UIManager {
         pill.classList.add('active');
         const speed = parseFloat(pill.dataset.speed);
         this.midiPlayer.setPlaybackRate(speed);
-        this.showToast(`Velocidad: ${speed}x`);
+        this.showToast(i18n.t('toasts.speed', speed));
       });
     });
 
@@ -159,11 +162,11 @@ export class UIManager {
       if (this.isMutedMaster) {
         this.soundEngine.setMasterVolume(0);
         this.dom.masterVolume.value = 0;
-        this.showToast('🔇 Sonido silenciado');
+        this.showToast(i18n.t('toasts.mute'));
       } else {
         this.soundEngine.setMasterVolume(0.85);
         this.dom.masterVolume.value = 0.85;
-        this.showToast('🔊 Sonido reactivado');
+        this.showToast(i18n.t('toasts.unmute'));
       }
     });
   }
@@ -175,9 +178,9 @@ export class UIManager {
         this.dom.btnDirectorMode.classList.toggle('active', active);
         if (active) {
           this.dom.camButtons.forEach(b => b.classList.remove('active'));
-          this.showToast('🎬 Modo Director MIDIJam activado');
+          this.showToast(i18n.t('toasts.directorOn'));
         } else {
-          this.showToast('Modo Director desactivado (Cámara Manual)');
+          this.showToast(i18n.t('toasts.directorOff'));
         }
       });
     }
@@ -198,7 +201,7 @@ export class UIManager {
     this.dom.btnAutoRotate.addEventListener('click', () => {
       const active = this.sceneManager.cameraController.toggleAutoRotate();
       this.dom.btnAutoRotate.classList.toggle('active', active);
-      this.showToast(active ? '🔄 Giro automático activado' : 'Giro automático desactivado');
+      this.showToast(active ? i18n.t('toasts.orbitOn') : i18n.t('toasts.orbitOff'));
     });
   }
 
@@ -225,24 +228,25 @@ export class UIManager {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const inst = btn.dataset.inst;
-          const allInsts = ['piano', 'drums', 'guitar', 'bass', 'trumpet', 'sax', 'violin', 'flute', 'xylophone', 'synth'];
-          if (this.soloedInstrument === inst) {
-            // Un-solo
-            this.soloedInstrument = null;
-            this.dom.soloButtons.forEach(b => b.classList.remove('active'));
-            allInsts.forEach(i => {
-              this.soundEngine.setChannelVolume(i, this.mutedInstruments.has(i) ? 0 : (this.soundEngine.volumes[i] || 0.85));
-            });
-            this.showToast('Solo desactivado');
-          } else {
-            // Solo this instrument
-            this.soloedInstrument = inst;
-            this.dom.soloButtons.forEach(b => b.classList.toggle('active', b.dataset.inst === inst));
-            allInsts.forEach(i => {
-              this.soundEngine.setChannelVolume(i, i === inst ? (this.soundEngine.volumes[i] || 0.85) : 0);
-            });
-            this.showToast(`🎧 Solo activado: ${inst.toUpperCase()}`);
-          }
+        const allInsts = ['piano', 'drums', 'guitar', 'bass', 'trumpet', 'sax', 'violin', 'flute', 'xylophone', 'synth'];
+        const instLabel = i18n.t('instruments.' + inst) || inst;
+        if (this.soloedInstrument === inst) {
+          // Un-solo
+          this.soloedInstrument = null;
+          this.dom.soloButtons.forEach(b => b.classList.remove('active'));
+          allInsts.forEach(i => {
+            this.soundEngine.setChannelVolume(i, this.mutedInstruments.has(i) ? 0 : (this.soundEngine.volumes[i] || 0.85));
+          });
+          this.showToast(i18n.t('toasts.soloOff'));
+        } else {
+          // Solo this instrument
+          this.soloedInstrument = inst;
+          this.dom.soloButtons.forEach(b => b.classList.toggle('active', b.dataset.inst === inst));
+          allInsts.forEach(i => {
+            this.soundEngine.setChannelVolume(i, i === inst ? (this.soundEngine.volumes[i] || 0.85) : 0);
+          });
+          this.showToast(i18n.t('toasts.soloOn', instLabel.toUpperCase()));
+        }
       });
     });
 
@@ -252,18 +256,19 @@ export class UIManager {
         e.stopPropagation();
         const inst = btn.dataset.inst;
         const isMuted = this.mutedInstruments.has(inst);
+        const instLabel = i18n.t('instruments.' + inst) || inst;
         if (isMuted) {
           this.mutedInstruments.delete(inst);
           btn.classList.remove('active');
           if (!this.soloedInstrument || this.soloedInstrument === inst) {
             this.soundEngine.setChannelVolume(inst, this.soundEngine.volumes[inst]);
           }
-          this.showToast(`🔊 ${inst.toUpperCase()} reactivado`);
+          this.showToast(i18n.t('toasts.instUnmute', instLabel.toUpperCase()));
         } else {
           this.mutedInstruments.add(inst);
           btn.classList.add('active');
           this.soundEngine.setChannelVolume(inst, 0);
-          this.showToast(`🔇 ${inst.toUpperCase()} silenciado`);
+          this.showToast(i18n.t('toasts.instMute', instLabel.toUpperCase()));
         }
       });
     });
@@ -285,7 +290,7 @@ export class UIManager {
             <span class="song-bpm-tag">${song.bpm} BPM</span>
           </div>
         </div>
-        <div class="play-badge">▶ Reproducir</div>
+        <div class="play-badge">▶ ${i18n.getLocale() === 'es' ? 'Reproducir' : 'Play'}</div>
       `;
 
       card.addEventListener('click', async () => {
@@ -326,7 +331,7 @@ export class UIManager {
     this.dom.camButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === 'overview'));
     if (this.dom.btnDirectorMode) this.dom.btnDirectorMode.classList.remove('active');
 
-    this.showToast(`Cargada: ${songData.name}`);
+    this.showToast(i18n.t('toasts.songLoaded', songData.name));
     await this.midiPlayer.play();
   }
 
@@ -375,12 +380,12 @@ export class UIManager {
 
   async _handleFile(file) {
     if (!file.name.match(/\.(mid|midi)$/i)) {
-      this.showToast('⚠️ Por favor selecciona un archivo .mid o .midi');
+      this.showToast(i18n.t('toasts.invalidFile'));
       return;
     }
 
     try {
-      this.showToast(`Procesando archivo: ${file.name}...`);
+      this.showToast(i18n.t('toasts.processingFile', file.name));
       const buffer = await file.arrayBuffer();
       await this.midiPlayer.loadMidiData(buffer, file.name);
 
@@ -393,11 +398,11 @@ export class UIManager {
       this.dom.camButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === 'overview'));
       if (this.dom.btnDirectorMode) this.dom.btnDirectorMode.classList.remove('active');
 
-      this.showToast(`✅ Archivo cargado (${this.midiPlayer.trackInfos.length} pistas)`);
+      this.showToast(i18n.t('toasts.fileLoaded', this.midiPlayer.trackInfos.length));
       await this.midiPlayer.play();
     } catch (err) {
       console.error('Error al cargar archivo MIDI:', err);
-      this.showToast('❌ Error al procesar el archivo MIDI');
+      this.showToast(i18n.t('toasts.fileError'));
     }
   }
 
@@ -482,11 +487,11 @@ export class UIManager {
       const val = e.target.value;
       this.soundEngine.setMidiOutput(val);
       if (val === 'internal') {
-        this.showToast('🔊 Audio: Web Studio (SoundFonts GM de alta fidelidad)');
+        this.showToast(i18n.t('toasts.webStudioAudio'));
       } else {
         const selected = (this.soundEngine.midiOutputs || []).find(o => o.id === val);
-        const name = selected ? selected.name : 'Sintetizador Windows';
-        this.showToast(`🎛️ Modo MIDIJam: ${name} activo (latencia cero)`);
+        const name = selected ? selected.name : 'Windows MIDI Synth';
+        this.showToast(i18n.t('toasts.midijamMode', name));
       }
     });
   }
@@ -505,23 +510,24 @@ export class UIManager {
   _renderTracksTable() {
     const tracks = this.midiPlayer.trackInfos;
     this.dom.tracksTableBody.innerHTML = '';
+    const isEs = i18n.getLocale() === 'es';
 
     if (tracks.length === 0) {
-      this.dom.tracksTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#888;">No hay pistas cargadas</td></tr>';
+      this.dom.tracksTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888;">${isEs ? 'No hay pistas cargadas' : 'No tracks loaded'}</td></tr>`;
       return;
     }
 
     const availableInstruments = [
-      { id: 'piano', label: '🎹 Piano de Cola' },
-      { id: 'drums', label: '🥁 Batería Acústica' },
-      { id: 'bass', label: '🎸 Bajo Eléctrico' },
-      { id: 'guitar', label: '🎸 Guitarra Eléctrica' },
-      { id: 'trumpet', label: '🎺 Trompeta / Metales' },
-      { id: 'sax', label: '🎷 Saxofón Tenor/Alto' },
-      { id: 'violin', label: '🎻 Violín de Concierto' },
-      { id: 'flute', label: '🪈 Flauta Travesera' },
-      { id: 'xylophone', label: '🪵 Xilófono / Marimba' },
-      { id: 'synth', label: '🎹 Sintetizador Workstation' }
+      { id: 'piano', label: isEs ? '🎹 Piano de Cola' : '🎹 Grand Piano' },
+      { id: 'drums', label: isEs ? '🥁 Batería Acústica' : '🥁 Acoustic Drums' },
+      { id: 'bass', label: isEs ? '🎸 Bajo Eléctrico' : '🎸 Electric Bass' },
+      { id: 'guitar', label: isEs ? '🎸 Guitarra Eléctrica' : '🎸 Electric Guitar' },
+      { id: 'trumpet', label: isEs ? '🎺 Trompeta / Metales' : '🎺 Trumpet / Brass' },
+      { id: 'sax', label: isEs ? '🎷 Saxofón Tenor/Alto' : '🎷 Tenor/Alto Saxophone' },
+      { id: 'violin', label: isEs ? '🎻 Violín de Concierto' : '🎻 Concert Violin' },
+      { id: 'flute', label: isEs ? '🪈 Flauta Travesera' : '🪈 Concert Flute' },
+      { id: 'xylophone', label: isEs ? '🪵 Xilófono / Marimba' : '🪵 Xylophone / Marimba' },
+      { id: 'synth', label: isEs ? '🎹 Sintetizador Workstation' : '🎹 Synthesizer Workstation' }
     ];
 
     tracks.forEach((track, idx) => {
@@ -534,7 +540,7 @@ export class UIManager {
       });
       selectHtml += `</select>`;
 
-      const instanceTag = track.instanceIndex > 0 ? `<span style="color:#00f0ff; font-size:0.75rem; margin-left:6px; background:rgba(0,240,255,0.15); padding:2px 6px; border-radius:4px;">(Instancia ${track.instanceIndex + 1})</span>` : '';
+      const instanceTag = track.instanceIndex > 0 ? `<span style="color:#00f0ff; font-size:0.75rem; margin-left:6px; background:rgba(0,240,255,0.15); padding:2px 6px; border-radius:4px;">(${isEs ? 'Instancia' : 'Instance'} ${track.instanceIndex + 1})</span>` : '';
 
       row.innerHTML = `
         <td>${idx + 1}</td>
@@ -549,7 +555,8 @@ export class UIManager {
         const newInst = e.target.value;
         this.midiPlayer.setTrackInstrument(track.index, newInst);
         this._renderTracksTable();
-        this.showToast(`Pista "${track.name}" asignada a ${newInst.toUpperCase()}`);
+        const instLabel = i18n.t('instruments.' + newInst) || newInst;
+        this.showToast(i18n.t('toasts.trackAssigned', track.name, instLabel.toUpperCase()));
       });
 
       this.dom.tracksTableBody.appendChild(row);
@@ -566,6 +573,29 @@ export class UIManager {
     });
   }
 
+  _bindLanguageSwitcher() {
+    if (this.dom.btnToggleLang) {
+      this.dom.btnToggleLang.addEventListener('click', () => {
+        const newLang = i18n.toggleLocale();
+        this.showToast(newLang === 'es' ? '🌐 Idioma: Español' : '🌐 Language: English');
+      });
+    }
+
+    i18n.onLocaleChange((locale) => {
+      this._onLocaleChanged(locale);
+    });
+
+    // Initial DOM translation
+    i18n.updateDOM();
+  }
+
+  _onLocaleChanged(locale) {
+    this._bindDemoSongsModal();
+    if (this.midiPlayer && this.midiPlayer.trackInfos && this.midiPlayer.trackInfos.length > 0) {
+      this._renderTracksTable();
+    }
+  }
+
   _bindGlobalKeyboardShortcuts() {
     window.addEventListener('keydown', (e) => {
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
@@ -578,7 +608,7 @@ export class UIManager {
         case 'KeyR':
           this.midiPlayer.seek(0);
           this.midiPlayer.play();
-          this.showToast('⏮️ Reiniciada al inicio');
+          this.showToast(i18n.t('toasts.songRestarted'));
           break;
         case 'KeyL':
           this.dom.btnLoop.click();

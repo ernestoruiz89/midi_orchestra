@@ -2,6 +2,7 @@ import { SoundEngine } from './audio/SoundEngine.js';
 import { MidiPlayer } from './audio/MidiPlayer.js';
 import { SceneManager } from './scene/SceneManager.js';
 import { UIManager } from './ui/UIManager.js';
+import { i18n } from './i18n/I18nManager.js';
 
 // Application Bootstrap
 window.addEventListener('DOMContentLoaded', async () => {
@@ -18,11 +19,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   const uiManager = new UIManager(soundEngine, midiPlayer, sceneManager);
 
   // Expose global app for interaction and debugging
-  window.app = { soundEngine, midiPlayer, sceneManager, uiManager };
+  window.app = { soundEngine, midiPlayer, sceneManager, uiManager, i18n };
 
   // 4. Load Default Demo Song ("Funk & Jazz Band Jam")
   await uiManager.loadDemoSong('funk_fusion');
 
   // Show welcome toast
-  uiManager.showToast('✨ Bienvenido a MIDI Orchestra. ¡Presiona Reproducir o suelta un archivo MIDI!');
+  uiManager.showToast(i18n.t('toasts.welcome'));
 });
