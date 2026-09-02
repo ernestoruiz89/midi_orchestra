@@ -80,14 +80,14 @@ export class SceneManager {
     this.guitar_4.group.visible = false;
 
     this.trumpet_2 = new Trumpet3D(this.scene);
-    this.trumpet_2.group.position.set(4.9, 1.5, 1.1);
-    this.trumpet_2.group.rotation.y = -0.42;
+    this.trumpet_2.group.position.set(4.85, 1.40, 0.75);
+    this.trumpet_2.group.rotation.copy(this.trumpet.group.rotation);
     this.trumpet_2.brassMaterial.color.setHex(0xd0d8e4); // Chrome/Silver Trumpet
     this.trumpet_2.group.visible = false;
 
     this.sax_2 = new Saxophone3D(this.scene);
-    this.sax_2.group.position.set(4.4, 1.25, 2.2);
-    this.sax_2.group.rotation.y = -0.52;
+    this.sax_2.group.position.set(3.85, 1.25, 2.35);
+    this.sax_2.group.rotation.copy(this.sax.group.rotation);
     this.sax_2.brassMaterial.color.setHex(0xc2c8d2); // Vintage Nickel Alto Sax
     this.sax_2.group.visible = false;
 
