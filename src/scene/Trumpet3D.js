@@ -23,8 +23,8 @@ export class Trumpet3D {
     this.group = new THREE.Group();
     // Positioned on stage right
     this.group.position.set(4.4, 1.40, 0.4);
-    // Angled gracefully so the bell faces downstage-left towards the audience
-    this.group.rotation.set(0.06, Math.PI * 0.12, 0.06);
+    // Bell faces the audience (+Z direction): -X local → +Z world
+    this.group.rotation.set(0.06, Math.PI * 0.62, 0.06);
 
     this.valves = []; // 3 valve piston groups
     this.bellMesh = null;

@@ -19,7 +19,7 @@ export class Saxophone3D {
     this.group = new THREE.Group();
     // Positioned front-right stage
     this.group.position.set(3.4, 1.25, 1.8);
-    // Angled gracefully so the centered bell faces towards the audience and camera
+    // Bell faces the audience (+Z direction)
     this.group.rotation.set(0.04, -Math.PI * 0.18, 0.06);
 
     this.keyPads = [];

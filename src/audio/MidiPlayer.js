@@ -289,6 +289,7 @@ export class MidiPlayer {
   setTrackInstrument(trackIndex, newInstrument) {
     const trackInfo = this.trackInfos.find(t => t.index === trackIndex);
     if (trackInfo) {
+      trackInfo.instrument = newInstrument;
       const defaultPrograms = {
         piano: 0,
         drums: 0,
