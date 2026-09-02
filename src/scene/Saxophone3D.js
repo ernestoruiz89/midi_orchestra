@@ -2,14 +2,14 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 
 /**
- * Saxophone3D: Precision-Aligned Alto Saxophone
- * - 100% Coaxial alignment: Neck, cork, mouthpiece, body, bow, and bell all share the central plane
- * - Zero broken kinks or crooked joints from top view
- * - Zero stray piercing rods or clutter
- * - Anatomically placed mother-of-pearl finger buttons on the front face of the body tube:
+ * Saxophone3D: Perfectly Centered & Symmetrical Alto Saxophone
+ * - 100% Centered geometry: Body, Neck, U-Bow, and Bell (Trompa) all share the EXACT same central axis (x = 0)
+ * - From above, the neck and the bell are in 100% straight coaxial alignment with the body (zero skew, zero offset)
+ * - Clean curved neck (tudel) with black mouthpiece, gold ligature, and natural cork
+ * - Flared bell rising directly centered in front of the body with rolled rim bead
+ * - 6 mother-of-pearl finger buttons in their true ergonomic positions:
  *   - Upper stack (Left hand): Keys 1, 2, 3 (B, A, G)
  *   - Lower stack (Right hand): Keys 4, 5, 6 (F, E, D)
- * - Beautiful flared bell with rolled rim bead rising gracefully on the right
  * - Clean stage stand with padded cradles
  * - Realistic key depression and acoustic recoil on note-on
  */
@@ -19,8 +19,8 @@ export class Saxophone3D {
     this.group = new THREE.Group();
     // Positioned front-right stage
     this.group.position.set(3.4, 1.25, 1.8);
-    // Angled gracefully so both the front buttons and the side bell face the audience
-    this.group.rotation.set(0.04, -Math.PI * 0.16, 0.06);
+    // Angled gracefully so the centered bell faces towards the audience and camera
+    this.group.rotation.set(0.04, -Math.PI * 0.18, 0.06);
 
     this.keyPads = [];
     this.bellMesh = null;
@@ -100,18 +100,19 @@ export class Saxophone3D {
     const stand = new THREE.Group();
     stand.position.set(0, -1.25, 0);
 
-    // Central mast
+    // Central mast centered at x = 0
     const pole = new THREE.Mesh(
       new THREE.CylinderGeometry(0.014, 0.014, 1.20, 12),
       this.standMaterial
     );
-    pole.position.y = 0.60;
+    pole.position.set(0, 0.60, -0.04);
     stand.add(pole);
 
     // Tripod Base with 3 legs
     for (let i = 0; i < 3; i++) {
       const angle = (i * Math.PI * 2) / 3;
       const legGroup = new THREE.Group();
+      legGroup.position.set(0, 0, -0.04);
       legGroup.rotation.y = angle;
 
       const leg = new THREE.Mesh(
@@ -132,21 +133,21 @@ export class Saxophone3D {
       stand.add(legGroup);
     }
 
-    // Lower Padded Bow Cradle
+    // Lower Padded Bow Cradle centered at x = 0
     const lowerCradle = new THREE.Mesh(
       new THREE.TorusGeometry(0.075, 0.014, 8, 16, Math.PI),
       this.standMaterial
     );
-    lowerCradle.position.set(0.055, 0.38, 0);
+    lowerCradle.position.set(0, 0.38, 0.06);
     lowerCradle.rotation.x = Math.PI / 2;
     stand.add(lowerCradle);
 
-    // Upper Padded Body Yoke Cradle
+    // Upper Padded Body Yoke Cradle centered at x = 0
     const upperYoke = new THREE.Mesh(
       new THREE.TorusGeometry(0.045, 0.012, 8, 16, Math.PI),
       this.standMaterial
     );
-    upperYoke.position.set(0, 0.90, -0.02);
+    upperYoke.position.set(0, 0.90, -0.04);
     upperYoke.rotation.x = Math.PI / 2;
     stand.add(upperYoke);
 
@@ -162,7 +163,7 @@ export class Saxophone3D {
     const rBot = 0.042;
 
     // ==========================================
-    // 1. STRAIGHT CONICAL BODY TUBE (Centered along Y at x=0, z=0)
+    // 1. STRAIGHT CONICAL BODY TUBE (Centered at x = 0, z = 0)
     // ==========================================
     const mainBody = new THREE.Mesh(
       new THREE.CylinderGeometry(rTop, rBot, bodyHeight, 28),
@@ -172,29 +173,28 @@ export class Saxophone3D {
     mainBody.castShadow = true;
     sax.add(mainBody);
 
-    // Top neck collar ring
+    // Top neck collar ring centered at x = 0, z = 0
     const topCollar = new THREE.Mesh(
       new THREE.CylinderGeometry(0.024, 0.024, 0.020, 20),
       this.brassMaterial
     );
-    topCollar.position.y = bodyHeight / 2 + 0.010;
+    topCollar.position.set(0, bodyHeight / 2 + 0.010, 0);
     sax.add(topCollar);
 
     // ==========================================
-    // 2. PERFECTLY ALIGNED CURVED S-NECK (TUDEL) & MOUTHPIECE
-    // All components strictly in z = 0 plane with horizontal exit tangent!
+    // 2. NECK (TUDEL) & MOUTHPIECE (Centered at x = 0, curves straight along -Z)
     // ==========================================
     const neckY_start = bodyHeight / 2 + 0.020;
     const neckY_apex = bodyHeight / 2 + 0.145;
-    const neckX_end = -0.150;
+    const neckZ_end = -0.150;
 
-    // Continuous smooth curve in XY plane (z = 0)
+    // Smooth continuous curve in the YZ plane (strictly x = 0!)
     const neckCurve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(0.000, neckY_start, 0),
-      new THREE.Vector3(-0.015, neckY_start + 0.060, 0),
-      new THREE.Vector3(-0.045, neckY_start + 0.105, 0),
-      new THREE.Vector3(-0.095, neckY_apex, 0),
-      new THREE.Vector3(neckX_end, neckY_apex, 0) // Perfectly horizontal exit tangent!
+      new THREE.Vector3(0, neckY_start, 0.000),
+      new THREE.Vector3(0, neckY_start + 0.060, -0.015),
+      new THREE.Vector3(0, neckY_start + 0.105, -0.045),
+      new THREE.Vector3(0, neckY_apex, -0.095),
+      new THREE.Vector3(0, neckY_apex, neckZ_end) // Strictly horizontal exit tangent along -Z!
     ]);
 
     const neckMesh = new THREE.Mesh(
@@ -204,51 +204,52 @@ export class Saxophone3D {
     neckMesh.castShadow = true;
     sax.add(neckMesh);
 
-    // Natural Neck Cork: Perfectly coaxial cylinder along X (from x = -0.150 to x = -0.182)
+    // Natural Neck Cork: Perfectly coaxial cylinder along Z at x = 0
     const corkLen = 0.032;
-    const corkX = neckX_end - corkLen / 2;
+    const corkZ = neckZ_end - corkLen / 2;
     const cork = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.0098, 0.0098, corkLen, 16).rotateZ(Math.PI / 2),
+      new THREE.CylinderGeometry(0.0098, 0.0098, corkLen, 16).rotateX(Math.PI / 2),
       this.corkMaterial
     );
-    cork.position.set(corkX, neckY_apex, 0);
+    cork.position.set(0, neckY_apex, corkZ);
     sax.add(cork);
 
-    // Ebonite Black Mouthpiece: Perfectly coaxial along X (from x = -0.182 to x = -0.240)
+    // Ebonite Black Mouthpiece: Perfectly coaxial along Z at x = 0
     const mpLen = 0.058;
-    const mpX = neckX_end - corkLen - mpLen / 2;
+    const mpZ = neckZ_end - corkLen - mpLen / 2;
     const mpMesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.0095, 0.0118, mpLen, 16).rotateZ(Math.PI / 2),
+      new THREE.CylinderGeometry(0.0095, 0.0118, mpLen, 16).rotateX(Math.PI / 2),
       this.eboniteMaterial
     );
-    mpMesh.position.set(mpX, neckY_apex, 0);
+    mpMesh.position.set(0, neckY_apex, mpZ);
     sax.add(mpMesh);
 
-    // Cane Reed underneath mouthpiece
+    // Cane Reed underneath mouthpiece at x = 0
     const reed = new THREE.Mesh(
-      new THREE.BoxGeometry(mpLen * 0.85, 0.003, 0.012),
+      new THREE.BoxGeometry(0.012, 0.003, mpLen * 0.85),
       this.reedMaterial
     );
-    reed.position.set(mpX, neckY_apex - 0.010, 0);
+    reed.position.set(0, neckY_apex - 0.010, mpZ);
     sax.add(reed);
 
-    // Gold Brass Ligature collar holding reed to mouthpiece
+    // Gold Brass Ligature collar holding reed at x = 0
     const ligature = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.0122, 0.0122, 0.018, 16).rotateZ(Math.PI / 2),
+      new THREE.CylinderGeometry(0.0122, 0.0122, 0.018, 16).rotateX(Math.PI / 2),
       this.brassMaterial
     );
-    ligature.position.set(mpX + 0.010, neckY_apex, 0);
+    ligature.position.set(0, neckY_apex, mpZ + 0.010);
     sax.add(ligature);
 
     // ==========================================
-    // 3. LOWER U-BOW (Curving from body to the right in z = 0 plane)
+    // 3. LOWER U-BOW (Centered at x = 0, curves smoothly forward along +Z)
     // ==========================================
+    const bowZ_end = 0.130;
     const bowCurve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(0.000, -bodyHeight / 2, 0),
-      new THREE.Vector3(0.015, -bodyHeight / 2 - 0.080, 0),
-      new THREE.Vector3(0.055, -bodyHeight / 2 - 0.105, 0),
-      new THREE.Vector3(0.095, -bodyHeight / 2 - 0.080, 0),
-      new THREE.Vector3(0.110, -bodyHeight / 2, 0)
+      new THREE.Vector3(0, -bodyHeight / 2, 0.000),
+      new THREE.Vector3(0, -bodyHeight / 2 - 0.080, 0.020),
+      new THREE.Vector3(0, -bodyHeight / 2 - 0.105, 0.065),
+      new THREE.Vector3(0, -bodyHeight / 2 - 0.080, 0.110),
+      new THREE.Vector3(0, -bodyHeight / 2, bowZ_end)
     ]);
     const bowMesh = new THREE.Mesh(
       new THREE.TubeGeometry(bowCurve, 24, 0.038, 18, false),
@@ -258,15 +259,16 @@ export class Saxophone3D {
     sax.add(bowMesh);
 
     // ==========================================
-    // 4. UPTURNED FLARING BELL (Rises on the right of the body)
+    // 4. BELL ("LA TROMPA") - 100% CENTERED AT x = 0!
+    // Directly aligned in front of the body along the Z-axis
     // ==========================================
     const bellGroup = new THREE.Group();
-    bellGroup.position.set(0.110, -bodyHeight / 2, 0);
-    // Tilted slightly outward and forward (~8° and ~12°)
-    bellGroup.rotation.z = -0.12;
-    bellGroup.rotation.x = 0.14;
+    // Positioned at end of U-bow: x = 0, y = -bodyHeight/2, z = bowZ_end
+    bellGroup.position.set(0, -bodyHeight / 2, bowZ_end);
+    // Tilted slightly forward (~14°) for natural acoustic projection
+    bellGroup.rotation.x = 0.24;
 
-    // Ascending bell tube from y = 0 to y = 0.22
+    // Ascending bell tube centered at x = 0
     const bellTube = new THREE.Mesh(
       new THREE.CylinderGeometry(0.054, 0.038, 0.22, 22),
       this.brassMaterial
@@ -275,11 +277,11 @@ export class Saxophone3D {
     bellTube.castShadow = true;
     bellGroup.add(bellTube);
 
-    // Smooth Exponential Bell Flare from y = 0.22 to y = 0.38
+    // Smooth Exponential Bell Flare centered at x = 0
     const bellFlarePoints = [];
     const segments = 20;
     const startR = 0.054;
-    const endR = 0.092; // 18.4cm wide authentic flared horn opening
+    const endR = 0.092; // 18.4cm authentic flared horn opening
     const flareH = 0.16;
 
     for (let j = 0; j <= segments; j++) {
@@ -310,27 +312,27 @@ export class Saxophone3D {
 
     // Low Key Cups on the bell
     const lowKey1 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.016, 0.016, 0.006, 14).rotateZ(Math.PI / 2),
+      new THREE.CylinderGeometry(0.016, 0.016, 0.006, 14).rotateY(Math.PI / 2),
       this.brassMaterial
     );
-    lowKey1.position.set(0.046, 0.15, 0.02);
+    lowKey1.position.set(0.046, 0.15, 0);
     bellGroup.add(lowKey1);
 
     const lowKey2 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.018, 0.018, 0.006, 14).rotateZ(Math.PI / 2),
+      new THREE.CylinderGeometry(0.018, 0.018, 0.006, 14).rotateY(Math.PI / 2),
       this.brassMaterial
     );
-    lowKey2.position.set(0.048, 0.08, 0.01);
+    lowKey2.position.set(-0.046, 0.10, 0);
     bellGroup.add(lowKey2);
 
     sax.add(bellGroup);
 
     // ==========================================
-    // 5. ANATOMICAL PEARL FINGER BUTTONS (On front face of body tube +Z)
+    // 5. ANATOMICAL PEARL FINGER BUTTONS (On the body tube)
     // ==========================================
-    // True alto saxophone layout:
     // Left Hand (Upper Stack): 3 main pearl buttons (B, A, G)
     // Right Hand (Lower Stack): 3 main pearl buttons (F, E, D)
+    // Angled slightly (~22°) to player's left so they are clearly visible alongside the bell
     const fingerKeyPositions = [
       // Upper stack (Left hand)
       { y: 0.135, name: 'B' },
@@ -342,15 +344,18 @@ export class Saxophone3D {
       { y: -0.165, name: 'D' }
     ];
 
+    const keyAngle = 0.38; // 22° offset for ergonomic side visibility
     fingerKeyPositions.forEach((k, idx) => {
       const keyGroup = new THREE.Group();
 
-      // Exact radius of the conical body at height y
-      const tNorm = (bodyHeight / 2 - k.y) / bodyHeight; // 0 at top, 1 at bottom
+      const tNorm = (bodyHeight / 2 - k.y) / bodyHeight;
       const bodyRadiusAtY = rTop + (rBot - rTop) * tNorm;
 
-      // Positioned on the FRONT face (+Z) facing the viewer and player
-      keyGroup.position.set(0, k.y, bodyRadiusAtY + 0.003);
+      const kx = Math.sin(keyAngle) * (bodyRadiusAtY + 0.003);
+      const kz = Math.cos(keyAngle) * (bodyRadiusAtY + 0.003);
+
+      keyGroup.position.set(kx, k.y, kz);
+      keyGroup.rotation.y = keyAngle;
 
       // Gold Brass Key Cup
       const cup = new THREE.Mesh(
@@ -359,7 +364,7 @@ export class Saxophone3D {
       );
       keyGroup.add(cup);
 
-      // Mother-of-Pearl Button Inlay (clearly visible on front)
+      // Mother-of-Pearl Button Inlay
       const pearl = new THREE.Mesh(
         new THREE.CylinderGeometry(0.0105, 0.0105, 0.003, 18).rotateX(Math.PI / 2),
         this.pearlMaterial
@@ -372,11 +377,12 @@ export class Saxophone3D {
       this.keyPads.push({
         group: keyGroup,
         baseZ: keyGroup.position.z,
+        baseX: keyGroup.position.x,
         index: idx
       });
     });
 
-    // Ergonomic Thumb Hook on the back (-Z) for player's right thumb
+    // Ergonomic Thumb Hook on the back (-Z) for player's right thumb at x = 0
     const thumbRest = new THREE.Mesh(
       new THREE.TorusGeometry(0.010, 0.003, 8, 14, Math.PI * 0.75).rotateY(Math.PI / 2),
       this.brassMaterial
@@ -396,8 +402,8 @@ export class Saxophone3D {
         opacity: 0
       });
       const ring = new THREE.Mesh(ringGeom, ringMat);
-      // Located at the opening of the bell flare
-      ring.position.set(0.14, 0.08, 0.08);
+      // Located at the opening of the centered bell flare
+      ring.position.set(0, 0.06, 0.18);
       this.group.add(ring);
       this.shockwaveRings.push(ring);
     }
@@ -410,16 +416,19 @@ export class Saxophone3D {
     const pressedCount = (midiPitch % 6) + 1;
     this.keyPads.forEach((k, idx) => {
       const isDown = idx < pressedCount;
-      const targetZ = isDown ? k.baseZ - 0.007 : k.baseZ;
+      const targetZ = isDown ? k.baseZ - 0.006 : k.baseZ;
+      const targetX = isDown ? k.baseX - 0.003 : k.baseX;
 
       gsap.killTweensOf(k.group.position);
       gsap.to(k.group.position, {
         z: targetZ,
+        x: targetX,
         duration: 0.04,
         ease: 'power2.out',
         onComplete: () => {
           gsap.to(k.group.position, {
             z: k.baseZ,
+            x: k.baseX,
             duration: 0.14,
             delay: 0.05,
             ease: 'power1.in'
@@ -442,7 +451,7 @@ export class Saxophone3D {
       });
 
       gsap.to(this.saxBody.rotation, {
-        z: -0.020 * vel,
+        x: -0.020 * vel,
         duration: 0.07,
         ease: 'power2.out',
         yoyo: true,
@@ -453,7 +462,7 @@ export class Saxophone3D {
     // Acoustic Shockwave Ring Emission
     const idleRing = this.shockwaveRings.find(r => r.material.opacity <= 0.05);
     if (idleRing) {
-      idleRing.position.set(0.14, 0.08, 0.08);
+      idleRing.position.set(0, 0.06, 0.18);
       idleRing.scale.set(1, 1, 1);
       idleRing.material.opacity = 0.85 * vel;
 
@@ -463,7 +472,7 @@ export class Saxophone3D {
 
       gsap.to(idleRing.position, {
         y: 0.7,
-        z: 0.8,
+        z: 0.9,
         duration: 0.60,
         ease: 'power1.out'
       });
