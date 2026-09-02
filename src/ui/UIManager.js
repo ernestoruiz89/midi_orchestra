@@ -1,0 +1,758 @@
+import { DemoSongs } from '../audio/DemoSongs.js';
+
+/**
+ * UIManager handles DOM interactions, playback controls, modals,
+ * drag-and-drop file imports, audio mixer sliders, and keyboard shortcuts.
+ */
+export class UIManager {
+  constructor(soundEngine, midiPlayer, sceneManager) {
+    this.soundEngine = soundEngine;
+    this.midiPlayer = midiPlayer;
+    this.sceneManager = sceneManager;
+
+    this.isSeeking = false;
+    this.isMutedMaster = false;
+
+    this._cacheDOM();
+    this._bindPlaybackControls();
+    this._bindCameraToolbar();
+    this._bindVirtualBandStrip();
+    this._bindDemoSongsModal();
+    this._bindFileUploadAndDropzone();
+    this._bindMixerDrawer();
+    this._bindMidiOutputSelector();
+    this._bindTrackInspectorModal();
+    this._bindHelpModal();
+    this._bindGlobalKeyboardShortcuts();
+    this._bindMidiPlayerCallbacks();
+  }
+
+  _cacheDOM() {
+    this.dom = {
+      // Playback
+      btnPlay: document.getElementById('btn-play'),
+      btnStop: document.getElementById('btn-stop'),
+      btnLoop: document.getElementById('btn-loop'),
+      iconPlay: document.getElementById('icon-play'),
+      iconPause: document.getElementById('icon-pause'),
+      seekSlider: document.getElementById('seek-slider'),
+      seekFill: document.getElementById('seek-progress-fill'),
+      timeCurrent: document.getElementById('time-current'),
+      timeTotal: document.getElementById('time-total'),
+      speedPills: document.querySelectorAll('.speed-pill'),
+      masterVolume: document.getElementById('master-volume'),
+      btnMasterMute: document.getElementById('btn-master-mute'),
+
+      // Header Meta
+      songTitle: document.getElementById('current-song-title'),
+      songBpm: document.getElementById('current-song-bpm'),
+
+      // Header Buttons
+      btnOpenSongs: document.getElementById('btn-open-songs'),
+      fileInput: document.getElementById('file-input'),
+      btnOpenTracks: document.getElementById('btn-open-tracks'),
+      btnToggleMixer: document.getElementById('btn-toggle-mixer'),
+      btnOpenHelp: document.getElementById('btn-open-help'),
+
+      // Camera
+      btnDirectorMode: document.getElementById('btn-director-mode'),
+      camButtons: document.querySelectorAll('.cam-btn[data-preset]'),
+      btnAutoRotate: document.getElementById('btn-auto-rotate'),
+
+      // MIDIJam Virtual Band Strip
+      bandCards: document.querySelectorAll('.band-inst-card'),
+      soloButtons: document.querySelectorAll('.solo-btn'),
+      muteButtons: document.querySelectorAll('.mute-btn'),
+      vuBars: {
+        piano: document.getElementById('vu-piano'),
+        drums: document.getElementById('vu-drums'),
+        guitar: document.getElementById('vu-guitar'),
+        bass: document.getElementById('vu-bass'),
+        trumpet: document.getElementById('vu-trumpet'),
+        sax: document.getElementById('vu-sax'),
+        violin: document.getElementById('vu-violin'),
+        flute: document.getElementById('vu-flute'),
+        xylophone: document.getElementById('vu-xylophone'),
+        synth: document.getElementById('vu-synth')
+      },
+
+      // Modals & Drawers
+      modalSongs: document.getElementById('modal-songs'),
+      btnCloseSongs: document.getElementById('btn-close-songs'),
+      demoSongsList: document.getElementById('demo-songs-list'),
+
+      drawerMixer: document.getElementById('drawer-mixer'),
+      btnCloseMixer: document.getElementById('btn-close-mixer'),
+      selectMidiOut: document.getElementById('select-midi-out'),
+
+      modalTracks: document.getElementById('modal-tracks'),
+      btnCloseTracks: document.getElementById('btn-close-tracks'),
+      tracksTableBody: document.getElementById('tracks-table-body'),
+
+      modalHelp: document.getElementById('modal-help'),
+      btnCloseHelp: document.getElementById('btn-close-help'),
+
+      dropzoneOverlay: document.getElementById('dropzone-overlay'),
+      toast: document.getElementById('toast'),
+      toastMessage: document.getElementById('toast-message')
+    };
+  }
+
+  _bindPlaybackControls() {
+    // Play / Pause
+    this.dom.btnPlay.addEventListener('click', async () => {
+      if (this.midiPlayer.isPlaying) {
+        this.midiPlayer.pause();
+      } else {
+        await this.midiPlayer.play();
+      }
+    });
+
+    // Stop
+    this.dom.btnStop.addEventListener('click', () => {
+      this.midiPlayer.stop();
+    });
+
+    // Loop
+    this.dom.btnLoop.addEventListener('click', () => {
+      const isLoop = !this.midiPlayer.isLooping;
+      this.midiPlayer.setLooping(isLoop);
+      this.dom.btnLoop.classList.toggle('active', isLoop);
+      this.showToast(isLoop ? '🔁 Repetición activada' : 'Repetición desactivada');
+    });
+
+    // Seek Slider
+    this.dom.seekSlider.addEventListener('input', (e) => {
+      this.isSeeking = true;
+      const val = parseFloat(e.target.value);
+      const targetTime = (val / 100) * this.midiPlayer.duration;
+      this.dom.timeCurrent.textContent = this._formatTime(targetTime);
+    });
+
+    this.dom.seekSlider.addEventListener('change', (e) => {
+      const val = parseFloat(e.target.value);
+      const targetTime = (val / 100) * this.midiPlayer.duration;
+      this.midiPlayer.seek(targetTime);
+      this.isSeeking = false;
+    });
+
+    // Speed Pills
+    this.dom.speedPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        this.dom.speedPills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        const speed = parseFloat(pill.dataset.speed);
+        this.midiPlayer.setPlaybackRate(speed);
+        this.showToast(`Velocidad: ${speed}x`);
+      });
+    });
+
+    // Master Volume
+    this.dom.masterVolume.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      this.soundEngine.setMasterVolume(val);
+      this.isMutedMaster = val === 0;
+    });
+
+    this.dom.btnMasterMute.addEventListener('click', () => {
+      this.isMutedMaster = !this.isMutedMaster;
+      if (this.isMutedMaster) {
+        this.soundEngine.setMasterVolume(0);
+        this.dom.masterVolume.value = 0;
+        this.showToast('🔇 Sonido silenciado');
+      } else {
+        this.soundEngine.setMasterVolume(0.85);
+        this.dom.masterVolume.value = 0.85;
+        this.showToast('🔊 Sonido reactivado');
+      }
+    });
+  }
+
+  _bindCameraToolbar() {
+    if (this.dom.btnDirectorMode) {
+      this.dom.btnDirectorMode.addEventListener('click', () => {
+        const active = this.sceneManager.cameraController.toggleDirectorMode();
+        this.dom.btnDirectorMode.classList.toggle('active', active);
+        if (active) {
+          this.dom.camButtons.forEach(b => b.classList.remove('active'));
+          this.showToast('🎬 Modo Director MIDIJam activado');
+        } else {
+          this.showToast('Modo Director desactivado (Cámara Manual)');
+        }
+      });
+    }
+
+    this.dom.camButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (this.sceneManager.cameraController.directorMode) {
+          this.sceneManager.cameraController.directorMode = false;
+          if (this.dom.btnDirectorMode) this.dom.btnDirectorMode.classList.remove('active');
+        }
+        this.dom.camButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const preset = btn.dataset.preset;
+        this.sceneManager.cameraController.setPreset(preset);
+      });
+    });
+
+    this.dom.btnAutoRotate.addEventListener('click', () => {
+      const active = this.sceneManager.cameraController.toggleAutoRotate();
+      this.dom.btnAutoRotate.classList.toggle('active', active);
+      this.showToast(active ? '🔄 Giro automático activado' : 'Giro automático desactivado');
+    });
+  }
+
+  _bindVirtualBandStrip() {
+    this.soloedInstrument = null;
+    this.mutedInstruments = new Set();
+
+    // Click instrument card to view instrument
+    this.dom.bandCards.forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.track-btn')) return;
+        const inst = card.dataset.inst;
+        if (this.sceneManager.cameraController.directorMode) {
+          this.sceneManager.cameraController.directorMode = false;
+          if (this.dom.btnDirectorMode) this.dom.btnDirectorMode.classList.remove('active');
+        }
+        this.dom.camButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === inst));
+        this.sceneManager.cameraController.setPreset(inst);
+      });
+    });
+
+    // Solo buttons (S)
+    this.dom.soloButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const inst = btn.dataset.inst;
+          const allInsts = ['piano', 'drums', 'guitar', 'bass', 'trumpet', 'sax', 'violin', 'flute', 'xylophone', 'synth'];
+          if (this.soloedInstrument === inst) {
+            // Un-solo
+            this.soloedInstrument = null;
+            this.dom.soloButtons.forEach(b => b.classList.remove('active'));
+            allInsts.forEach(i => {
+              this.soundEngine.setChannelVolume(i, this.mutedInstruments.has(i) ? 0 : (this.soundEngine.volumes[i] || 0.85));
+            });
+            this.showToast('Solo desactivado');
+          } else {
+            // Solo this instrument
+            this.soloedInstrument = inst;
+            this.dom.soloButtons.forEach(b => b.classList.toggle('active', b.dataset.inst === inst));
+            allInsts.forEach(i => {
+              this.soundEngine.setChannelVolume(i, i === inst ? (this.soundEngine.volumes[i] || 0.85) : 0);
+            });
+            this.showToast(`🎧 Solo activado: ${inst.toUpperCase()}`);
+          }
+      });
+    });
+
+    // Mute buttons (M)
+    this.dom.muteButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const inst = btn.dataset.inst;
+        const isMuted = this.mutedInstruments.has(inst);
+        if (isMuted) {
+          this.mutedInstruments.delete(inst);
+          btn.classList.remove('active');
+          if (!this.soloedInstrument || this.soloedInstrument === inst) {
+            this.soundEngine.setChannelVolume(inst, this.soundEngine.volumes[inst]);
+          }
+          this.showToast(`🔊 ${inst.toUpperCase()} reactivado`);
+        } else {
+          this.mutedInstruments.add(inst);
+          btn.classList.add('active');
+          this.soundEngine.setChannelVolume(inst, 0);
+          this.showToast(`🔇 ${inst.toUpperCase()} silenciado`);
+        }
+      });
+    });
+  }
+
+  _bindDemoSongsModal() {
+    // Populate demo list
+    const songs = DemoSongs.getSongsList();
+    this.dom.demoSongsList.innerHTML = '';
+
+    songs.forEach(song => {
+      const card = document.createElement('div');
+      card.className = 'demo-song-card';
+      card.innerHTML = `
+        <div class="song-info">
+          <h4>${song.name}</h4>
+          <div class="song-tags">
+            <span class="song-genre">${song.genre}</span>
+            <span class="song-bpm-tag">${song.bpm} BPM</span>
+          </div>
+        </div>
+        <div class="play-badge">▶ Reproducir</div>
+      `;
+
+      card.addEventListener('click', async () => {
+        this.dom.modalSongs.classList.add('hidden');
+        await this.loadDemoSong(song.id);
+      });
+
+      this.dom.demoSongsList.appendChild(card);
+    });
+
+    this.dom.btnOpenSongs.addEventListener('click', () => {
+      this.dom.modalSongs.classList.remove('hidden');
+    });
+
+    this.dom.btnCloseSongs.addEventListener('click', () => {
+      this.dom.modalSongs.classList.add('hidden');
+    });
+  }
+
+  async loadDemoSong(songId) {
+    const songData = DemoSongs.getSongData(songId);
+    this.midiPlayer.stop();
+
+    this.midiPlayer.midiData = songData;
+    this.midiPlayer.songName = songData.name;
+    this.midiPlayer.duration = songData.duration;
+    this.midiPlayer.bpm = songData.header.tempos[0].bpm;
+
+    this.midiPlayer._processTracks(songData);
+    this._applyActiveInstruments(this.midiPlayer.getActiveInstruments());
+
+    this.dom.songTitle.textContent = songData.name;
+    this.dom.songBpm.textContent = `${songData.bpm} BPM`;
+    this.dom.timeTotal.textContent = this._formatTime(songData.duration);
+
+    // Always reset to Stage Overview by default
+    this.sceneManager.cameraController.setPreset('overview', 0.8);
+    this.dom.camButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === 'overview'));
+    if (this.dom.btnDirectorMode) this.dom.btnDirectorMode.classList.remove('active');
+
+    this.showToast(`Cargada: ${songData.name}`);
+    await this.midiPlayer.play();
+  }
+
+  _bindFileUploadAndDropzone() {
+    // Standard file input
+    this.dom.fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        await this._handleFile(file);
+      }
+    });
+
+    // Drag and Drop
+    let dragCounter = 0;
+
+    window.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragCounter++;
+      this.dom.dropzoneOverlay.classList.remove('hidden');
+    });
+
+    window.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dragCounter--;
+      if (dragCounter <= 0) {
+        this.dom.dropzoneOverlay.classList.add('hidden');
+        dragCounter = 0;
+      }
+    });
+
+    window.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    window.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dragCounter = 0;
+      this.dom.dropzoneOverlay.classList.add('hidden');
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        await this._handleFile(file);
+      }
+    });
+  }
+
+  async _handleFile(file) {
+    if (!file.name.match(/\.(mid|midi)$/i)) {
+      this.showToast('⚠️ Por favor selecciona un archivo .mid o .midi');
+      return;
+    }
+
+    try {
+      this.showToast(`Procesando archivo: ${file.name}...`);
+      const buffer = await file.arrayBuffer();
+      await this.midiPlayer.loadMidiData(buffer, file.name);
+
+      this.dom.songTitle.textContent = file.name.replace(/\.[^/.]+$/, '');
+      this.dom.songBpm.textContent = `${this.midiPlayer.bpm} BPM`;
+      this.dom.timeTotal.textContent = this._formatTime(this.midiPlayer.duration);
+
+      // Always reset to Stage Overview by default
+      this.sceneManager.cameraController.setPreset('overview', 0.8);
+      this.dom.camButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === 'overview'));
+      if (this.dom.btnDirectorMode) this.dom.btnDirectorMode.classList.remove('active');
+
+      this.showToast(`✅ Archivo cargado (${this.midiPlayer.trackInfos.length} pistas)`);
+      await this.midiPlayer.play();
+    } catch (err) {
+      console.error('Error al cargar archivo MIDI:', err);
+      this.showToast('❌ Error al procesar el archivo MIDI');
+    }
+  }
+
+  _bindMixerDrawer() {
+    this.dom.btnToggleMixer.addEventListener('click', () => {
+      this.dom.drawerMixer.classList.toggle('hidden');
+    });
+
+    this.dom.btnCloseMixer.addEventListener('click', () => {
+      this.dom.drawerMixer.classList.add('hidden');
+    });
+
+    // Volume sliders and Mute / Solo buttons for all 10 instruments
+    this.dom.mixerVuBars = {};
+    const strips = this.dom.drawerMixer.querySelectorAll('.mixer-strip');
+    strips.forEach(strip => {
+      const inst = strip.dataset.inst;
+      const slider = strip.querySelector('.vertical-slider');
+      const btnMute = strip.querySelector('.btn-mute');
+      const btnSolo = strip.querySelector('.btn-solo');
+      const vu = strip.querySelector('.vu-fill');
+
+      if (vu) {
+        this.dom.mixerVuBars[inst] = vu;
+      }
+
+      if (this.soundEngine.volumes[inst] !== undefined) {
+        slider.value = this.soundEngine.volumes[inst];
+      }
+
+      slider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        this.soundEngine.setInstrumentVolume(inst, val);
+      });
+
+      btnMute.addEventListener('click', () => {
+        const isMuted = !btnMute.classList.contains('active');
+        btnMute.classList.toggle('active', isMuted);
+        this.soundEngine.setMute(inst, isMuted);
+      });
+
+      btnSolo.addEventListener('click', () => {
+        const isSolo = !btnSolo.classList.contains('active');
+        btnSolo.classList.toggle('active', isSolo);
+        this.soundEngine.setSolo(inst, isSolo);
+      });
+    });
+  }
+
+  _bindMidiOutputSelector() {
+    if (!this.dom.selectMidiOut) return;
+
+    const updateDropdown = (outputs) => {
+      const currentVal = this.dom.selectMidiOut.value || 'internal';
+      this.dom.selectMidiOut.innerHTML = `
+        <option value="internal">🔊 Web Studio (SoundFonts GM)</option>
+      `;
+      if (outputs && outputs.length > 0) {
+        outputs.forEach(out => {
+          const opt = document.createElement('option');
+          opt.value = out.id;
+          opt.textContent = `🎛️ MIDI Out: ${out.name}`;
+          this.dom.selectMidiOut.appendChild(opt);
+        });
+      }
+      this.dom.selectMidiOut.value = currentVal;
+    };
+
+    // Callback when MIDI devices connect or disconnect
+    this.soundEngine.onMidiOutputsChanged = (outputs) => {
+      updateDropdown(outputs);
+    };
+
+    // Initial check
+    if (this.soundEngine.initWebMidi) {
+      this.soundEngine.initWebMidi().then(outputs => {
+        updateDropdown(outputs);
+      });
+    }
+
+    this.dom.selectMidiOut.addEventListener('change', (e) => {
+      const val = e.target.value;
+      this.soundEngine.setMidiOutput(val);
+      if (val === 'internal') {
+        this.showToast('🔊 Audio: Web Studio (SoundFonts GM de alta fidelidad)');
+      } else {
+        const selected = (this.soundEngine.midiOutputs || []).find(o => o.id === val);
+        const name = selected ? selected.name : 'Sintetizador Windows';
+        this.showToast(`🎛️ Modo MIDIJam: ${name} activo (latencia cero)`);
+      }
+    });
+  }
+
+  _bindTrackInspectorModal() {
+    this.dom.btnOpenTracks.addEventListener('click', () => {
+      this._renderTracksTable();
+      this.dom.modalTracks.classList.remove('hidden');
+    });
+
+    this.dom.btnCloseTracks.addEventListener('click', () => {
+      this.dom.modalTracks.classList.add('hidden');
+    });
+  }
+
+  _renderTracksTable() {
+    const tracks = this.midiPlayer.trackInfos;
+    this.dom.tracksTableBody.innerHTML = '';
+
+    if (tracks.length === 0) {
+      this.dom.tracksTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#888;">No hay pistas cargadas</td></tr>';
+      return;
+    }
+
+    const availableInstruments = [
+      { id: 'piano', label: '🎹 Piano de Cola' },
+      { id: 'drums', label: '🥁 Batería Acústica' },
+      { id: 'bass', label: '🎸 Bajo Eléctrico' },
+      { id: 'guitar', label: '🎸 Guitarra Eléctrica' },
+      { id: 'trumpet', label: '🎺 Trompeta / Metales' },
+      { id: 'sax', label: '🎷 Saxofón Tenor/Alto' },
+      { id: 'violin', label: '🎻 Violín de Concierto' },
+      { id: 'flute', label: '🪈 Flauta Travesera' },
+      { id: 'xylophone', label: '🪵 Xilófono / Marimba' },
+      { id: 'synth', label: '🎹 Sintetizador Workstation' }
+    ];
+
+    tracks.forEach((track, idx) => {
+      const row = document.createElement('tr');
+
+      let selectHtml = `<select class="inst-select" data-track-index="${track.index}">`;
+      availableInstruments.forEach(inst => {
+        const selected = inst.id === track.instrument ? 'selected' : '';
+        selectHtml += `<option value="${inst.id}" ${selected}>${inst.label}</option>`;
+      });
+      selectHtml += `</select>`;
+
+      const instanceTag = track.instanceIndex > 0 ? `<span style="color:#00f0ff; font-size:0.75rem; margin-left:6px; background:rgba(0,240,255,0.15); padding:2px 6px; border-radius:4px;">(Instancia ${track.instanceIndex + 1})</span>` : '';
+
+      row.innerHTML = `
+        <td>${idx + 1}</td>
+        <td><strong>${track.name}</strong>${instanceTag}</td>
+        <td>${track.channel !== undefined ? track.channel : '-'}</td>
+        <td>${track.noteCount}</td>
+        <td>${selectHtml}</td>
+      `;
+
+      const selectElem = row.querySelector('.inst-select');
+      selectElem.addEventListener('change', (e) => {
+        const newInst = e.target.value;
+        this.midiPlayer.setTrackInstrument(track.index, newInst);
+        this._renderTracksTable();
+        this.showToast(`Pista "${track.name}" asignada a ${newInst.toUpperCase()}`);
+      });
+
+      this.dom.tracksTableBody.appendChild(row);
+    });
+  }
+
+  _bindHelpModal() {
+    this.dom.btnOpenHelp.addEventListener('click', () => {
+      this.dom.modalHelp.classList.remove('hidden');
+    });
+
+    this.dom.btnCloseHelp.addEventListener('click', () => {
+      this.dom.modalHelp.classList.add('hidden');
+    });
+  }
+
+  _bindGlobalKeyboardShortcuts() {
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+      switch (e.code) {
+        case 'Space':
+          e.preventDefault();
+          this.dom.btnPlay.click();
+          break;
+        case 'KeyR':
+          this.midiPlayer.seek(0);
+          this.midiPlayer.play();
+          this.showToast('⏮️ Reiniciada al inicio');
+          break;
+        case 'KeyL':
+          this.dom.btnLoop.click();
+          break;
+        case 'KeyM':
+          this.dom.btnMasterMute.click();
+          break;
+        case 'Digit1':
+          this._selectCameraPreset('overview');
+          break;
+        case 'Digit2':
+          this._selectCameraPreset('piano');
+          break;
+        case 'Digit3':
+          this._selectCameraPreset('drums');
+          break;
+        case 'Digit4':
+          this._selectCameraPreset('guitar');
+          break;
+        case 'Digit5':
+          this._selectCameraPreset('bass');
+          break;
+        case 'Digit6':
+          this._selectCameraPreset('trumpet');
+          break;
+        case 'Digit7':
+          this._selectCameraPreset('conductor');
+          break;
+        case 'Escape':
+          this.dom.modalSongs.classList.add('hidden');
+          this.dom.modalTracks.classList.add('hidden');
+          this.dom.modalHelp.classList.add('hidden');
+          this.dom.drawerMixer.classList.add('hidden');
+          break;
+      }
+    });
+  }
+
+  _selectCameraPreset(preset) {
+    this.dom.camButtons.forEach(btn => {
+      if (btn.dataset.preset === preset) {
+        btn.click();
+      }
+    });
+  }
+
+  _bindMidiPlayerCallbacks() {
+    // Progress
+    this.midiPlayer.onProgress = (current, total, percent) => {
+      if (!this.isSeeking) {
+        this.dom.seekSlider.value = percent;
+        this.dom.timeCurrent.textContent = this._formatTime(current);
+      }
+    };
+
+    // State Change (Play/Pause/Stop)
+    this.midiPlayer.onStateChange = (isPlaying, isPaused) => {
+      if (isPlaying) {
+        this.dom.iconPlay.style.display = 'none';
+        this.dom.iconPause.style.display = 'block';
+      } else {
+        this.dom.iconPlay.style.display = 'block';
+        this.dom.iconPause.style.display = 'none';
+      }
+    };
+
+    // Note On -> 3D scene dispatch (routed to specific duplicate instance)
+    this.midiPlayer.onNoteOn = (instrument, midiPitch, noteName, velocity, duration, instanceId) => {
+      this.sceneManager.handleNoteOn(instrument, midiPitch, noteName, velocity, duration, instanceId);
+    };
+
+    // Note Off -> 3D scene dispatch (routed to specific duplicate instance)
+    this.midiPlayer.onNoteOff = (instrument, midiPitch, noteName, force = false, instanceId = null) => {
+      this.sceneManager.handleNoteOff(instrument, midiPitch, noteName, force, instanceId);
+    };
+
+    // Real-time VU meter updates from MidiPlayer activity decay (MIDIJam style)
+    this.midiPlayer.onActivityUpdate = (activityMap) => {
+      for (const inst in this.dom.vuBars) {
+        const bar = this.dom.vuBars[inst];
+        const act = activityMap[inst] || 0;
+        if (bar) {
+          bar.style.width = `${Math.min(100, Math.round(act * 100))}%`;
+        }
+      }
+      if (this.dom.mixerVuBars) {
+        for (const inst in this.dom.mixerVuBars) {
+          const mixerBar = this.dom.mixerVuBars[inst];
+          const baseInst = inst.split('_')[0];
+          const act = activityMap[inst] !== undefined ? activityMap[inst] : (activityMap[baseInst] || 0);
+          if (mixerBar) {
+            mixerBar.style.height = `${Math.min(100, Math.round(act * 100))}%`;
+          }
+        }
+      }
+    };
+
+    // Automatically show only instruments present in loaded song
+    this.midiPlayer.onActiveInstrumentsChanged = (activeList) => {
+      this._applyActiveInstruments(activeList);
+    };
+
+    // Highlight active instruments when song is loaded
+    this.midiPlayer.onSongLoaded = (songInfo) => {
+      this.dom.songTitle.textContent = songInfo.name;
+      this.dom.songBpm.textContent = `${songInfo.bpm} BPM`;
+      this.dom.timeTotal.textContent = this._formatTime(songInfo.duration);
+
+      this._applyActiveInstruments(this.midiPlayer.getActiveInstruments());
+    };
+  }
+
+  // Show only instruments assigned to tracks in current MIDI song
+  _applyActiveInstruments(activeInstrumentsList) {
+    const activeList = activeInstrumentsList || this.midiPlayer.getActiveInstruments();
+    const activeSet = new Set(activeList);
+
+    // 1. Update 3D Stage: only assigned instruments remain visible
+    if (this.sceneManager && typeof this.sceneManager.setVisibleInstruments === 'function') {
+      this.sceneManager.setVisibleInstruments(activeSet);
+    }
+
+    // 2. Update JAM BAND dock: hide cards for instruments not in this song
+    this.dom.bandCards.forEach(card => {
+      const inst = card.dataset.inst;
+      const isPresent = activeSet.has(inst);
+      card.style.display = isPresent ? 'flex' : 'none';
+    });
+
+    // 3. Update Camera toolbar: hide buttons for instruments not on stage
+    this.dom.camButtons.forEach(btn => {
+      const preset = btn.dataset.preset;
+      if (preset === 'overview' || preset === 'conductor') {
+        btn.style.display = 'inline-flex';
+      } else {
+        const isPresent = activeSet.has(preset) || (preset === 'guitar_neck' && activeSet.has('guitar'));
+        btn.style.display = isPresent ? 'inline-flex' : 'none';
+      }
+    });
+
+    // 4. Update Mixer Drawer: ALWAYS show all 10 orchestra instruments, show duplicates if present
+    if (this.dom.drawerMixer) {
+      const strips = this.dom.drawerMixer.querySelectorAll('.mixer-strip');
+      strips.forEach(strip => {
+        const inst = strip.dataset.inst;
+        const isDuplicate = inst.includes('_');
+        if (!isDuplicate) {
+          // All 10 base orchestra instruments are ALWAYS visible in the studio mixer!
+          strip.style.display = 'flex';
+          const isPlaying = activeSet.has(inst);
+          strip.classList.toggle('channel-inactive', !isPlaying);
+        } else {
+          // Duplicates are displayed when that second instance is active in the song
+          const isPresent = activeSet.has(inst);
+          strip.style.display = isPresent ? 'flex' : 'none';
+        }
+      });
+    }
+  }
+
+  _formatTime(seconds) {
+    const s = Math.max(0, Math.floor(seconds || 0));
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  showToast(msg) {
+    this.dom.toastMessage.textContent = msg;
+    this.dom.toast.classList.remove('hidden');
+
+    if (this._toastTimeout) clearTimeout(this._toastTimeout);
+    this._toastTimeout = setTimeout(() => {
+      this.dom.toast.classList.add('hidden');
+    }, 2800);
+  }
+}

@@ -1,0 +1,28 @@
+import { SoundEngine } from './audio/SoundEngine.js';
+import { MidiPlayer } from './audio/MidiPlayer.js';
+import { SceneManager } from './scene/SceneManager.js';
+import { UIManager } from './ui/UIManager.js';
+
+// Application Bootstrap
+window.addEventListener('DOMContentLoaded', async () => {
+  const canvasContainer = document.getElementById('canvas-container');
+
+  // 1. Initialize Audio Engine & MIDI Player
+  const soundEngine = new SoundEngine();
+  const midiPlayer = new MidiPlayer(soundEngine);
+
+  // 2. Initialize 3D Three.js Scene
+  const sceneManager = new SceneManager(canvasContainer, soundEngine);
+
+  // 3. Initialize UI & Event Handlers
+  const uiManager = new UIManager(soundEngine, midiPlayer, sceneManager);
+
+  // Expose global app for interaction and debugging
+  window.app = { soundEngine, midiPlayer, sceneManager, uiManager };
+
+  // 4. Load Default Demo Song ("Funk & Jazz Band Jam")
+  await uiManager.loadDemoSong('funk_fusion');
+
+  // Show welcome toast
+  uiManager.showToast('✨ Bienvenido a MIDI Orchestra. ¡Presiona Reproducir o suelta un archivo MIDI!');
+});
