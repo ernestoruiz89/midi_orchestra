@@ -1,38 +1,38 @@
 # MIDI Orchestra
 
-Reproductor MIDI web con una orquesta 3D interactiva. Convierte las pistas de un archivo MIDI en instrumentos visibles, permite enfocar la cámara en cada músico y ofrece controles de mezcla por instrumento.
+Web-based MIDI player with an interactive 3D orchestra. It turns MIDI tracks into visible instruments, lets you focus the camera on each performer, and provides per-instrument mixing controls.
 
-## Funciones
+## Features
 
-- Escena 3D con piano, batería, guitarras eléctricas y acústicas, bajo, metales, cuerdas y más instrumentos.
-- Animaciones sincronizadas para teclas, trastes, percusión, baquetas y pedal de bombo.
-- Mezclador con volumen, silencio y solo por instrumento.
-- Reproducción General MIDI mediante GeneralUser GS y controles MIDI de programa, volumen, expresión, panorámica y pitch bend.
-- Salida interna Web Audio o dispositivos MIDI disponibles en el navegador.
+- 3D scene with piano, drums, electric and acoustic guitars, bass, brass, strings, and more instruments.
+- Synchronized animations for keys, frets, percussion, drumsticks, and bass drum pedal.
+- Mixer with per-instrument volume, mute, and solo controls.
+- General MIDI playback through GeneralUser GS, including program, volume, expression, pan, and pitch-bend MIDI controls.
+- Internal Web Audio output or browser-available MIDI devices.
 
-## Ejecutar localmente
+## Run locally
 
-Requiere Node.js 18 o posterior.
+Requires Node.js 18 or later.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Abre la dirección que muestra Vite, normalmente `http://localhost:5173`.
+Open the address shown by Vite, usually `http://localhost:5173`.
 
-Para crear una versión de producción:
+To create a production build:
 
 ```bash
 npm run build
 ```
 
-## Inspiración
+## Inspiration
 
-Este proyecto está inspirado en [MIDI2JAM2](https://github.com/wyskoj/midis2jam2), de Wyskoj: especialmente en su idea de visualizar una interpretación MIDI como una banda/orquesta y en la expresividad de sus animaciones.
+This project is inspired by [MIDI2JAM2](https://github.com/wyskoj/midis2jam2) by Wyskoj, especially its idea of visualizing a MIDI performance as a band or orchestra and the expressiveness of its animations.
 
-MIDI Orchestra es una implementación web independiente; no reutiliza el código de MIDI2JAM2. Su motor de audio se basa en Web Audio y SpessaSynth para funcionar directamente en el navegador.
+MIDI Orchestra is an independent web implementation and does not reuse MIDI2JAM2 code. Its audio engine uses Web Audio and SpessaSynth to run directly in the browser.
 
-## Créditos y licencias de audio
+## Audio credits and licenses
 
-El banco GeneralUser GS incluido en `public/soundfonts/` conserva su licencia en [GENERALUSER-LICENSE.txt](public/soundfonts/GENERALUSER-LICENSE.txt). El procesador de SpessaSynth incluido para Web Audio conserva la licencia Apache 2.0 en [SPESSASYNTH-LICENSE.txt](public/audio/SPESSASYNTH-LICENSE.txt).
+The bundled GeneralUser GS sound bank retains its license in [GENERALUSER-LICENSE.txt](public/soundfonts/GENERALUSER-LICENSE.txt). The bundled SpessaSynth processor for Web Audio retains its Apache 2.0 license in [SPESSASYNTH-LICENSE.txt](public/audio/SPESSASYNTH-LICENSE.txt).
