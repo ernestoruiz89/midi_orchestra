@@ -3,6 +3,7 @@ import { Stage } from './Stage.js';
 import { Piano3D } from './Piano3D.js';
 import { DrumKit3D } from './DrumKit3D.js';
 import { Guitar3D } from './Guitar3D.js';
+import { AcousticGuitar3D } from './AcousticGuitar3D.js';
 import { Bass3D } from './Bass3D.js';
 import { Trumpet3D } from './Trumpet3D.js';
 import { Saxophone3D } from './Saxophone3D.js';
@@ -57,6 +58,8 @@ export class SceneManager {
     this.drums = new DrumKit3D(this.scene);
     this.guitar = new Guitar3D(this.scene, { index: 1 });
     this.guitar.group.position.set(1.65, 1.25, 0.95);
+    this.acousticGuitar = new AcousticGuitar3D(this.scene, { index: 1 });
+    this.acousticGuitar.group.position.set(1.05, 1.17, 1.45);
     this.bass = new Bass3D(this.scene);
     this.trumpet = new Trumpet3D(this.scene);
     this.sax = new Saxophone3D(this.scene);
@@ -78,6 +81,20 @@ export class SceneManager {
     this.guitar_4 = new Guitar3D(this.scene, { index: 4 });
     this.guitar_4.group.position.set(2.40, 0.95, 0.05);
     this.guitar_4.group.visible = false;
+
+    // Acoustic guitars occupy a separate front-right position so an acoustic
+    // track can coexist with an electric guitar without hiding either one.
+    this.acousticGuitar_2 = new AcousticGuitar3D(this.scene, { index: 2 });
+    this.acousticGuitar_2.group.position.set(1.28, 1.08, 1.20);
+    this.acousticGuitar_2.group.visible = false;
+
+    this.acousticGuitar_3 = new AcousticGuitar3D(this.scene, { index: 3 });
+    this.acousticGuitar_3.group.position.set(1.50, 0.99, 0.95);
+    this.acousticGuitar_3.group.visible = false;
+
+    this.acousticGuitar_4 = new AcousticGuitar3D(this.scene, { index: 4 });
+    this.acousticGuitar_4.group.position.set(1.72, 0.90, 0.70);
+    this.acousticGuitar_4.group.visible = false;
 
     this.trumpet_2 = new Trumpet3D(this.scene);
     this.trumpet_2.group.position.set(4.85, 1.40, 0.75);
@@ -148,6 +165,7 @@ export class SceneManager {
       piano: this.piano,
       drums: this.drums,
       guitar: this.guitar,
+      acousticGuitar: this.acousticGuitar,
       bass: this.bass,
       trumpet: this.trumpet,
       sax: this.sax,
@@ -161,6 +179,9 @@ export class SceneManager {
       guitar_2: this.guitar_2,
       guitar_3: this.guitar_3,
       guitar_4: this.guitar_4,
+      acousticGuitar_2: this.acousticGuitar_2,
+      acousticGuitar_3: this.acousticGuitar_3,
+      acousticGuitar_4: this.acousticGuitar_4,
       bass_2: this.bass_2,
       trumpet_2: this.trumpet_2,
       sax_2: this.sax_2,
@@ -230,12 +251,22 @@ export class SceneManager {
   }
 
   // Handle Note-On for 3D Instruments (supporting duplicate instances)
-  handleNoteOn(instrument, midiPitch, noteName, velocity = 0.8, duration = 0.5, instanceId = null) {
+  handleNotePrepare(instrument, midiPitch, noteName, velocity = 0.8, duration = 0.5, instanceId = null, eventTime = null, trackIndex = null) {
+    const targetKey = (instanceId && this.allInstruments[instanceId]) ? instanceId : instrument;
+    const instObj = this.allInstruments[targetKey];
+
+    if (instObj && typeof instObj.onNotePrepare === 'function') {
+      instObj.onNotePrepare(midiPitch, velocity, duration, eventTime, trackIndex);
+    }
+  }
+
+  // Handle Note-On for 3D Instruments (supporting duplicate instances)
+  handleNoteOn(instrument, midiPitch, noteName, velocity = 0.8, duration = 0.5, instanceId = null, eventTime = null, trackIndex = null) {
     const targetKey = (instanceId && this.allInstruments[instanceId]) ? instanceId : instrument;
     const instObj = this.allInstruments[targetKey];
 
     if (instObj && typeof instObj.onNoteOn === 'function') {
-      instObj.onNoteOn(midiPitch, velocity);
+      instObj.onNoteOn(midiPitch, velocity, eventTime, trackIndex);
     }
 
     const baseInst = instrument.split('_')[0];
@@ -243,6 +274,7 @@ export class SceneManager {
       piano: 'piano',
       drums: 'drum',
       guitar: 'guitar',
+      acousticGuitar: 'guitar',
       bass: 'bass',
       trumpet: 'trumpet',
       sax: 'trumpet',

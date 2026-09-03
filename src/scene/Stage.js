@@ -280,14 +280,14 @@ export class Stage {
       piano_spot: 'piano',
       bass_spot: 'bass',
       drum_spot: 'drums',
-      guitar_spot: 'guitar',
+      guitar_spot: ['guitar', 'acousticGuitar'],
       trumpet_spot: 'trumpet'
     };
 
     this.spotlights.forEach(spot => {
       const inst = spotMap[spot.name];
       if (inst) {
-        const isVisible = activeSet.has(inst);
+        const isVisible = Array.isArray(inst) ? inst.some(name => activeSet.has(name)) : activeSet.has(inst);
         spot.light.intensity = isVisible ? spot.baseIntensity : 0;
         spot.beam.visible = isVisible;
       }

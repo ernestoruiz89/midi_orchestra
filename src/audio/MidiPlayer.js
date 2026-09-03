@@ -1,5 +1,23 @@
 import { Midi } from '@tonejs/midi';
 
+// Kept separate from audio scheduling: drumstick motion should prepare the
+// visual hit before the note, but the sound must remain sample-accurate.
+const DRUM_STICK_ANTICIPATION_SECONDS = 0.22;
+
+const DEFAULT_GM_PROGRAMS = {
+  piano: 0,
+  drums: 0,
+  guitar: 27,
+  acousticGuitar: 25,
+  bass: 33,
+  trumpet: 56,
+  sax: 66,
+  violin: 40,
+  flute: 73,
+  xylophone: 13,
+  synth: 80
+};
+
 /**
  * MidiPlayer parses and schedules MIDI events, coordinates sound synthesis
  * and 3D visual animations in real-time.
@@ -27,8 +45,10 @@ export class MidiPlayer {
     this.events = [];
     this.activeNoteEvents = new Set();
     this.trackInfos = [];
+    this.totalNoteCount = 0;
 
     // Callbacks
+    this.onNotePrepare = null;  // (instrument, noteNumber, noteName, velocity, duration) => {}
     this.onNoteOn = null;       // (instrument, noteNumber, noteName, velocity, duration) => {}
     this.onNoteOff = null;      // (instrument, noteNumber, noteName) => {}
     this.onProgress = null;     // (currentTime, duration, percent) => {}
@@ -43,6 +63,7 @@ export class MidiPlayer {
       piano: 0,
       drums: 0,
       guitar: 0,
+      acousticGuitar: 0,
       bass: 0,
       trumpet: 0,
       sax: 0,
@@ -75,7 +96,7 @@ export class MidiPlayer {
           duration: this.duration,
           bpm: this.bpm,
           trackCount: this.trackInfos.length,
-          totalNotes: this.events.length / 2,
+          totalNotes: this.totalNoteCount,
           tracks: this.trackInfos
         });
       }
@@ -96,6 +117,33 @@ export class MidiPlayer {
     const instCounts = {};
 
     midi.tracks.forEach((track, index) => {
+      const channel = track.channel !== undefined ? track.channel : 0;
+
+      // Control changes are part of the MIDI performance, not UI metadata.
+      // A CC 7 (channel volume) or CC 11 (expression) may live in a track
+      // without notes, so capture it before skipping empty visual tracks.
+      Object.entries(track.controlChanges || {}).forEach(([controller, changes]) => {
+        if (!Array.isArray(changes)) return;
+        changes.forEach(change => {
+          this.events.push({
+            type: 'cc',
+            time: change.time,
+            controller: Number(controller),
+            value: change.value,
+            channel
+          });
+        });
+      });
+
+      (track.pitchBends || []).forEach(change => {
+        this.events.push({
+          type: 'pitchBend',
+          time: change.time,
+          value: change.value,
+          channel
+        });
+      });
+
       if (track.notes.length === 0) return;
 
       const detectedInstrument = this._classifyTrackInstrument(track, index);
@@ -116,21 +164,20 @@ export class MidiPlayer {
       const trackInfo = {
         index: index,
         name: track.name || `Pista ${index + 1}`,
-        channel: track.channel,
+        channel,
         instrument: detectedInstrument,
         instanceIndex: instanceIndex,
         instanceId: instanceId,
         noteCount: track.notes.length,
-        programNumber: track.instrument ? track.instrument.number : -1
+        programNumber: Number.isInteger(track.instrument?.number)
+          ? track.instrument.number
+          : (DEFAULT_GM_PROGRAMS[detectedInstrument] ?? 0)
       };
       this.trackInfos.push(trackInfo);
 
       track.notes.forEach(note => {
         totalNoteCount++;
-        // Note ON event
-        this.events.push({
-          type: 'on',
-          time: note.time,
+        const eventDetails = {
           duration: note.duration,
           midi: note.midi,
           name: note.name,
@@ -141,28 +188,43 @@ export class MidiPlayer {
           instanceIndex: instanceIndex,
           programNumber: trackInfo.programNumber,
           channel: trackInfo.channel !== undefined ? trackInfo.channel : (detectedInstrument === 'drums' ? 9 : 0)
+        };
+
+        // Percussion needs a readable physical preparation. This event is
+        // visual-only, so it never reaches the synthesizer before the note.
+        if (detectedInstrument === 'drums') {
+          this.events.push({
+            type: 'prepare',
+            time: Math.max(0, note.time - DRUM_STICK_ANTICIPATION_SECONDS),
+            noteTime: note.time,
+            ...eventDetails
+          });
+        }
+
+        // Note ON event
+        this.events.push({
+          type: 'on',
+          time: note.time,
+          ...eventDetails
         });
 
         // Note OFF event
         this.events.push({
           type: 'off',
           time: note.time + note.duration,
-          duration: note.duration,
-          midi: note.midi,
-          name: note.name,
-          velocity: 0,
-          trackIndex: index,
-          instrument: detectedInstrument,
-          instanceId: instanceId,
-          instanceIndex: instanceIndex,
-          programNumber: trackInfo.programNumber,
-          channel: trackInfo.channel !== undefined ? trackInfo.channel : (detectedInstrument === 'drums' ? 9 : 0)
+          ...eventDetails,
+          velocity: 0
         });
       });
     });
 
-    // Sort all events by time for fast sequential cursor processing
-    this.events.sort((a, b) => a.time - b.time);
+    this.totalNoteCount = totalNoteCount;
+
+    // Sort all events by time for fast sequential cursor processing. A
+    // controller event at the same instant as a note must reach the synth
+    // first, just as it does in a standard MIDI sequencer.
+    const eventPriority = { cc: 0, pitchBend: 1, prepare: 2, off: 3, on: 4 };
+    this.events.sort((a, b) => a.time - b.time || eventPriority[a.type] - eventPriority[b.type]);
 
     // If no tracks had notes, set fallback duration
     if (this.duration === 0 && this.events.length > 0) {
@@ -187,12 +249,12 @@ export class MidiPlayer {
     const prog = track.instrument ? track.instrument.number : -1;
     const channel = track.channel;
 
-    // 1. Drums / Percussion (Channel 10 or Percussive GM)
+    // 1. Drums / Percussion (GM channel 10 is zero-based index 9)
     if (
-      channel === 9 || channel === 10 ||
+      channel === 9 ||
       trackName.includes('drum') || trackName.includes('bater') || trackName.includes('perc') ||
       trackName.includes('kit') || trackName.includes('beat') || instFamily.includes('percussive') ||
-      instFamily.includes('drums') || (prog >= 112 && prog <= 127)
+      instFamily.includes('drums')
     ) {
       return 'drums';
     }
@@ -252,7 +314,18 @@ export class MidiPlayer {
       return 'xylophone';
     }
 
-    // 8. Guitar (Prog 24-31)
+    // 8. Acoustic Guitar (GM 24-25). Keep it distinct so the stage can show
+    // the steel/nylon body instead of the electric instrument.
+    if (
+      trackName.includes('acoustic') || trackName.includes('nylon') || trackName.includes('steel') ||
+      trackName.includes('classical') || trackName.includes('folk') || trackName.includes('española') ||
+      trackName.includes('spanish') || prog === 24 || prog === 25 ||
+      instName.includes('acoustic') || instName.includes('nylon') || instName.includes('steel')
+    ) {
+      return 'acousticGuitar';
+    }
+
+    // 9. Electric Guitar (Prog 26-31)
     if (
       trackName.includes('guitar') || trackName.includes('gtr') || trackName.includes('pluk') ||
       (prog >= 24 && prog <= 31) || instFamily.includes('guitar')
@@ -260,7 +333,7 @@ export class MidiPlayer {
       return 'guitar';
     }
 
-    // 9. Synthesizer / Electro Leads & Pads (Prog 80-103)
+    // 10. Synthesizer / Electro Leads & Pads (Prog 80-103)
     if (
       trackName.includes('synth') || trackName.includes('lead') || trackName.includes('pad') ||
       trackName.includes('saw') || trackName.includes('square') || trackName.includes('techno') ||
@@ -269,7 +342,7 @@ export class MidiPlayer {
       return 'synth';
     }
 
-    // 10. Piano / Keyboards / Organs (Prog 0-7, 16-23)
+    // 11. Piano / Keyboards / Organs (Prog 0-7, 16-23)
     if (
       trackName.includes('piano') || trackName.includes('key') || trackName.includes('organ') ||
       trackName.includes('clav') || (prog >= 0 && prog <= 7) || (prog >= 16 && prog <= 23) ||
@@ -290,20 +363,8 @@ export class MidiPlayer {
     const trackInfo = this.trackInfos.find(t => t.index === trackIndex);
     if (trackInfo) {
       trackInfo.instrument = newInstrument;
-      const defaultPrograms = {
-        piano: 0,
-        drums: 0,
-        guitar: 27,
-        bass: 33,
-        trumpet: 56,
-        sax: 66,
-        violin: 40,
-        flute: 73,
-        xylophone: 13,
-        synth: 80
-      };
-      if (defaultPrograms[newInstrument] !== undefined) {
-        trackInfo.programNumber = defaultPrograms[newInstrument];
+      if (DEFAULT_GM_PROGRAMS[newInstrument] !== undefined) {
+        trackInfo.programNumber = DEFAULT_GM_PROGRAMS[newInstrument];
         trackInfo.channel = newInstrument === 'drums' ? 9 : (trackInfo.channel === 9 ? 0 : trackInfo.channel);
       }
 
@@ -355,8 +416,20 @@ export class MidiPlayer {
       await this.soundEngine.init();
     }
 
+    // Wait for the actual GM programs used by this song. Playing immediately
+    // used to fall back to simple oscillators while soundfonts loaded, so the
+    // opening of a song could have a noticeably different quality.
+    if (typeof this.soundEngine.prepareTrackInstruments === 'function') {
+      await this.soundEngine.prepareTrackInstruments(this.trackInfos);
+    }
+
     if (this.currentTime >= this.duration) {
       this.currentTime = 0;
+    }
+
+    const isResuming = this.isPaused;
+    if (!isResuming) {
+      this._syncMidiControllersAt(this.currentTime);
     }
 
     this.isPlaying = true;
@@ -385,6 +458,9 @@ export class MidiPlayer {
     this.currentTime = 0;
     this._cancelLoop();
     this.soundEngine.stopAll();
+    if (typeof this.soundEngine.resetMidiChannelState === 'function') {
+      this.soundEngine.resetMidiChannelState();
+    }
     this._releaseAllVisuals();
 
     if (this.onProgress) this.onProgress(0, this.duration, 0);
@@ -402,6 +478,7 @@ export class MidiPlayer {
     this.soundEngine.stopAll();
     this._releaseAllVisuals();
     this.currentTime = clampedTime;
+    this._syncMidiControllersAt(clampedTime);
 
     const percent = this.duration > 0 ? (this.currentTime / this.duration) * 100 : 0;
     if (this.onProgress) this.onProgress(this.currentTime, this.duration, percent);
@@ -483,7 +560,26 @@ export class MidiPlayer {
       if (ev.time < startTime) continue;
       if (ev.time > endTime) break;
 
-      if (ev.type === 'on') {
+      if (ev.type === 'cc') {
+        this.soundEngine.applyMidiControlChange(ev.channel, ev.controller, ev.value);
+      } else if (ev.type === 'pitchBend') {
+        this.soundEngine.applyMidiPitchBend(ev.channel, ev.value);
+      } else if (ev.type === 'prepare') {
+        // A preparatory drumstick motion is deliberately visual-only.
+        if (this.onNotePrepare) {
+          this.onNotePrepare(
+            ev.instrument,
+            ev.midi,
+            ev.name,
+            ev.velocity,
+            ev.duration,
+            ev.instanceId,
+            ev.instanceIndex,
+            ev.noteTime ?? ev.time,
+            ev.trackIndex
+          );
+        }
+      } else if (ev.type === 'on') {
         // Register real-time activity for MIDIJam Director and HUD VU meters
         if (this.instrumentActivity[ev.instrument] !== undefined) {
           this.instrumentActivity[ev.instrument] = Math.max(
@@ -512,7 +608,9 @@ export class MidiPlayer {
             ev.velocity,
             ev.duration,
             ev.instanceId,
-            ev.instanceIndex
+            ev.instanceIndex,
+            ev.time,
+            ev.trackIndex
           );
         }
       } else if (ev.type === 'off') {
@@ -534,11 +632,31 @@ export class MidiPlayer {
     }
   }
 
+  /**
+   * Reconstructs the stateful MIDI controllers when starting from the middle
+   * of a song. Without this, seeking past a CC 7/11 event made the next notes
+   * ignore the mix embedded in the MIDI file.
+   */
+  _syncMidiControllersAt(time) {
+    if (!this.soundEngine || typeof this.soundEngine.resetMidiChannelState !== 'function') return;
+
+    this.soundEngine.resetMidiChannelState();
+    this.events.forEach(event => {
+      if (event.time > time) return;
+      if (event.type === 'cc') {
+        this.soundEngine.applyMidiControlChange(event.channel, event.controller, event.value);
+      } else if (event.type === 'pitchBend') {
+        this.soundEngine.applyMidiPitchBend(event.channel, event.value);
+      }
+    });
+  }
+
   _releaseAllVisuals() {
     if (this.onNoteOff) {
       const allInsts = [
         'piano', 'drums', 'guitar', 'bass', 'trumpet', 'sax', 'violin', 'flute', 'xylophone', 'synth',
-        'piano_2', 'piano_3', 'piano_4', 'guitar_2', 'guitar_3', 'guitar_4',
+        'acousticGuitar', 'piano_2', 'piano_3', 'piano_4', 'guitar_2', 'guitar_3', 'guitar_4',
+        'acousticGuitar_2', 'acousticGuitar_3', 'acousticGuitar_4',
         'bass_2', 'trumpet_2', 'sax_2', 'violin_2', 'flute_2', 'xylophone_2',
         'synth_2', 'synth_3', 'synth_4'
       ];

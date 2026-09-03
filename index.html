@@ -78,6 +78,7 @@
     <button class="cam-btn" data-preset="piano" title="Grand Piano Close-up" data-i18n="camera.piano" data-i18n-title="camera.pianoTitle">🎹 Piano</button>
     <button class="cam-btn" data-preset="drums" title="Drummer View" data-i18n="camera.drums" data-i18n-title="camera.drumsTitle">🥁 Drums</button>
     <button class="cam-btn" data-preset="guitar" title="Lead Guitar Close-up" data-i18n="camera.guitar" data-i18n-title="camera.guitarTitle">🎸 Guitar</button>
+    <button class="cam-btn" data-preset="acousticGuitar" title="Acoustic Guitar Close-up" data-i18n="camera.acousticGuitar" data-i18n-title="camera.acousticGuitarTitle">🎼 Acoustic</button>
     <button class="cam-btn" data-preset="bass" title="Electric Bass Close-up" data-i18n="camera.bass" data-i18n-title="camera.bassTitle">🎸 Bass</button>
     <button class="cam-btn" data-preset="trumpet" title="Trumpet Close-up" data-i18n="camera.trumpet" data-i18n-title="camera.trumpetTitle">🎺 Trumpet</button>
     <button class="cam-btn" data-preset="sax" title="Alto Saxophone Close-up" data-i18n="camera.sax" data-i18n-title="camera.saxTitle">🎷 Sax</button>
@@ -88,6 +89,9 @@
     <button class="cam-btn" data-preset="guitar_2" title="Guitar 2 Close-up" data-i18n="camera.guitar_2" style="display: none;">🎸 Guitar 2</button>
     <button class="cam-btn" data-preset="guitar_3" title="Guitar 3 Close-up" data-i18n="camera.guitar_3" style="display: none;">🎸 Guitar 3</button>
     <button class="cam-btn" data-preset="guitar_4" title="Guitar 4 Close-up" data-i18n="camera.guitar_4" style="display: none;">🎸 Guitar 4</button>
+    <button class="cam-btn" data-preset="acousticGuitar_2" title="Acoustic Guitar 2 Close-up" data-i18n="camera.acousticGuitar_2" style="display: none;">🎼 Acoustic 2</button>
+    <button class="cam-btn" data-preset="acousticGuitar_3" title="Acoustic Guitar 3 Close-up" data-i18n="camera.acousticGuitar_3" style="display: none;">🎼 Acoustic 3</button>
+    <button class="cam-btn" data-preset="acousticGuitar_4" title="Acoustic Guitar 4 Close-up" data-i18n="camera.acousticGuitar_4" style="display: none;">🎼 Acoustic 4</button>
     <button class="cam-btn" data-preset="trumpet_2" title="Trumpet 2 Close-up" data-i18n="camera.trumpet_2" style="display: none;">🎺 Trumpet 2</button>
     <button class="cam-btn" data-preset="sax_2" title="Sax 2 Close-up" data-i18n="camera.sax_2" style="display: none;">🎷 Sax 2</button>
     <button class="cam-btn" data-preset="violin_2" title="Violin 2 Close-up" data-i18n="camera.violin_2" style="display: none;">🎻 Violin 2</button>
@@ -150,7 +154,7 @@
       <button id="btn-master-mute" class="vol-icon-btn" title="Mute Master Volume" data-i18n-title="playback.muteTitle">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
       </button>
-      <input type="range" id="master-volume" min="0" max="1" step="0.01" value="0.85" />
+      <input type="range" id="master-volume" min="0" max="1" step="0.01" value="0.80" />
     </div>
   </div>
 
@@ -176,7 +180,7 @@
         <div class="audio-output-selector">
           <label for="select-midi-out" data-i18n="mixer.outputLabel">🔊 Output:</label>
           <select id="select-midi-out" class="midi-out-dropdown">
-            <option value="internal" data-i18n="mixer.internalSoundfonts">🔊 Web Studio (GM SoundFonts)</option>
+            <option value="internal" data-i18n="mixer.internalSoundfonts">🔊 Web Studio (GeneralUser GS)</option>
           </select>
         </div>
       </div>
@@ -234,6 +238,20 @@
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-guitar"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Acoustic Guitar Channel -->
+        <div class="mixer-strip" data-inst="acousticGuitar">
+          <div class="strip-header">
+            <span class="strip-icon">🎼</span>
+            <span class="strip-name" data-i18n="instruments.acousticGuitar">Acoustic Guitar</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-acousticGuitar"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.64" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
             <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>

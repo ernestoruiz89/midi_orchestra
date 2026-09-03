@@ -1,6 +1,37 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
 
+const DRUMSTICK_LENGTH = 0.38;
+// Keep the wrist above the head, but close enough to the kit to match the
+// compact circular stroke used by midis2jam2.
+const DRUMSTICK_WRIST_HEIGHT = 0.24;
+// These offsets are in the kit's world-up axis, matching midis2jam2's
+// translation of the node that holds the stick model.
+const DRUMSTICK_GRIP_LIFT = 0.10;
+const DRUMSTICK_GRIP_READY = 0.055;
+const DRUMSTICK_GRIP_REBOUND = 0.075;
+const DRUMSTICK_CONTACT_CLEARANCE = 0.018;
+// Two hands use nearby contact points and separated wrist positions so a
+// repeated hit on one piece reads as a real alternating double-stroke.
+const DRUMSTICK_HAND_CONTACT_OFFSET = 0.045;
+const DRUMSTICK_HAND_WRIST_OFFSET = 0.10;
+// Notes at the same MIDI instant share the two-hand hit only when they come
+// from different drum tracks; one track always keeps one physical hand.
+const DRUMSTICK_SIMULTANEOUS_WINDOW = 0.025;
+// Small downward recoil distances, scaled to this kit's world units. The
+// return is handled with an elastic ease, like the springy response in
+// midis2jam2's recoilDrum helper.
+const DRUM_RECOIL_DISTANCE = 0.017;
+const BASS_DRUM_RECOIL_DISTANCE = 0.024;
+// With the wrist quaternion aimed at the head, the signed local-X stroke
+// controls the lift and rebound arc for each target orientation.
+const DRUMSTICK_LIFT_ANGLE = 0.46;
+const DRUMSTICK_READY_ANGLE = 0.14;
+// The downward stroke is provided by the grip drop; keep the contact angle at
+// the calibrated surface point so the shaft never dives through a head/plato.
+const DRUMSTICK_IMPACT_ANGLE = 0;
+const DRUMSTICK_REBOUND_ANGLE = 0.10;
+
 /**
  * DrumKit3D: 100% Authentic MIDIJam Concert Drum Kit
  * - Zero intersection / zero clipping: each drum and cymbal has clean physical air clearance.
@@ -12,7 +43,7 @@ import gsap from 'gsap';
  * - Hi-Hat mounted on the lower-left.
  * - 6 Floating Cymbals (Crash 1, Crash 2, Splash, Center Crash, Ride, China with inverted lip) + Hi-Hat.
  * - All drumheads stamped with crisp black 'BLAMO' logo.
- * - Signature resting drumstick diagonally across snare/kick rim.
+ * - Dedicated active drumsticks that appear only for the instrument being hit.
  * - Active striking drumsticks fanning out radially from the drummer's center.
  */
 export class DrumKit3D {
@@ -25,11 +56,13 @@ export class DrumKit3D {
 
     this.cymbals = {};
     this.drumHeads = {};
+    this.drumRecoilNodes = {};
     this.pieceTargets = {};
+    this.pieceTargetTangents = {};
     this.pieceSticks = {};
     this.beaterPivot = null;
-    this.lastSnareHitTime = 0;
-    this.currentSnareIndex = 0;
+    this.preparedStrikes = new Map();
+    this.stickSelectionState = new Map();
 
     this._buildMaterials();
     this._buildBassDrum();
@@ -39,7 +72,6 @@ export class DrumKit3D {
     this._buildHiHat();
     this._buildCymbals();
     this._buildDedicatedPieceSticks();
-    this._buildRestingStick();
 
     this.scene.add(this.group);
   }
@@ -126,11 +158,11 @@ export class DrumKit3D {
   }
 
   /**
-   * 22"x18" Bass Drum: Dead-center, aligned parallel with the front platform edge
+   * 20"x16" Bass Drum: Dead-center, aligned parallel with the front platform edge
    */
   _buildBassDrum() {
-    const radius = 0.48;
-    const depth = 0.44;
+    const radius = 0.43;
+    const depth = 0.40;
 
     const bassGroup = new THREE.Group();
     bassGroup.position.set(0, 0.50, -depth / 2);
@@ -188,9 +220,10 @@ export class DrumKit3D {
 
     this.drumHeads.kick = frontHead;
     this.drumHeads.kickFront = frontHead;
+    this.drumRecoilNodes.kick = { node: bassGroup, baseY: bassGroup.position.y };
 
     // Telescoping Front Spurs / Legs
-    [-0.48, 0.48].forEach(xOffset => {
+    [-radius, radius].forEach(xOffset => {
       const spur = new THREE.Mesh(
         new THREE.CylinderGeometry(0.015, 0.012, 0.48, 12),
         this.chromeMaterial
@@ -204,32 +237,109 @@ export class DrumKit3D {
         new THREE.SphereGeometry(0.022, 8, 8),
         this.blackTrimMaterial
       );
-      foot.position.set(xOffset > 0 ? 0.68 : -0.68, -0.46, depth * 0.42);
+      foot.position.set(xOffset > 0 ? radius + 0.20 : -radius - 0.20, -0.46, depth * 0.42);
       bassGroup.add(foot);
     });
 
-    // Front Kick Pedal centered on the front resonant head
+    // Front kick pedal centered on the resonant head. The construction uses
+    // the same visual cues as a real single pedal: a long heel/toe plate,
+    // twin side frames, cross axle, cam and a padded beater.
     const pedalGroup = new THREE.Group();
     pedalGroup.position.set(0, -0.44, depth / 2 + 0.08);
 
     const basePlate = new THREE.Mesh(
-      new THREE.BoxGeometry(0.14, 0.02, 0.26),
+      new THREE.BoxGeometry(0.18, 0.024, 0.34),
       this.chromeMaterial
     );
+    basePlate.position.set(0, 0.012, 0.02);
+    basePlate.rotation.x = 0.08;
+    basePlate.castShadow = true;
     pedalGroup.add(basePlate);
 
-    const uprightL = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.22, 0.02), this.chromeMaterial);
-    uprightL.position.set(-0.06, 0.11, -0.04);
-    pedalGroup.add(uprightL);
+    // Raised heel and toe sections make the footboard read as a machined
+    // pedal rather than a floating rectangular slab.
+    const heelBlock = new THREE.Mesh(
+      new THREE.BoxGeometry(0.16, 0.028, 0.065),
+      this.chromeMaterial
+    );
+    heelBlock.position.set(0, 0.034, -0.115);
+    heelBlock.rotation.x = 0.08;
+    pedalGroup.add(heelBlock);
 
-    const uprightR = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.22, 0.02), this.chromeMaterial);
-    uprightR.position.set(0.06, 0.11, -0.04);
-    pedalGroup.add(uprightR);
+    const toePad = new THREE.Mesh(
+      new THREE.BoxGeometry(0.14, 0.018, 0.105),
+      this.chromeMaterial
+    );
+    toePad.position.set(0, 0.052, 0.112);
+    toePad.rotation.x = 0.08;
+    toePad.castShadow = true;
+    pedalGroup.add(toePad);
 
-    const footboard = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.012, 0.20), this.chromeMaterial);
-    footboard.position.set(0, 0.06, 0.04);
-    footboard.rotation.x = 0.18;
-    pedalGroup.add(footboard);
+    const toeGrip = new THREE.Mesh(
+      new THREE.BoxGeometry(0.125, 0.008, 0.052),
+      this.blackTrimMaterial
+    );
+    toeGrip.position.set(0, 0.066, 0.13);
+    toeGrip.rotation.x = 0.08;
+    pedalGroup.add(toeGrip);
+
+    // Helper for the square/round side-frame members. It keeps all members
+    // aligned between their real endpoints while preserving the pedal's
+    // compact proportions.
+    const addPedalBeam = (start, end, radius = 0.008, material = this.chromeMaterial) => {
+      const direction = new THREE.Vector3().subVectors(end, start);
+      const beam = new THREE.Mesh(
+        new THREE.CylinderGeometry(radius, radius, direction.length(), 8),
+        material
+      );
+      beam.position.copy(start).add(end).multiplyScalar(0.5);
+      beam.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        direction.normalize()
+      );
+      beam.castShadow = true;
+      pedalGroup.add(beam);
+      return beam;
+    };
+
+    [-1, 1].forEach(side => {
+      const x = side * 0.073;
+      // Rear upright and forward brace form the two triangular side frames.
+      addPedalBeam(new THREE.Vector3(x, 0.035, -0.115), new THREE.Vector3(x, 0.225, -0.075));
+      addPedalBeam(new THREE.Vector3(x, 0.045, 0.105), new THREE.Vector3(x, 0.225, -0.075), 0.006);
+      const frameCap = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.014, 0.014, 0.022, 10),
+        this.chromeMaterial
+      );
+      frameCap.rotation.z = Math.PI / 2;
+      frameCap.position.set(x, 0.225, -0.075);
+      pedalGroup.add(frameCap);
+    });
+
+    // Heel hinge and the upper axle run across both side frames.
+    const hinge = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.014, 0.014, 0.15, 12),
+      this.chromeMaterial
+    );
+    hinge.rotation.z = Math.PI / 2;
+    hinge.position.set(0, 0.045, -0.115);
+    pedalGroup.add(hinge);
+
+    const axle = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.018, 0.018, 0.19, 12),
+      this.chromeMaterial
+    );
+    axle.rotation.z = Math.PI / 2;
+    axle.position.set(0, 0.225, -0.075);
+    pedalGroup.add(axle);
+
+    const cam = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.034, 0.034, 0.052, 12),
+      this.blackTrimMaterial
+    );
+    cam.rotation.z = Math.PI / 2;
+    cam.position.set(0, 0.225, -0.055);
+    pedalGroup.add(cam);
 
     // Beater pivot and rod reaching up to strike center of drumhead
     const beaterPivot = new THREE.Group();
@@ -239,9 +349,9 @@ export class DrumKit3D {
     rod.position.y = 0.13;
     beaterPivot.add(rod);
 
-    const hammer = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.04, 16), this.blackTrimMaterial);
-    hammer.rotation.z = Math.PI / 2;
+    const hammer = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.075, 0.065), this.blackTrimMaterial);
     hammer.position.set(0, 0.26, 0);
+    hammer.rotation.x = -0.12;
     beaterPivot.add(hammer);
 
     // Ready rest angle
@@ -252,7 +362,7 @@ export class DrumKit3D {
     this.beaterPivot = beaterPivot;
 
     this.group.add(bassGroup);
-    this.pieceTargets.kick = new THREE.Vector3(0, 0.46, 0);
+    this.pieceTargets.kick = new THREE.Vector3(0, radius - 0.02, 0);
   }
 
   /**
@@ -336,7 +446,9 @@ export class DrumKit3D {
         radius: 0.11,
         depth: 0.13,
         pos: [-0.60, 1.00, -0.06],
-        rot: [0.36, 0.40, -0.20]
+        // Midis2jam2's high tom is pitched toward the drummer, not flat
+        // across the bass drum (about 50° down toward the playing position).
+        rot: [0.87, 0.70, 0.00]
       },
       // 2. Tom 2 (10" - Left Center above left shoulder of bass drum)
       {
@@ -344,7 +456,7 @@ export class DrumKit3D {
         radius: 0.14,
         depth: 0.15,
         pos: [-0.32, 1.18, -0.12],
-        rot: [0.40, 0.22, -0.12]
+        rot: [1.05, 0.35, 0.00]
       },
       // 3. Tom 3 (12" - Peak Center above bass drum)
       {
@@ -352,7 +464,7 @@ export class DrumKit3D {
         radius: 0.17,
         depth: 0.16,
         pos: [0.00, 1.24, -0.16],
-        rot: [0.42, 0.00, 0.00]
+        rot: [1.05, 0.00, 0.00]
       },
       // 4. Tom 4 (13" - Right Center above right shoulder of bass drum)
       {
@@ -360,7 +472,7 @@ export class DrumKit3D {
         radius: 0.18,
         depth: 0.18,
         pos: [0.35, 1.16, -0.14],
-        rot: [0.38, -0.24, 0.14]
+        rot: [1.05, -0.52, 0.00]
       }
     ];
 
@@ -371,7 +483,16 @@ export class DrumKit3D {
 
       this.group.add(group);
       this.drumHeads[cfg.id] = head;
-      this.pieceTargets[cfg.id] = new THREE.Vector3(cfg.pos[0], cfg.pos[1] + 0.08, cfg.pos[2]);
+      this.drumRecoilNodes[cfg.id] = { node: group, baseY: group.position.y };
+      // Match the actual rotated top-head surface instead of approximating it
+      // with the shell center. This prevents the tip from starting inside a
+      // tom when the head is tilted.
+      const headPoint = new THREE.Vector3(0, cfg.depth / 2 + DRUMSTICK_CONTACT_CLEARANCE, 0)
+        .applyEuler(new THREE.Euler(cfg.rot[0], cfg.rot[1], cfg.rot[2]));
+      this.pieceTargets[cfg.id] = new THREE.Vector3(cfg.pos[0], cfg.pos[1], cfg.pos[2]).add(headPoint);
+      this.pieceTargetTangents[cfg.id] = new THREE.Vector3(1, 0, 0)
+        .applyEuler(new THREE.Euler(cfg.rot[0], cfg.rot[1], cfg.rot[2]))
+        .normalize();
     });
   }
 
@@ -426,7 +547,13 @@ export class DrumKit3D {
 
       this.group.add(group);
       this.drumHeads[cfg.id] = head;
-      this.pieceTargets[cfg.id] = new THREE.Vector3(cfg.pos[0], cfg.pos[1] + 0.12, cfg.pos[2]);
+      this.drumRecoilNodes[cfg.id] = { node: group, baseY: group.position.y };
+      const headPoint = new THREE.Vector3(0, cfg.depth / 2 + DRUMSTICK_CONTACT_CLEARANCE, 0)
+        .applyEuler(new THREE.Euler(cfg.rot[0], cfg.rot[1], cfg.rot[2]));
+      this.pieceTargets[cfg.id] = new THREE.Vector3(cfg.pos[0], cfg.pos[1], cfg.pos[2]).add(headPoint);
+      this.pieceTargetTangents[cfg.id] = new THREE.Vector3(1, 0, 0)
+        .applyEuler(new THREE.Euler(cfg.rot[0], cfg.rot[1], cfg.rot[2]))
+        .normalize();
     });
   }
 
@@ -469,7 +596,13 @@ export class DrumKit3D {
 
     this.group.add(snareGroup);
     this.drumHeads.snare = head;
-    this.pieceTargets.snare = new THREE.Vector3(-0.42, 0.55, 0.42);
+    this.drumRecoilNodes.snare = { node: snareGroup, baseY: snareGroup.position.y };
+    const snareHeadPoint = new THREE.Vector3(0, depth / 2 + DRUMSTICK_CONTACT_CLEARANCE, 0)
+      .applyEuler(snareGroup.rotation);
+    this.pieceTargets.snare = snareGroup.position.clone().add(snareHeadPoint);
+    this.pieceTargetTangents.snare = new THREE.Vector3(1, 0, 0)
+      .applyEuler(snareGroup.rotation)
+      .normalize();
   }
 
   /**
@@ -500,7 +633,12 @@ export class DrumKit3D {
 
     hihatGroup.add(topPivot);
     this.cymbals.hihat = topPivot;
-    this.pieceTargets.hihat = new THREE.Vector3(-0.82, 0.72, 0.35);
+    const hihatTopPoint = new THREE.Vector3(0, 0.025 + 0.019 + DRUMSTICK_CONTACT_CLEARANCE, 0)
+      .applyEuler(hihatGroup.rotation);
+    this.pieceTargets.hihat = hihatGroup.position.clone().add(hihatTopPoint);
+    this.pieceTargetTangents.hihat = new THREE.Vector3(1, 0, 0)
+      .applyEuler(hihatGroup.rotation)
+      .normalize();
 
     // Chrome Hi-Hat Stand
     const stand = new THREE.Mesh(
@@ -585,7 +723,12 @@ export class DrumKit3D {
       cGroup.add(cPivot);
 
       this.cymbals[cfg.id] = cPivot;
-      this.pieceTargets[cfg.id] = new THREE.Vector3(cfg.pos[0], cfg.pos[1] + 0.05, cfg.pos[2]);
+      const cymbalPoint = new THREE.Vector3(0, 0.019 + DRUMSTICK_CONTACT_CLEARANCE, 0)
+        .applyEuler(new THREE.Euler(cfg.rot[0], cfg.rot[1], cfg.rot[2]));
+      this.pieceTargets[cfg.id] = new THREE.Vector3(cfg.pos[0], cfg.pos[1], cfg.pos[2]).add(cymbalPoint);
+      this.pieceTargetTangents[cfg.id] = new THREE.Vector3(1, 0, 0)
+        .applyEuler(new THREE.Euler(cfg.rot[0], cfg.rot[1], cfg.rot[2]))
+        .normalize();
       this.group.add(cGroup);
     });
   }
@@ -641,7 +784,6 @@ export class DrumKit3D {
 
     const pieces = [
       'snare',
-      'snare_2',
       'tom1',
       'tom2',
       'tom3',
@@ -657,43 +799,78 @@ export class DrumKit3D {
       'china'
     ];
 
-    pieces.forEach(id => {
-      const targetId = (id === 'snare_2') ? 'snare' : id;
-      const target = this.pieceTargets[targetId];
+    pieces.forEach(piece => {
+      const target = this.pieceTargets[piece];
       if (!target) return;
 
-      const stickData = this._createDedicatedStickMesh(target, drummerOrigin, id === 'snare_2');
-      this.pieceSticks[id] = stickData;
-      this.group.add(stickData.pivot);
+      const tangent = this.pieceTargetTangents[piece] || new THREE.Vector3(1, 0, 0);
+      [-1, 1].forEach(handSide => {
+        const handIndex = handSide > 0 ? 1 : 0;
+        const stickKey = handIndex === 0 ? piece : `${piece}_2`;
+        const handTarget = target.clone()
+          .addScaledVector(tangent, DRUMSTICK_HAND_CONTACT_OFFSET * handSide);
+        const handOrigin = drummerOrigin.clone()
+          .addScaledVector(tangent, DRUMSTICK_HAND_WRIST_OFFSET * handSide);
+        const stickData = this._createDedicatedStickMesh(handTarget, handOrigin);
+        stickData.piece = piece;
+        stickData.handIndex = handIndex;
+        this.pieceSticks[stickKey] = stickData;
+        this.group.add(stickData.pivot);
+      });
     });
   }
 
-  _createDedicatedStickMesh(targetPos, drummerOrigin, isAlternateSnare = false) {
+  _createDedicatedStickMesh(targetPos, drummerOrigin) {
     const pivot = new THREE.Group();
-    pivot.position.copy(targetPos);
 
-    // Direction vector from drummer center to target
-    const dir = new THREE.Vector3().subVectors(targetPos, drummerOrigin).normalize();
-    const yaw = Math.atan2(dir.x, dir.z);
-    const pitch = 0.36;
+    // The pivot is the drummer's wrist/fulcrum, not the point of impact. Keep
+    // that wrist above the head and behind it, so the whole visible stick
+    // starts high and can descend in an arc instead of falling as a straight
+    // vertical pole.
+    const radial = new THREE.Vector3(
+      targetPos.x - drummerOrigin.x,
+      0,
+      targetPos.z - drummerOrigin.z
+    );
+    if (radial.lengthSq() < 0.0001) radial.set(0, 0, 1);
+    radial.normalize();
+    const horizontalSpan = Math.sqrt(
+      Math.max(0.0001, DRUMSTICK_LENGTH ** 2 - DRUMSTICK_WRIST_HEIGHT ** 2)
+    );
+    pivot.position.copy(targetPos)
+      .addScaledVector(radial, -horizontalSpan);
+    pivot.position.y += DRUMSTICK_WRIST_HEIGHT;
 
-    // Rotate pivot so stick points along the radial vector towards the drum
-    pivot.rotation.y = yaw;
-    pivot.rotation.x = isAlternateSnare ? -pitch * 0.9 : pitch;
+    const dir = new THREE.Vector3().subVectors(targetPos, pivot.position).normalize();
+
+    // Local +Z points from the wrist to the drumhead. A quaternion avoids the
+    // yaw/pitch Euler-order drift that previously put inclined-kit sticks
+    // below or beside their target.
+    pivot.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+
+    // Determine which local-X direction raises the tip after this 3D aim. The
+    // sign varies with the radial direction, especially on the floor toms.
+    const neutralTip = new THREE.Vector3(0, 0, DRUMSTICK_LENGTH)
+      .applyQuaternion(pivot.quaternion);
+    const positiveTestTip = new THREE.Vector3(0, 0, DRUMSTICK_LENGTH)
+      .applyAxisAngle(new THREE.Vector3(1, 0, 0), 0.1)
+      .applyQuaternion(pivot.quaternion);
+    const arcSign = positiveTestTip.y > neutralTip.y ? 1 : -1;
 
     const stickArm = new THREE.Group();
 
-    // Hickory shaft (0.38m length, tapering backward toward the drummer)
-    const shaftGeom = new THREE.CylinderGeometry(0.005, 0.012, 0.38, 10);
+    // Hickory shaft, extending forward from the wrist to the contact point.
+    const shaftGeom = new THREE.CylinderGeometry(0.005, 0.012, DRUMSTICK_LENGTH, 10);
     shaftGeom.rotateX(Math.PI / 2);
     const shaft = new THREE.Mesh(shaftGeom, this.stickMaterial);
-    shaft.position.z = -0.19; // Extends backward toward drummer
+    shaft.position.z = DRUMSTICK_LENGTH / 2;
     shaft.castShadow = true;
     stickArm.add(shaft);
 
-    // Acorn tip at origin of stickArm
+    // Acorn tip lands on the drumhead when the arm is at its neutral angle.
     const tipGeom = new THREE.SphereGeometry(0.009, 8, 8);
     const tip = new THREE.Mesh(tipGeom, this.stickMaterial);
+    tip.position.z = DRUMSTICK_LENGTH;
     stickArm.add(tip);
 
     pivot.add(stickArm);
@@ -704,44 +881,102 @@ export class DrumKit3D {
     return {
       pivot,
       stickArm,
-      initialPitch: pitch
+      initialPitch: 0,
+      visibilityToken: 0,
+      // The local +X stroke direction is consistent after the forward-axis
+      // quaternion only after accounting for the target's 3D direction.
+      arcSign,
+      basePivotY: pivot.position.y
     };
   }
 
-  /**
-   * Signature MIDIJam Resting Stick (matching media_1788369383722.png):
-   * Resting gently on the snare rim pointing diagonally toward the kick pedal
-   */
-  _buildRestingStick() {
-    const restingGroup = new THREE.Group();
-    restingGroup.position.set(-0.24, 0.44, 0.28);
-    restingGroup.rotation.set(0.32, -0.62, 0.52);
+  _selectStickKey(piece, eventTime = null, trackIndex = null) {
+    const alternateKey = `${piece}_2`;
+    if (!this.pieceSticks[alternateKey]) return piece;
 
-    const shaftGeom = new THREE.CylinderGeometry(0.006, 0.012, 0.38, 10);
-    shaftGeom.rotateX(Math.PI / 2);
-    const shaft = new THREE.Mesh(shaftGeom, this.stickMaterial);
-    shaft.position.z = -0.19;
-    shaft.castShadow = true;
-    restingGroup.add(shaft);
+    // Use the event's original MIDI time when available. Preparation events
+    // happen 220 ms early, so wall-clock proximity alone would mistake two
+    // nearby but distinct notes for a simultaneous two-hand hit.
+    const currentTime = Number.isFinite(eventTime) ? eventTime : performance.now() / 1000;
+    const sourceTrack = trackIndex ?? 'manual';
+    const previous = this.stickSelectionState.get(piece);
+    const simultaneous = previous &&
+      previous.track !== sourceTrack &&
+      Math.abs(currentTime - previous.time) <= DRUMSTICK_SIMULTANEOUS_WINDOW;
+    const handIndex = simultaneous ? 1 - previous.handIndex : 0;
+    this.stickSelectionState.set(piece, { time: currentTime, track: sourceTrack, handIndex });
+    return handIndex === 1 ? alternateKey : piece;
+  }
 
-    // Red ring trim detail near butt end
-    const ringGeom = new THREE.CylinderGeometry(0.0125, 0.0125, 0.012, 10);
-    ringGeom.rotateX(Math.PI / 2);
-    const ring = new THREE.Mesh(ringGeom, new THREE.MeshStandardMaterial({ color: 0xcc2222 }));
-    ring.position.z = -0.32;
-    restingGroup.add(ring);
+  _queuePreparedStrike(piece, preparedStrike) {
+    const queue = this.preparedStrikes.get(piece) || [];
+    queue.push(preparedStrike);
+    this.preparedStrikes.set(piece, queue);
+  }
 
-    const tipGeom = new THREE.SphereGeometry(0.009, 8, 8);
-    const tip = new THREE.Mesh(tipGeom, this.stickMaterial);
-    restingGroup.add(tip);
+  _takePreparedStrike(piece) {
+    const queue = this.preparedStrikes.get(piece);
+    if (!queue || queue.length === 0) return null;
 
-    this.group.add(restingGroup);
+    const prepared = queue.shift();
+    if (queue.length === 0) this.preparedStrikes.delete(piece);
+    return prepared;
+  }
+
+  _keepStickVisible(stickData) {
+    stickData.visibilityToken = (stickData.visibilityToken || 0) + 1;
+    return stickData.visibilityToken;
+  }
+
+  _arcAngle(stickData, baseAngle, velocity) {
+    return baseAngle * stickData.arcSign * velocity;
   }
 
   /**
-   * Note-On Event Trigger: triggers dedicated stick strike and piece feedback
+   * Starts the physical lift before the MIDI note. The sound is intentionally
+   * not triggered from here; this only makes the drummer readable on screen.
    */
-  onNoteOn(pitchOrPiece, velocity = 0.8) {
+  onNotePrepare(pitchOrPiece, velocity = 0.8, duration = 0.5, eventTime = null, trackIndex = null) {
+    let piece = pitchOrPiece;
+    if (typeof pitchOrPiece === 'number') {
+      piece = this._mapPitchToPiece(pitchOrPiece);
+    }
+    if (piece === 'kick') return;
+
+    const vel = Math.max(0.4, Math.min(1.0, velocity));
+    const stickKey = this._selectStickKey(piece, eventTime, trackIndex);
+    const stickData = this.pieceSticks[stickKey];
+    if (!stickData) return;
+
+    this._queuePreparedStrike(piece, { stickKey, velocity: vel });
+    this._keepStickVisible(stickData);
+
+    // Closely spaced hits keep the stick on screen instead of blinking it off
+    // between notes, as a real drummer would.
+    if (stickData.pivot.visible) return;
+
+    stickData.pivot.visible = true;
+    gsap.killTweensOf(stickData.stickArm.rotation);
+    gsap.killTweensOf(stickData.pivot.position);
+    stickData.stickArm.rotation.x = this._arcAngle(stickData, DRUMSTICK_LIFT_ANGLE, vel);
+    stickData.pivot.position.y = stickData.basePivotY + DRUMSTICK_GRIP_LIFT * vel;
+    gsap.to(stickData.stickArm.rotation, {
+      x: this._arcAngle(stickData, DRUMSTICK_READY_ANGLE, vel),
+      duration: 0.22,
+      ease: 'power2.out'
+    });
+    gsap.to(stickData.pivot.position, {
+      y: stickData.basePivotY + DRUMSTICK_GRIP_READY * vel,
+      duration: 0.22,
+      ease: 'power2.out'
+    });
+  }
+
+  /**
+   * Note-On Event Trigger: completes a prepared stick strike and triggers
+   * dedicated piece feedback.
+   */
+  onNoteOn(pitchOrPiece, velocity = 0.8, eventTime = null, trackIndex = null) {
     let piece = pitchOrPiece;
     if (typeof pitchOrPiece === 'number') {
       piece = this._mapPitchToPiece(pitchOrPiece);
@@ -754,53 +989,82 @@ export class DrumKit3D {
       return;
     }
 
-    // Alternate hands for rapid snare rolls
-    let stickKey = piece;
-    if (piece === 'snare') {
-      const now = performance.now();
-      if (now - this.lastSnareHitTime < 240) {
-        this.currentSnareIndex = 1 - this.currentSnareIndex;
-        stickKey = this.currentSnareIndex === 1 ? 'snare_2' : 'snare';
-      } else {
-        this.currentSnareIndex = 0;
-        stickKey = 'snare';
-      }
-      this.lastSnareHitTime = now;
-    }
+    const prepared = this._takePreparedStrike(piece);
+    const stickKey = prepared ? prepared.stickKey : this._selectStickKey(piece, eventTime, trackIndex);
+    const stickVelocity = prepared ? prepared.velocity : vel;
 
     // 1. Strike Down Dedicated Radial Stick
     const stickData = this.pieceSticks[stickKey];
     if (stickData) {
       stickData.pivot.visible = true;
       gsap.killTweensOf(stickData.stickArm.rotation);
-      gsap.killTweensOf(stickData.pivot);
+      gsap.killTweensOf(stickData.pivot.position);
+      const visibilityToken = this._keepStickVisible(stickData);
+      const strike = gsap.timeline();
 
-      stickData.stickArm.rotation.x = -0.38 * vel;
-
-      gsap.timeline()
-        .to(stickData.stickArm.rotation, {
-          x: 0.12 * vel,
-          duration: 0.038,
+      // A direct/manual note may not have a preceding prepare event. Keep a
+      // compact attack for that case, while MIDI playback arrives at the hit
+      // already lifted by the 220 ms preparation window.
+      if (!prepared) {
+        stickData.stickArm.rotation.x = this._arcAngle(stickData, DRUMSTICK_LIFT_ANGLE, stickVelocity);
+        stickData.pivot.position.y = stickData.basePivotY + DRUMSTICK_GRIP_LIFT * stickVelocity;
+        strike.to(stickData.stickArm.rotation, {
+          x: this._arcAngle(stickData, DRUMSTICK_READY_ANGLE, stickVelocity),
+          duration: 0.055,
           ease: 'power3.in'
-        })
+        }, 0)
+          .to(stickData.pivot.position, {
+            y: stickData.basePivotY + DRUMSTICK_GRIP_READY * stickVelocity,
+            duration: 0.055,
+            ease: 'power3.in'
+          }, 0);
+      } else {
+        stickData.stickArm.rotation.x = this._arcAngle(stickData, DRUMSTICK_READY_ANGLE, stickVelocity);
+        stickData.pivot.position.y = stickData.basePivotY + DRUMSTICK_GRIP_READY * stickVelocity;
+      }
+
+      strike
         .to(stickData.stickArm.rotation, {
-          x: -0.22 * vel,
-          duration: 0.08,
-          ease: 'power2.out'
+          x: this._arcAngle(stickData, DRUMSTICK_IMPACT_ANGLE, stickVelocity),
+          duration: 0.045,
+          ease: 'power4.in'
         })
+        .to(stickData.pivot.position, {
+          y: stickData.basePivotY,
+          duration: 0.045,
+          ease: 'power4.in'
+        }, '<')
+        .to(stickData.stickArm.rotation, {
+          x: this._arcAngle(stickData, DRUMSTICK_REBOUND_ANGLE, stickVelocity),
+          duration: 0.14,
+          ease: 'back.out(1.4)'
+        })
+        .to(stickData.pivot.position, {
+          y: stickData.basePivotY + DRUMSTICK_GRIP_REBOUND * stickVelocity,
+          duration: 0.14,
+          ease: 'back.out(1.4)'
+        }, '<')
         .to(stickData.stickArm.rotation, {
           x: 0,
-          duration: 0.12,
+          duration: 0.26,
           ease: 'power1.inOut'
         })
+        .to(stickData.pivot.position, {
+          y: stickData.basePivotY,
+          duration: 0.26,
+          ease: 'power1.inOut'
+        }, '<')
         .call(() => {
-          stickData.pivot.visible = false;
+          if (stickData.visibilityToken === visibilityToken) {
+            stickData.pivot.visible = false;
+          }
         });
     }
 
     // 2. Animate Drumhead or Cymbal
     const head = this.drumHeads[piece];
     if (head) {
+      this._animateDrumRecoil(piece, vel);
       this._flashDrumHead(head, 0xfff0aa, vel);
     }
 
@@ -808,6 +1072,31 @@ export class DrumKit3D {
     if (cymbal) {
       this._animateCymbal(cymbal, vel);
     }
+  }
+
+  _animateDrumRecoil(piece, vel) {
+    const recoil = this.drumRecoilNodes[piece];
+    if (!recoil) return;
+
+    const dampening = Math.sqrt(Math.max(0, Math.min(1, vel)));
+    const distance = (piece === 'kick' ? BASS_DRUM_RECOIL_DISTANCE : DRUM_RECOIL_DISTANCE) * dampening;
+    const { node, baseY } = recoil;
+
+    gsap.killTweensOf(node.position);
+    // A fresh hit starts from the rest height, then compresses downward and
+    // returns without an upward overshoot, matching midis2jam2's recoilDrum.
+    node.position.y = baseY;
+    gsap.timeline()
+      .to(node.position, {
+        y: baseY - distance,
+        duration: 0.035,
+        ease: 'power4.in'
+      })
+      .to(node.position, {
+        y: baseY,
+        duration: 0.22,
+        ease: 'power2.out'
+      });
   }
 
   _animateCymbal(cymbalGroup, vel) {
@@ -843,6 +1132,7 @@ export class DrumKit3D {
   }
 
   _animateKick(vel) {
+    this._animateDrumRecoil('kick', vel);
     if (this.beaterPivot) {
       gsap.killTweensOf(this.beaterPivot.rotation);
       gsap.timeline()
@@ -866,7 +1156,25 @@ export class DrumKit3D {
     });
   }
 
-  onNoteOff() {}
+  onNoteOff(pitchOrPiece, force = false) {
+    if (!force) return;
+
+    this.preparedStrikes.clear();
+    this.stickSelectionState.clear();
+    Object.values(this.drumRecoilNodes).forEach(({ node, baseY }) => {
+      gsap.killTweensOf(node.position);
+      node.position.y = baseY;
+    });
+    Object.values(this.pieceSticks).forEach(stickData => {
+      this._keepStickVisible(stickData);
+      gsap.killTweensOf(stickData.stickArm.rotation);
+      gsap.killTweensOf(stickData.pivot.position);
+      stickData.stickArm.rotation.x = 0;
+      stickData.stickArm.position.set(0, 0, 0);
+      stickData.pivot.position.y = stickData.basePivotY;
+      stickData.pivot.visible = false;
+    });
+  }
 
   update() {}
 }

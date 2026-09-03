@@ -29,6 +29,10 @@ export class CameraController {
       drums_overhead: { pos: new THREE.Vector3(0, 3.2, 0.7), target: new THREE.Vector3(0, 0.8, -0.3) },
       guitar: { pos: new THREE.Vector3(2.10, 1.55, 2.35), target: new THREE.Vector3(1.75, 1.25, 0.90) },
       guitar_neck: { pos: new THREE.Vector3(2.45, 1.50, 1.55), target: new THREE.Vector3(2.05, 1.35, 0.95) },
+      acousticGuitar: { pos: new THREE.Vector3(1.05, 1.50, 2.55), target: new THREE.Vector3(1.05, 1.15, 1.42) },
+      acousticGuitar_2: { pos: new THREE.Vector3(1.30, 1.42, 2.30), target: new THREE.Vector3(1.28, 1.08, 1.20) },
+      acousticGuitar_3: { pos: new THREE.Vector3(1.55, 1.34, 2.05), target: new THREE.Vector3(1.50, 1.00, 0.95) },
+      acousticGuitar_4: { pos: new THREE.Vector3(1.78, 1.26, 1.80), target: new THREE.Vector3(1.72, 0.92, 0.70) },
       bass: { pos: new THREE.Vector3(-1.65, 1.15, 1.35), target: new THREE.Vector3(-2.0, 0.95, -0.1) },
       trumpet: { pos: new THREE.Vector3(3.40, 1.56, 1.50), target: new THREE.Vector3(4.40, 1.40, 0.40) },
       sax: { pos: new THREE.Vector3(2.10, 1.55, 2.30), target: new THREE.Vector3(3.40, 1.25, 1.80) },
@@ -197,7 +201,12 @@ export class CameraController {
     // If the currently viewed instrument is no longer on stage, smoothly return to overview
     if (this.currentPreset !== 'overview' && this.currentPreset !== 'conductor') {
       const basePreset = this.currentPreset.split('_')[0];
-      if (this.activeInstruments && !this.activeInstruments.has(basePreset)) {
+      const isVisible = this.activeInstruments && (
+        this.activeInstruments.has(this.currentPreset) ||
+        this.activeInstruments.has(basePreset) ||
+        (this.currentPreset === 'guitar_neck' && this.activeInstruments.has('guitar'))
+      );
+      if (this.activeInstruments && !isVisible) {
         this.setPreset('overview', 1.2);
       }
     }
@@ -238,7 +247,9 @@ export class CameraController {
 
         if (topInst) {
           this.currentDirectorInstrument = topInst;
-          if (topInst === 'guitar') {
+          if (topInst === 'acousticGuitar') {
+            nextPreset = 'acousticGuitar';
+          } else if (topInst === 'guitar') {
             nextPreset = Math.random() > 0.4 ? 'guitar' : 'guitar_neck';
           } else if (topInst === 'drums') {
             nextPreset = Math.random() > 0.4 ? 'drums' : 'drums_overhead';

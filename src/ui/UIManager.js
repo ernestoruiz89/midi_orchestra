@@ -13,6 +13,7 @@ export class UIManager {
 
     this.isSeeking = false;
     this.isMutedMaster = false;
+    this.previousMasterVolume = soundEngine.masterVolume;
 
     this._cacheDOM();
     this._bindPlaybackControls();
@@ -70,6 +71,7 @@ export class UIManager {
         piano: document.getElementById('vu-piano'),
         drums: document.getElementById('vu-drums'),
         guitar: document.getElementById('vu-guitar'),
+        acousticGuitar: document.getElementById('vu-acousticGuitar'),
         bass: document.getElementById('vu-bass'),
         trumpet: document.getElementById('vu-trumpet'),
         sax: document.getElementById('vu-sax'),
@@ -102,12 +104,27 @@ export class UIManager {
   }
 
   _bindPlaybackControls() {
+    // Browsers can restore a previous range-input value after a live reload.
+    // Keep the UI in sync with the newly constructed audio engine so an old
+    // 100% master fader cannot make the fresh calibrated mix look unchanged.
+    this.dom.masterVolume.value = this.soundEngine.masterVolume;
+
     // Play / Pause
     this.dom.btnPlay.addEventListener('click', async () => {
       if (this.midiPlayer.isPlaying) {
         this.midiPlayer.pause();
       } else {
-        await this.midiPlayer.play();
+        const needsAudioLoad = !this.soundEngine.initialized || (
+          !this.soundEngine.gmSynthReady && !this.soundEngine.gmSynthFailed
+        );
+        if (needsAudioLoad) this.showToast(i18n.t('toasts.loadingGmSoundfont'));
+
+        this.dom.btnPlay.disabled = true;
+        try {
+          await this.midiPlayer.play();
+        } finally {
+          this.dom.btnPlay.disabled = false;
+        }
       }
     });
 
@@ -155,17 +172,19 @@ export class UIManager {
       const val = parseFloat(e.target.value);
       this.soundEngine.setMasterVolume(val);
       this.isMutedMaster = val === 0;
+      if (val > 0) this.previousMasterVolume = val;
     });
 
     this.dom.btnMasterMute.addEventListener('click', () => {
       this.isMutedMaster = !this.isMutedMaster;
       if (this.isMutedMaster) {
+        this.previousMasterVolume = this.soundEngine.masterVolume || this.previousMasterVolume;
         this.soundEngine.setMasterVolume(0);
         this.dom.masterVolume.value = 0;
         this.showToast(i18n.t('toasts.mute'));
       } else {
-        this.soundEngine.setMasterVolume(0.85);
-        this.dom.masterVolume.value = 0.85;
+        this.soundEngine.setMasterVolume(this.previousMasterVolume);
+        this.dom.masterVolume.value = this.previousMasterVolume;
         this.showToast(i18n.t('toasts.unmute'));
       }
     });
@@ -228,14 +247,14 @@ export class UIManager {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const inst = btn.dataset.inst;
-        const allInsts = ['piano', 'drums', 'guitar', 'bass', 'trumpet', 'sax', 'violin', 'flute', 'xylophone', 'synth'];
+        const allInsts = ['piano', 'drums', 'guitar', 'acousticGuitar', 'bass', 'trumpet', 'sax', 'violin', 'flute', 'xylophone', 'synth'];
         const instLabel = i18n.t('instruments.' + inst) || inst;
         if (this.soloedInstrument === inst) {
           // Un-solo
           this.soloedInstrument = null;
           this.dom.soloButtons.forEach(b => b.classList.remove('active'));
           allInsts.forEach(i => {
-            this.soundEngine.setChannelVolume(i, this.mutedInstruments.has(i) ? 0 : (this.soundEngine.volumes[i] || 0.85));
+            this.soundEngine.setChannelVolume(i, this.mutedInstruments.has(i) ? 0 : (this.soundEngine.volumes[i] ?? 0.85));
           });
           this.showToast(i18n.t('toasts.soloOff'));
         } else {
@@ -243,7 +262,7 @@ export class UIManager {
           this.soloedInstrument = inst;
           this.dom.soloButtons.forEach(b => b.classList.toggle('active', b.dataset.inst === inst));
           allInsts.forEach(i => {
-            this.soundEngine.setChannelVolume(i, i === inst ? (this.soundEngine.volumes[i] || 0.85) : 0);
+            this.soundEngine.setChannelVolume(i, i === inst ? (this.soundEngine.volumes[i] ?? 0.85) : 0);
           });
           this.showToast(i18n.t('toasts.soloOn', instLabel.toUpperCase()));
         }
@@ -458,7 +477,7 @@ export class UIManager {
     const updateDropdown = (outputs) => {
       const currentVal = this.dom.selectMidiOut.value || 'internal';
       this.dom.selectMidiOut.innerHTML = `
-        <option value="internal">🔊 Web Studio (SoundFonts GM)</option>
+        <option value="internal">🔊 Web Studio (GeneralUser GS)</option>
       `;
       if (outputs && outputs.length > 0) {
         outputs.forEach(out => {
@@ -522,6 +541,7 @@ export class UIManager {
       { id: 'drums', label: isEs ? '🥁 Batería Acústica' : '🥁 Acoustic Drums' },
       { id: 'bass', label: isEs ? '🎸 Bajo Eléctrico' : '🎸 Electric Bass' },
       { id: 'guitar', label: isEs ? '🎸 Guitarra Eléctrica' : '🎸 Electric Guitar' },
+      { id: 'acousticGuitar', label: isEs ? '🎼 Guitarra Acústica' : '🎼 Acoustic Guitar' },
       { id: 'trumpet', label: isEs ? '🎺 Trompeta / Metales' : '🎺 Trumpet / Brass' },
       { id: 'sax', label: isEs ? '🎷 Saxofón Tenor/Alto' : '🎷 Tenor/Alto Saxophone' },
       { id: 'violin', label: isEs ? '🎻 Violín de Concierto' : '🎻 Concert Violin' },
@@ -675,9 +695,14 @@ export class UIManager {
       }
     };
 
+    // Visual preparation -> 3D scene only. MIDI audio still starts at Note On.
+    this.midiPlayer.onNotePrepare = (instrument, midiPitch, noteName, velocity, duration, instanceId, instanceIndex, eventTime, trackIndex) => {
+      this.sceneManager.handleNotePrepare(instrument, midiPitch, noteName, velocity, duration, instanceId, eventTime, trackIndex);
+    };
+
     // Note On -> 3D scene dispatch (routed to specific duplicate instance)
-    this.midiPlayer.onNoteOn = (instrument, midiPitch, noteName, velocity, duration, instanceId) => {
-      this.sceneManager.handleNoteOn(instrument, midiPitch, noteName, velocity, duration, instanceId);
+    this.midiPlayer.onNoteOn = (instrument, midiPitch, noteName, velocity, duration, instanceId, instanceIndex, eventTime, trackIndex) => {
+      this.sceneManager.handleNoteOn(instrument, midiPitch, noteName, velocity, duration, instanceId, eventTime, trackIndex);
     };
 
     // Note Off -> 3D scene dispatch (routed to specific duplicate instance)

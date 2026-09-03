@@ -1,5 +1,6 @@
 import * as Tone from 'tone';
 import Soundfont from 'soundfont-player';
+import { WorkletSynthesizer } from 'spessasynth_lib';
 
 /**
  * General MIDI (GM) Standard Program Map
@@ -37,8 +38,8 @@ export const GM_PROGRAM_MAP = {
   23: { sf: 'tango_accordion', bus: 'piano' },
 
   // Guitars (24-31)
-  24: { sf: 'acoustic_guitar_nylon', bus: 'guitar' },
-  25: { sf: 'acoustic_guitar_steel', bus: 'guitar' },
+  24: { sf: 'acoustic_guitar_nylon', bus: 'acousticGuitar' },
+  25: { sf: 'acoustic_guitar_steel', bus: 'acousticGuitar' },
   26: { sf: 'electric_guitar_jazz', bus: 'guitar' },
   27: { sf: 'electric_guitar_clean', bus: 'guitar' },
   28: { sf: 'electric_guitar_muted', bus: 'guitar' },
@@ -138,35 +139,39 @@ export class SoundEngine {
     this.initialized = false;
     this.isLoadingSoundfonts = false;
     this.soundfontsLoaded = false;
-    this.masterVolume = 0.85;
+    this.masterVolume = 0.80;
 
     // Per-instrument channel volumes
     this.volumes = {
-      piano: 0.95,
-      piano_2: 0.95,
-      piano_3: 0.95,
-      piano_4: 0.95,
-      drums: 0.92,
-      bass: 0.95,
-      bass_2: 0.95,
-      guitar: 0.88,
-      guitar_2: 0.88,
-      guitar_3: 0.88,
-      guitar_4: 0.88,
-      trumpet: 0.86,
-      trumpet_2: 0.86,
-      sax: 0.88,
-      sax_2: 0.88,
-      violin: 0.86,
-      violin_2: 0.86,
-      flute: 0.82,
-      flute_2: 0.82,
-      xylophone: 0.85,
-      xylophone_2: 0.85,
-      synth: 0.82,
-      synth_2: 0.82,
-      synth_3: 0.82,
-      synth_4: 0.82
+      piano: 0.78,
+      piano_2: 0.78,
+      piano_3: 0.78,
+      piano_4: 0.78,
+      drums: 0.58,
+      bass: 0.72,
+      bass_2: 0.72,
+      guitar: 0.68,
+      guitar_2: 0.68,
+      guitar_3: 0.68,
+      guitar_4: 0.68,
+      acousticGuitar: 0.64,
+      acousticGuitar_2: 0.64,
+      acousticGuitar_3: 0.64,
+      acousticGuitar_4: 0.64,
+      trumpet: 0.64,
+      trumpet_2: 0.64,
+      sax: 0.65,
+      sax_2: 0.65,
+      violin: 0.68,
+      violin_2: 0.68,
+      flute: 0.60,
+      flute_2: 0.60,
+      xylophone: 0.60,
+      xylophone_2: 0.60,
+      synth: 0.62,
+      synth_2: 0.62,
+      synth_3: 0.62,
+      synth_4: 0.62
     };
 
     this.muted = {};
@@ -175,19 +180,85 @@ export class SoundEngine {
     // Soundfont audio nodes & instances
     this.soundfontPlayers = {};
     this.loadingSoundfonts = new Set();
+    this.soundfontLoadPromises = {};
     this.activeSoundfontNodes = {};
+
+    // Primary GM engine. A single SoundFont-backed synthesizer keeps melodic
+    // presets and percussion in the same calibrated bank, as MIDI2JAM2 does.
+    this.gmSynth = null;
+    this.gmSynthReady = false;
+    this.gmSynthFailed = false;
+    this.gmSynthLoadPromise = null;
+    this.gmChannelInputs = [];
+    this.gmChannelPanners = [];
+    this.gmChannelBuses = new Array(16).fill('piano');
+    this.gmChannelBuses[9] = 'drums';
+    this.gmChannelInstances = new Array(16).fill(null);
+    this.gmTemporaryMuted = {};
+    this.gmMasterCompressor = null;
+    this.gmMasterGain = null;
+    this.gmAnalyser = null;
 
     // Tone.js nodes
     this.channels = {};
     this.synths = {};
     this.drumAudioBuffers = {};
     this.activeHihatSources = [];
+    this.activeDrumSources = [];
+
+    // The procedural kit is normalized first, then balanced piece by piece.
+    // These are compensations for this local drum model; MIDI2JAM2 itself
+    // relies on the calibration embedded in its GM SoundFont.
+    this.drumPieceTrims = {
+      kick: 0.78,
+      snare: 0.68,
+      sideStick: 0.56,
+      handClap: 0.56,
+      floorTom: 0.70,
+      tomLow: 0.69,
+      tomMid: 0.67,
+      tomHigh: 0.65,
+      hihatClosed: 0.46,
+      hihatPedal: 0.40,
+      hihatOpen: 0.44,
+      crash: 0.43,
+      chineseCymbal: 0.42,
+      splash: 0.39,
+      ride: 0.49,
+      rideBell: 0.46,
+      tambourine: 0.45,
+      cowbell: 0.49,
+      vibraslap: 0.45,
+      bongoHigh: 0.55,
+      bongoLow: 0.57,
+      congaMuted: 0.52,
+      congaHigh: 0.57,
+      congaLow: 0.59,
+      timbaleHigh: 0.55,
+      timbaleLow: 0.57,
+      agogoHigh: 0.45,
+      agogoLow: 0.47,
+      cabasa: 0.38,
+      maracas: 0.36,
+      whistleShort: 0.34,
+      whistleLong: 0.32,
+      guiroShort: 0.38,
+      guiroLong: 0.36,
+      claves: 0.43,
+      woodblockHigh: 0.43,
+      woodblockLow: 0.45,
+      cuicaMuted: 0.42,
+      cuicaOpen: 0.40,
+      triangleMuted: 0.34,
+      triangleOpen: 0.32
+    };
 
     // Web MIDI API state
     this.midiAccess = null;
     this.midiOutputs = [];
     this.activeMidiOutput = null;
     this.currentPrograms = new Array(16).fill(-1);
+    this.midiChannelState = this._createDefaultMidiChannelState();
 
     // Callbacks
     this.onLoadingProgress = null;
@@ -201,20 +272,20 @@ export class SoundEngine {
     const ctx = Tone.getContext().rawContext;
 
     // Master studio mastering effects rack
-    this.limiter = new Tone.Limiter(-0.15).toDestination();
+    this.limiter = new Tone.Limiter(-1).toDestination();
 
     // Studio EQ (Warm lows, rich body, crisp airy highs)
     this.masterEQ = new Tone.EQ3({
-      low: 2.2,
-      mid: -0.5,
-      high: 1.8,
+      low: 1.2,
+      mid: -0.3,
+      high: 0.8,
       lowFrequency: 160,
       highFrequency: 4800
     }).connect(this.limiter);
 
     this.compressor = new Tone.Compressor({
-      threshold: -16,
-      ratio: 3.2,
+      threshold: -10,
+      ratio: 2,
       attack: 0.004,
       release: 0.18
     }).connect(this.masterEQ);
@@ -223,7 +294,7 @@ export class SoundEngine {
     this.reverb = new Tone.Reverb({
       decay: 2.2,
       preDelay: 0.015,
-      wet: 0.22
+      wet: 0.12
     }).connect(this.compressor);
     await this.reverb.generate();
 
@@ -231,7 +302,7 @@ export class SoundEngine {
       frequency: 1.2,
       delayTime: 2.8,
       depth: 0.45,
-      wet: 0.16
+      wet: 0.06
     }).connect(this.reverb);
     this.chorus.start();
 
@@ -248,10 +319,14 @@ export class SoundEngine {
     // Build fallback high-quality synth models
     this._buildFallbackSynths();
 
+    // The destination volume is independent of the limiter graph, so apply
+    // the configured startup master level explicitly.
+    this.setMasterVolume(this.masterVolume);
+
     this.initialized = true;
 
-    // Load initial essential soundfonts in background
-    this._loadInitialSoundfonts(ctx);
+    // The unified GM bank is loaded on the first Play action. Keeping this
+    // lazy avoids downloading/parsing a 31 MB SoundFont before user input.
 
     // Attempt to detect Web MIDI API outputs
     this.initWebMidi();
@@ -299,9 +374,23 @@ export class SoundEngine {
   }
 
   setMidiOutput(outputId) {
+    if (this.activeMidiOutput) {
+      for (let channel = 0; channel < 16; channel++) {
+        try {
+          this.activeMidiOutput.send([0xB0 | channel, 123, 0]);
+          this.activeMidiOutput.send([0xB0 | channel, 120, 0]);
+        } catch (e) {}
+      }
+    }
+    if (this.gmSynthReady && this.gmSynth) this.gmSynth.stopAll(true);
+
+    // Program state belongs to the selected synth/output, so force the next
+    // note to send its Program Change after switching backends.
+    this.currentPrograms.fill(-1);
+
     if (!this.midiAccess || !outputId || outputId === 'internal') {
       this.activeMidiOutput = null;
-      console.log('Audio routing: Web Studio SoundFonts');
+      console.log('Audio routing: GeneralUser GS Web Studio');
       return;
     }
 
@@ -314,15 +403,144 @@ export class SoundEngine {
     }
   }
 
+  /**
+   * MIDI's normal channel mix defaults. General MIDI uses CC 7 = 100 rather
+   * than full-scale, which leaves headroom when several channels play at once.
+   */
+  _createDefaultMidiChannelState() {
+    return Array.from({ length: 16 }, () => ({
+      volume: 100 / 127,
+      expression: 1,
+      pan: 64 / 127,
+      sustain: false,
+      pitchBend: 0
+    }));
+  }
+
+  /**
+   * Restores the channel state at the beginning of a song or before a seek.
+   * User mixer faders are deliberately kept separate from this MIDI mix.
+   */
+  resetMidiChannelState({ sendToOutput = true } = {}) {
+    this.midiChannelState = this._createDefaultMidiChannelState();
+    this.currentPrograms.fill(-1);
+
+    if (this.gmSynthReady && this.gmSynth) {
+      try {
+        this.gmSynth.reset();
+        this.gmSynth.setSystemParameter('gain', 0.8);
+        this.gmSynth.setSystemParameter('effectsEnabled', false);
+        this.gmSynth.midiChannels.forEach((midiChannel, channel) => {
+          midiChannel.setDrums(this.gmChannelBuses[channel] === 'drums');
+        });
+      } catch (e) {
+        console.warn('GM synthesizer reset warning:', e);
+      }
+    }
+
+    if (sendToOutput && this.activeMidiOutput) {
+      for (let channel = 0; channel < 16; channel++) {
+        try {
+          this.activeMidiOutput.send([0xB0 | channel, 121, 0]); // Reset All Controllers
+          this.activeMidiOutput.send([0xB0 | channel, 7, 100]); // Channel Volume default
+        } catch (e) {
+          // A disconnected output is handled by normal Web Audio fallback.
+        }
+      }
+    }
+  }
+
+  /**
+   * Applies an event embedded in the MIDI file. This mirrors the important
+   * part of midis2jam2's sequencer: controller messages travel with the song,
+   * instead of replacing the song's own balance with a fixed application mix.
+   */
+  applyMidiControlChange(channel, controller, value) {
+    const ch = Math.max(0, Math.min(15, Number(channel) || 0));
+    const cc = Math.max(0, Math.min(127, Math.round(Number(controller) || 0)));
+    const ccValue = Math.max(0, Math.min(127, Math.round((Number(value) || 0) * 127)));
+    const state = this.midiChannelState[ch] || (this.midiChannelState[ch] = {
+      volume: 100 / 127,
+      expression: 1,
+      pan: 64 / 127,
+      sustain: false,
+      pitchBend: 0
+    });
+
+    if (cc === 7) state.volume = ccValue / 127;
+    if (cc === 11) state.expression = ccValue / 127;
+    if (cc === 10) state.pan = ccValue / 127;
+    if (cc === 64) state.sustain = ccValue >= 64;
+
+    if (this.gmSynthReady && this.gmSynth) {
+      try {
+        this.gmSynth.controllerChange(ch, cc, ccValue);
+      } catch (e) {
+        console.warn('GM synthesizer control-change warning:', e);
+      }
+    }
+
+    if (this.activeMidiOutput) {
+      try {
+        this.activeMidiOutput.send([0xB0 | ch, cc, ccValue]);
+      } catch (e) {
+        console.warn('Web MIDI control-change error, continuing with Web Audio:', e);
+      }
+    }
+  }
+
+  applyMidiPitchBend(channel, value) {
+    const ch = Math.max(0, Math.min(15, Number(channel) || 0));
+    const normalized = Math.max(-1, Math.min(1, Number(value) || 0));
+    const bendValue = Math.max(0, Math.min(16383, Math.round((normalized + 1) * 8192)));
+    if (this.midiChannelState[ch]) this.midiChannelState[ch].pitchBend = normalized;
+
+    if (this.gmSynthReady && this.gmSynth) {
+      try {
+        this.gmSynth.pitchWheel(ch, bendValue);
+      } catch (e) {
+        console.warn('GM synthesizer pitch-bend warning:', e);
+      }
+    }
+
+    if (this.activeMidiOutput) {
+      try {
+        this.activeMidiOutput.send([
+          0xE0 | ch,
+          bendValue & 0x7F,
+          (bendValue >> 7) & 0x7F
+        ]);
+      } catch (e) {
+        console.warn('Web MIDI pitch-bend error, continuing with Web Audio:', e);
+      }
+    }
+  }
+
+  _getMidiChannelGain(channel) {
+    const ch = Math.max(0, Math.min(15, Number(channel) || 0));
+    const state = this.midiChannelState[ch];
+    if (!state) return (100 / 127) ** 2;
+
+    // SoundFont/FluidSynth controllers are attenuation modulators rather than
+    // linear gain knobs. Squaring their normalized values closely matches the
+    // standard concave SF2 response used by GeneralUser GS.
+    return (state.volume ** 2) * (state.expression ** 2);
+  }
+
+  _getMidiVelocityGain(velocity) {
+    const normalized = Math.max(0, Math.min(1, Number(velocity) || 0));
+    return normalized ** 2;
+  }
+
   _buildInstrumentChannels(ctx) {
     const instrumentNames = [
-      'piano', 'drums', 'bass', 'guitar', 'trumpet', 'sax', 'violin', 'flute', 'xylophone', 'synth'
+      'piano', 'drums', 'bass', 'guitar', 'acousticGuitar', 'trumpet', 'sax', 'violin', 'flute', 'xylophone', 'synth'
     ];
     this.nativeInputs = {};
 
     instrumentNames.forEach(inst => {
       const channel = new Tone.Channel({
-        volume: Tone.gainToDb(this.volumes[inst] || 0.85),
+        volume: Tone.gainToDb(this.volumes[inst] ?? 0.85),
         pan: this._getStereoPan(inst)
       }).connect(inst === 'drums' || inst === 'bass' ? this.compressor : this.chorus);
 
@@ -345,10 +563,181 @@ export class SoundEngine {
       case 'xylophone': return 0.05;
       case 'flute': return 0.18;
       case 'guitar': return 0.28;
+      case 'acousticGuitar': return 0.12;
       case 'sax': return 0.35;
       case 'trumpet': return 0.45;
       default: return 0;
     }
+  }
+
+  /**
+   * Loads the same class of audio backend used by MIDI2JAM2: one complete GM
+   * synthesizer and one coherent SoundFont for all 16 MIDI channels.
+   */
+  async _loadUnifiedGmSynth(ctx, trackInfos = []) {
+    this._routeGmSynthChannels(trackInfos);
+
+    if (this.gmSynthReady && this.gmSynth) return true;
+    if (this.gmSynthFailed) return false;
+    if (this.gmSynthLoadPromise) return this.gmSynthLoadPromise;
+
+    this.gmSynthLoadPromise = (async () => {
+      // Tone.js uses standardized-audio-context internally. AudioWorkletNode's
+      // browser constructor needs the underlying native BaseAudioContext.
+      const nativeContext = ctx?._nativeAudioContext || ctx?._nativeContext || ctx;
+      if (!nativeContext?.audioWorklet) {
+        throw new Error('AudioWorklet is not available in this browser');
+      }
+
+      this.isLoadingSoundfonts = true;
+      console.log('Loading GeneralUser GS 2.0.2 GM SoundFont...');
+
+      await nativeContext.audioWorklet.addModule('/audio/spessasynth_processor.min.js');
+
+      const response = await fetch('/soundfonts/general_user-2.0.2.sf2');
+      if (!response.ok) {
+        throw new Error(`SoundFont request failed (${response.status})`);
+      }
+      const soundBank = await response.arrayBuffer();
+
+      const synth = new WorkletSynthesizer(nativeContext, {
+        oneOutput: false,
+        eventsEnabled: true
+      });
+
+      await synth.isReady;
+      await synth.soundBankManager.addSoundBank(soundBank, 'general-user-gs-2.0.2');
+
+      // Match MIDI2JAM2's bundled FluidSynth defaults: a moderate master gain
+      // and no second layer of synth effects. The app's mixer remains external.
+      synth.setSystemParameter('gain', 0.8);
+      synth.setSystemParameter('effectsEnabled', false);
+      synth.setLogLevel(false, true, false);
+
+      // Native Web Audio mixer for the worklet. This avoids crossing the
+      // standardized-audio-context boundary used internally by Tone.js.
+      this.gmMasterCompressor = nativeContext.createDynamicsCompressor();
+      this.gmMasterCompressor.threshold.value = -4;
+      this.gmMasterCompressor.knee.value = 2;
+      this.gmMasterCompressor.ratio.value = 8;
+      this.gmMasterCompressor.attack.value = 0.002;
+      this.gmMasterCompressor.release.value = 0.10;
+
+      this.gmMasterGain = nativeContext.createGain();
+      this.gmMasterGain.gain.value = this.masterVolume;
+
+      this.gmAnalyser = nativeContext.createAnalyser();
+      this.gmAnalyser.fftSize = 128;
+      this.gmAnalyser.smoothingTimeConstant = 0.72;
+
+      this.gmMasterCompressor.connect(this.gmMasterGain);
+      this.gmMasterGain.connect(this.gmAnalyser);
+      this.gmAnalyser.connect(nativeContext.destination);
+
+      this.gmChannelPanners = [];
+      this.gmChannelInputs = Array.from({ length: 16 }, (_, channel) => {
+        const input = nativeContext.createGain();
+        const panner = nativeContext.createStereoPanner();
+        input.connect(panner);
+        panner.connect(this.gmMasterCompressor);
+        synth.connectChannel(input, channel);
+        this.gmChannelPanners[channel] = panner;
+        return input;
+      });
+
+      this.gmSynth = synth;
+      this.gmSynthReady = true;
+      this._routeGmSynthChannels(trackInfos);
+      console.log('GeneralUser GS GM synthesizer ready.');
+      return true;
+    })().catch((error) => {
+      console.warn('Unified GM synthesizer unavailable; using audio fallback:', error);
+      try { this.gmSynth?.destroy(); } catch (e) {}
+      this.gmSynth = null;
+      this.gmSynthReady = false;
+      this.gmSynthFailed = true;
+      this.gmChannelInputs = [];
+      this.gmChannelPanners = [];
+      try { this.gmMasterCompressor?.disconnect(); } catch (e) {}
+      try { this.gmMasterGain?.disconnect(); } catch (e) {}
+      try { this.gmAnalyser?.disconnect(); } catch (e) {}
+      this.gmMasterCompressor = null;
+      this.gmMasterGain = null;
+      this.gmAnalyser = null;
+      return false;
+    }).finally(() => {
+      this.isLoadingSoundfonts = false;
+      this.gmSynthLoadPromise = null;
+    });
+
+    return this.gmSynthLoadPromise;
+  }
+
+  /**
+   * Routes each MIDI channel into the application's existing instrument fader.
+   * CC 7/11 stay inside the synth; this routing is only the user's external mix.
+   */
+  _routeGmSynthChannels(trackInfos = []) {
+    const nextBuses = new Array(16).fill('piano');
+    nextBuses[9] = 'drums';
+    const nextInstances = new Array(16).fill(null);
+    nextInstances[9] = 'drums';
+    const claimedChannels = new Set();
+
+    trackInfos.forEach(track => {
+      const channel = Math.max(0, Math.min(15, Number(track.channel) || 0));
+      const baseInstrument = String(track.instrument || 'piano').split('_')[0];
+      const bus = this.nativeInputs?.[baseInstrument] ? baseInstrument : 'piano';
+
+      // A standard MIDI channel represents one instrument at a time. If a
+      // malformed file shares it between tracks, keep the first stable route.
+      if (!claimedChannels.has(channel)) {
+        nextBuses[channel] = bus;
+        nextInstances[channel] = track.instanceId || bus;
+        claimedChannels.add(channel);
+      }
+    });
+
+    this.gmChannelBuses = nextBuses;
+    this.gmChannelInstances = nextInstances;
+    if (!this.gmSynthReady || !this.gmSynth) return;
+
+    this.gmChannelInputs.forEach((input, channel) => {
+      if (!input) return;
+      const bus = nextBuses[channel];
+      const panner = this.gmChannelPanners[channel];
+      if (panner) panner.pan.value = this._getStereoPan(bus);
+
+      const midiChannel = this.gmSynth.midiChannels[channel];
+      if (midiChannel && typeof midiChannel.setDrums === 'function') {
+        midiChannel.setDrums(bus === 'drums');
+      }
+    });
+
+    this._refreshGmMixerLevels();
+  }
+
+  _refreshGmMixerLevels() {
+    if (!this.gmSynthReady) return;
+    const anySolo = Object.values(this.solo).some(Boolean);
+
+    this.gmChannelInputs.forEach((input, channel) => {
+      if (!input) return;
+      const bus = this.gmChannelBuses[channel] || 'piano';
+      const instance = this.gmChannelInstances[channel] || bus;
+      const level = this.volumes[instance] ?? this.volumes[bus] ?? 0.80;
+      const muted = Boolean(
+        this.muted[instance] ||
+        this.muted[bus] ||
+        this.gmTemporaryMuted[instance] ||
+        this.gmTemporaryMuted[bus]
+      );
+      const soloed = Boolean(this.solo[instance] || this.solo[bus]);
+      const target = muted || (anySolo && !soloed) ? 0 : level;
+      const now = input.context.currentTime;
+      input.gain.cancelScheduledValues(now);
+      input.gain.setTargetAtTime(target, now, 0.012);
+    });
   }
 
   /**
@@ -364,6 +753,8 @@ export class SoundEngine {
       { name: 'rock_organ', bus: 'piano' },
       { name: 'electric_guitar_clean', bus: 'guitar' },
       { name: 'distortion_guitar', bus: 'guitar' },
+      { name: 'acoustic_guitar_steel', bus: 'acousticGuitar' },
+      { name: 'acoustic_guitar_nylon', bus: 'acousticGuitar' },
       { name: 'electric_bass_finger', bus: 'bass' },
       { name: 'slap_bass_1', bus: 'bass' },
       { name: 'trumpet', bus: 'trumpet' },
@@ -393,12 +784,16 @@ export class SoundEngine {
    * Dynamically loads a soundfont on-demand and connects it to the appropriate bus
    */
   async _loadSingleSoundfont(ctx, sfName, busName) {
-    if (this.soundfontPlayers[sfName] || this.loadingSoundfonts.has(sfName)) {
+    if (this.soundfontPlayers[sfName]) {
       return this.soundfontPlayers[sfName];
     }
 
+    if (this.soundfontLoadPromises[sfName]) {
+      return this.soundfontLoadPromises[sfName];
+    }
+
     this.loadingSoundfonts.add(sfName);
-    try {
+    const loadPromise = (async () => {
       const dest = this.nativeInputs[busName] || ctx.destination;
       const player = await Soundfont.instrument(ctx, sfName, {
         soundfont: 'FluidR3_GM',
@@ -406,12 +801,16 @@ export class SoundEngine {
       });
       this.soundfontPlayers[sfName] = player;
       return player;
-    } catch (e) {
+    })().catch((e) => {
       console.warn(`Could not load soundfont for ${sfName}:`, e.message);
       return null;
-    } finally {
+    }).finally(() => {
       this.loadingSoundfonts.delete(sfName);
-    }
+      delete this.soundfontLoadPromises[sfName];
+    });
+
+    this.soundfontLoadPromises[sfName] = loadPromise;
+    return loadPromise;
   }
 
   /**
@@ -420,6 +819,12 @@ export class SoundEngine {
   async prepareTrackInstruments(trackInfos) {
     if (!this.initialized) return;
     const ctx = Tone.getContext().rawContext;
+
+    const gmReady = await this._loadUnifiedGmSynth(ctx, trackInfos);
+    if (gmReady) return;
+
+    // Compatibility fallback for browsers without AudioWorklet support.
+    await this._loadInitialSoundfonts(ctx);
 
     const neededPrograms = trackInfos
       .map(t => t.programNumber)
@@ -442,13 +847,27 @@ export class SoundEngine {
   _buildStudioDrumEngine(ctx) {
     const sampleRate = ctx.sampleRate || 44100;
 
-    const createBuffer = (duration, renderFn) => {
+    const createBuffer = (duration, renderFn, targetPeak = 0.92) => {
       const frameCount = Math.floor(sampleRate * duration);
       const buffer = ctx.createBuffer(1, frameCount, sampleRate);
       const data = buffer.getChannelData(0);
+      let peak = 0;
       for (let i = 0; i < frameCount; i++) {
         const t = i / sampleRate;
-        data[i] = renderFn(t, duration);
+        const rendered = renderFn(t, duration);
+        const sample = Number.isFinite(rendered) ? rendered : 0;
+        data[i] = sample;
+        peak = Math.max(peak, Math.abs(sample));
+      }
+
+      // Several original formulas exceeded ±1 before reaching the mixer
+      // (especially kick, snare and side stick). Normalize every generated
+      // piece so its explicit trim below is the only source of level balance.
+      if (peak > 0) {
+        const scale = targetPeak / peak;
+        for (let i = 0; i < frameCount; i++) {
+          data[i] *= scale;
+        }
       }
       return buffer;
     };
@@ -600,6 +1019,89 @@ export class SoundEngine {
       })
     };
 
+    // Remaining General MIDI percussion notes (60-81). Previously every one
+    // of these fell back to the snare, making Latin percussion and auxiliary
+    // kits both incorrect and much too loud.
+    const skinHit = (duration, frequency, decay, click = 0.16) => createBuffer(duration, (t) => {
+      const pitch = frequency * (1 + 0.28 * Math.exp(-t * 22));
+      const body = Math.sin(2 * Math.PI * pitch * t) * Math.exp(-t * decay);
+      const slap = (Math.random() * 2 - 1) * Math.exp(-t * 115) * click;
+      return body * 0.88 + slap;
+    });
+
+    const bellHit = (duration, frequency, decay) => createBuffer(duration, (t) => {
+      const tone = (
+        Math.sin(2 * Math.PI * frequency * t) * 0.68 +
+        Math.sin(2 * Math.PI * frequency * 1.47 * t) * 0.24 +
+        Math.sin(2 * Math.PI * frequency * 2.12 * t) * 0.12
+      );
+      return tone * Math.exp(-t * decay);
+    });
+
+    const shaker = (duration, decay, grainRate) => createBuffer(duration, (t) => {
+      const grain = 0.35 + 0.65 * Math.max(0, Math.sin(2 * Math.PI * grainRate * t));
+      return (Math.random() * 2 - 1) * grain * Math.exp(-t * decay);
+    });
+
+    Object.assign(this.drumAudioBuffers, {
+      chineseCymbal: createBuffer(1.75, (t) => {
+        const metal = (
+          Math.sin(2 * Math.PI * 310 * t) * 0.22 +
+          Math.sin(2 * Math.PI * 487 * t) * 0.27 +
+          Math.sin(2 * Math.PI * 813 * t) * 0.25 +
+          Math.sin(2 * Math.PI * 1510 * t) * 0.18 +
+          (Math.random() * 2 - 1) * 0.65
+        );
+        return metal * Math.exp(-t * 2.1);
+      }),
+      vibraslap: createBuffer(0.62, (t) => {
+        const pulse = Math.max(0, Math.sin(2 * Math.PI * 43 * t));
+        const rattle = (Math.random() * 2 - 1) * pulse * Math.exp(-t * 5.4);
+        const body = Math.sin(2 * Math.PI * 190 * t) * Math.exp(-t * 12) * 0.24;
+        return rattle * 0.72 + body;
+      }),
+      bongoHigh: skinHit(0.23, 330, 16, 0.20),
+      bongoLow: skinHit(0.28, 245, 13.5, 0.18),
+      congaMuted: skinHit(0.19, 245, 25, 0.28),
+      congaHigh: skinHit(0.38, 218, 10.5, 0.22),
+      congaLow: skinHit(0.46, 174, 8.7, 0.20),
+      timbaleHigh: skinHit(0.30, 520, 14, 0.26),
+      timbaleLow: skinHit(0.34, 410, 12.5, 0.25),
+      agogoHigh: bellHit(0.48, 940, 7.5),
+      agogoLow: bellHit(0.55, 705, 6.7),
+      cabasa: shaker(0.20, 17, 74),
+      maracas: shaker(0.16, 25, 58),
+      whistleShort: createBuffer(0.18, (t) => {
+        const frequency = 1780 + 210 * Math.exp(-t * 18);
+        return Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t * 18);
+      }),
+      whistleLong: createBuffer(0.52, (t) => {
+        const frequency = 1510 + 160 * Math.sin(2 * Math.PI * 5.2 * t);
+        return Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t * 4.4);
+      }),
+      guiroShort: createBuffer(0.16, (t) => {
+        const teeth = Math.max(0, Math.sin(2 * Math.PI * 64 * t));
+        return (Math.random() * 2 - 1) * teeth * Math.exp(-t * 16);
+      }),
+      guiroLong: createBuffer(0.48, (t) => {
+        const teeth = Math.max(0, Math.sin(2 * Math.PI * 51 * t));
+        return (Math.random() * 2 - 1) * teeth * Math.exp(-t * 4.2);
+      }),
+      claves: bellHit(0.14, 2480, 31),
+      woodblockHigh: bellHit(0.18, 1760, 24),
+      woodblockLow: bellHit(0.21, 1210, 20),
+      cuicaMuted: createBuffer(0.24, (t) => {
+        const frequency = 410 + 520 * t;
+        return Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t * 18);
+      }),
+      cuicaOpen: createBuffer(0.46, (t) => {
+        const frequency = 355 + 390 * Math.sin(Math.min(1, t * 5.5) * Math.PI / 2);
+        return Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t * 6.5);
+      }),
+      triangleMuted: bellHit(0.22, 2750, 18),
+      triangleOpen: bellHit(1.15, 2420, 3.1)
+    });
+
     // Aliases
     this.drumAudioBuffers.splash = this.drumAudioBuffers.crash;
   }
@@ -681,7 +1183,9 @@ export class SoundEngine {
     const instKey = instanceId || instrument;
     if (this.muted[instKey] || this.muted[baseInst]) return;
 
-    const vel = Math.max(0.15, Math.min(1.0, velocity));
+    // Preserve the MIDI velocity range. A fixed minimum made ghost notes and
+    // soft accompaniment much louder than they are in the original file.
+    const vel = Math.max(0, Math.min(1.0, velocity));
 
     // A. Web MIDI API hardware route (Direct to Microsoft GS Wavetable Synth in Windows)
     if (this.activeMidiOutput) {
@@ -701,13 +1205,34 @@ export class SoundEngine {
     }
 
     try {
-      // B. 1. DRUMS (General MIDI Channel 10)
-      if (instrument === 'drums') {
-        this._triggerDrumSound(note, vel, time);
+      // B. 1. Unified GM SoundFont synth (melodic presets + drum kits)
+      if (this.gmSynthReady && this.gmSynth) {
+        const ch = channel !== undefined ? (channel & 0x0F) : (instrument === 'drums' ? 9 : 0);
+        const midiPitch = typeof note === 'number' ? note : Tone.Frequency(note).toMidi();
+        const requestedTime = Number(time);
+        const eventOptions = Number.isFinite(requestedTime) ? { time: requestedTime } : undefined;
+
+        if (program >= 0 && this.currentPrograms[ch] !== program) {
+          this.gmSynth.programChange(ch, program & 0x7F, eventOptions);
+          this.currentPrograms[ch] = program;
+        }
+
+        this.gmSynth.noteOn(
+          ch,
+          Math.max(0, Math.min(127, Math.round(midiPitch))),
+          Math.max(0, Math.min(127, Math.round(vel * 127))),
+          eventOptions
+        );
         return;
       }
 
-      // B. 2. SOUNDFONTS (Precise GM Program soundfont or base soundfont)
+      // B. 2. Procedural drums (compatibility fallback)
+      if (instrument === 'drums') {
+        this._triggerDrumSound(note, vel, time, channel);
+        return;
+      }
+
+      // B. 3. Per-instrument SoundFonts (compatibility fallback)
       let sfPlayer = null;
 
       // Check if this specific General MIDI Program has its own soundfont loaded
@@ -721,6 +1246,7 @@ export class SoundEngine {
         const defaultSfNames = {
           piano: 'acoustic_grand_piano',
           guitar: 'electric_guitar_clean',
+          acousticGuitar: 'acoustic_guitar_steel',
           bass: 'electric_bass_finger',
           trumpet: 'trumpet',
           sax: 'tenor_sax',
@@ -736,10 +1262,11 @@ export class SoundEngine {
       if (sfPlayer) {
         const audioCtx = Tone.getContext().rawContext;
         const now = audioCtx.currentTime;
-        const vol = this.volumes[instKey] !== undefined ? this.volumes[instKey] : (this.volumes[baseInst] || 0.85);
-
         const noteNode = sfPlayer.play(note, now, {
-          gain: vel * vol * 1.35,
+          // The application fader is already applied by the channel bus.
+          // Applying it again here previously boosted and squared every
+          // instrument's level. CC 7 and CC 11 are the song's own mix.
+          gain: this._getMidiVelocityGain(vel) * this._getMidiChannelGain(channel),
           duration: 3.8
         });
 
@@ -748,12 +1275,13 @@ export class SoundEngine {
         return;
       }
 
-      // B. 3. FALLBACK HIGH-RES SYNTHS (If soundfonts are still fetching)
+      // B. 4. Oscillator synths (last-resort fallback)
       const t = time || Tone.now();
+      const fallbackVelocity = this._getMidiVelocityGain(vel);
       if (baseInst === 'bass') {
-        this.synths.bass.triggerAttack(note, t, vel);
+        this.synths.bass.triggerAttack(note, t, fallbackVelocity);
       } else if (this.synths[baseInst]) {
-        this.synths[baseInst].triggerAttack(note, t, vel);
+        this.synths[baseInst].triggerAttack(note, t, fallbackVelocity);
       }
     } catch (e) {
       console.warn(`SoundEngine triggerNoteOn error (${instrument}):`, e);
@@ -775,6 +1303,19 @@ export class SoundEngine {
     }
 
     try {
+      if (this.gmSynthReady && this.gmSynth) {
+        const ch = channel !== undefined ? (channel & 0x0F) : (instrument === 'drums' ? 9 : 0);
+        const midiPitch = typeof note === 'number' ? note : Tone.Frequency(note).toMidi();
+        const requestedTime = Number(time);
+        const eventOptions = Number.isFinite(requestedTime) ? { time: requestedTime } : undefined;
+        this.gmSynth.noteOff(
+          ch,
+          Math.max(0, Math.min(127, Math.round(midiPitch))),
+          eventOptions
+        );
+        return;
+      }
+
       if (instrument === 'drums') return;
 
       const baseInst = instrument.split('_')[0];
@@ -800,7 +1341,7 @@ export class SoundEngine {
     }
   }
 
-  _triggerDrumSound(pitchOrPiece, velocity = 0.8) {
+  _triggerDrumSound(pitchOrPiece, velocity = 0.8, time = undefined, channel = 9) {
     let piece = pitchOrPiece;
     if (typeof pitchOrPiece === 'number') {
       piece = this.midiPitchToDrumPiece(pitchOrPiece);
@@ -823,6 +1364,7 @@ export class SoundEngine {
       this.activeHihatSources = [];
     }
 
+    if (!piece) return;
     const buffer = this.drumAudioBuffers[piece] || this.drumAudioBuffers.snare;
     if (!buffer) return;
 
@@ -832,13 +1374,26 @@ export class SoundEngine {
       source.buffer = buffer;
 
       const gain = ctx.createGain();
-      const vol = Math.max(0.20, Math.min(1.0, velocity)) * (this.volumes.drums || 0.90) * 1.5;
-      gain.gain.value = vol;
+      // Drum buffers pass through the drums channel, where the user fader is
+      // applied once. No artificial +50% boost: it was the main reason the
+      // kit overwhelmed the rest of a MIDI arrangement.
+      const pieceTrim = this.drumPieceTrims[piece] ?? 0.50;
+      gain.gain.value = this._getMidiVelocityGain(velocity) * this._getMidiChannelGain(channel) * pieceTrim;
 
       source.connect(gain);
       const dest = this.nativeInputs.drums || ctx.destination;
       gain.connect(dest);
-      source.start(0);
+
+      this.activeDrumSources.push(source);
+      source.onended = () => {
+        this.activeDrumSources = this.activeDrumSources.filter(active => active !== source);
+        this.activeHihatSources = this.activeHihatSources.filter(active => active !== source);
+        try { source.disconnect(); } catch (e) {}
+        try { gain.disconnect(); } catch (e) {}
+      };
+
+      const requestedTime = Number(time);
+      source.start(Number.isFinite(requestedTime) ? Math.max(ctx.currentTime, requestedTime) : ctx.currentTime);
 
       if (piece === 'hihatOpen') {
         this.activeHihatSources.push(source);
@@ -860,17 +1415,46 @@ export class SoundEngine {
     if (pitch === 46) return 'hihatOpen';
     if (pitch === 48) return 'tomMid';
     if (pitch === 50) return 'tomHigh';
-    if (pitch === 49 || pitch === 57 || pitch === 52) return 'crash';
+    if (pitch === 49 || pitch === 57) return 'crash';
     if (pitch === 51 || pitch === 59) return 'ride';
+    if (pitch === 52) return 'chineseCymbal';
     if (pitch === 53) return 'rideBell';
     if (pitch === 54) return 'tambourine';
     if (pitch === 55) return 'splash';
     if (pitch === 56) return 'cowbell';
-    return 'snare';
+    if (pitch === 58) return 'vibraslap';
+    if (pitch === 60) return 'bongoHigh';
+    if (pitch === 61) return 'bongoLow';
+    if (pitch === 62) return 'congaMuted';
+    if (pitch === 63) return 'congaHigh';
+    if (pitch === 64) return 'congaLow';
+    if (pitch === 65) return 'timbaleHigh';
+    if (pitch === 66) return 'timbaleLow';
+    if (pitch === 67) return 'agogoHigh';
+    if (pitch === 68) return 'agogoLow';
+    if (pitch === 69) return 'cabasa';
+    if (pitch === 70) return 'maracas';
+    if (pitch === 71) return 'whistleShort';
+    if (pitch === 72) return 'whistleLong';
+    if (pitch === 73) return 'guiroShort';
+    if (pitch === 74) return 'guiroLong';
+    if (pitch === 75) return 'claves';
+    if (pitch === 76) return 'woodblockHigh';
+    if (pitch === 77) return 'woodblockLow';
+    if (pitch === 78) return 'cuicaMuted';
+    if (pitch === 79) return 'cuicaOpen';
+    if (pitch === 80) return 'triangleMuted';
+    if (pitch === 81) return 'triangleOpen';
+    return null;
   }
 
   setMasterVolume(val) {
     this.masterVolume = Math.max(0, Math.min(1, val));
+    if (this.gmMasterGain) {
+      const now = this.gmMasterGain.context.currentTime;
+      this.gmMasterGain.gain.cancelScheduledValues(now);
+      this.gmMasterGain.gain.setTargetAtTime(this.masterVolume, now, 0.012);
+    }
     if (this.limiter) {
       Tone.getDestination().volume.rampTo(Tone.gainToDb(this.masterVolume), 0.05);
     }
@@ -879,6 +1463,7 @@ export class SoundEngine {
   setInstrumentVolume(instrument, val) {
     const clamped = Math.max(0, Math.min(1, val));
     this.volumes[instrument] = clamped;
+    this._refreshGmMixerLevels();
     const baseInst = instrument.split('_')[0];
     const ch = this.channels[instrument] || this.channels[baseInst];
     if (ch) {
@@ -888,12 +1473,29 @@ export class SoundEngine {
     }
   }
 
+  /**
+   * Temporary channel level used by the compact band controls for mute/solo.
+   * Unlike setInstrumentVolume it does not overwrite the user's mixer fader.
+   */
+  setChannelVolume(instrument, val) {
+    const level = Math.max(0, Math.min(1, val));
+    this.gmTemporaryMuted[instrument] = level === 0;
+    this._refreshGmMixerLevels();
+
+    const baseInst = instrument.split('_')[0];
+    const ch = this.channels[instrument] || this.channels[baseInst];
+    if (!ch) return;
+
+    ch.volume.rampTo(level === 0 ? -Infinity : Tone.gainToDb(level), 0.05);
+  }
+
   setMute(instrument, isMuted) {
     this.muted[instrument] = isMuted;
+    this._refreshGmMixerLevels();
     const baseInst = instrument.split('_')[0];
     const ch = this.channels[instrument] || this.channels[baseInst];
     if (ch) {
-      const vol = this.volumes[instrument] !== undefined ? this.volumes[instrument] : (this.volumes[baseInst] || 0.85);
+      const vol = this.volumes[instrument] !== undefined ? this.volumes[instrument] : (this.volumes[baseInst] ?? 0.85);
       const db = (isMuted || this.muted[baseInst]) ? -Infinity : Tone.gainToDb(vol);
       ch.volume.rampTo(db, 0.05);
     }
@@ -901,6 +1503,7 @@ export class SoundEngine {
 
   setSolo(instrument, isSolo) {
     this.solo[instrument] = isSolo;
+    this._refreshGmMixerLevels();
     const anySolo = Object.values(this.solo).some(s => s);
 
     Object.keys(this.channels).forEach(inst => {
@@ -915,6 +1518,11 @@ export class SoundEngine {
   }
 
   getVisualizerData() {
+    if (this.gmSynthReady && this.gmAnalyser) {
+      const values = new Float32Array(this.gmAnalyser.frequencyBinCount);
+      this.gmAnalyser.getFloatFrequencyData(values);
+      return values;
+    }
     if (!this.analyser) return new Float32Array(64).fill(-100);
     return this.analyser.getValue();
   }
@@ -930,6 +1538,10 @@ export class SoundEngine {
             this.activeMidiOutput.send([0xB0 | c, 120, 0]); // All Sound Off
           } catch (e) {}
         }
+      }
+
+      if (this.gmSynthReady && this.gmSynth) {
+        this.gmSynth.stopAll(true);
       }
 
       if (this.synths.piano) this.synths.piano.releaseAll();
@@ -948,6 +1560,12 @@ export class SoundEngine {
         }
       });
       this.activeSoundfontNodes = {};
+
+      this.activeDrumSources.forEach(source => {
+        try { source.stop(); } catch (e) {}
+      });
+      this.activeDrumSources = [];
+      this.activeHihatSources = [];
     } catch (e) {
       console.warn('stopAll error:', e);
     }
