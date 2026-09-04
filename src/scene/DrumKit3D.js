@@ -321,29 +321,52 @@ export class DrumKit3D {
     this.drumRecoilNodes.kick = { node: bassGroup, baseY: bassGroup.position.y };
 
     // Telescoping Front Spurs / Legs
-    [-radius, radius].forEach(xOffset => {
-      const spur = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.015, 0.012, 0.48, 12),
+    [-1, 1].forEach(side => {
+      const xOffset = side * radius;
+
+      // Heavy-duty cast chrome bracket on bass drum shell
+      const bracket = new THREE.Mesh(
+        new THREE.BoxGeometry(0.028, 0.038, 0.024),
         this.chromeMaterial
       );
-      spur.position.set(xOffset * 1.05, -0.24, depth * 0.28);
-      spur.rotation.z = xOffset > 0 ? -0.52 : 0.52;
-      spur.rotation.x = -0.32;
+      bracket.position.set(side * (radius + 0.005), -0.12, depth * 0.22);
+      bassGroup.add(bracket);
+
+      const wingBolt = new THREE.Mesh(
+        new THREE.BoxGeometry(0.024, 0.006, 0.006),
+        this.chromeMaterial
+      );
+      wingBolt.position.set(side * (radius + 0.020), -0.12, depth * 0.22);
+      bassGroup.add(wingBolt);
+
+      // Spur leg rod connecting bracket down to floor (y = -0.368 in bassGroup = y = 0.012 on floor)
+      const footPos = new THREE.Vector3(side * (radius + 0.16), -0.368, depth * 0.40);
+      const bracketPos = new THREE.Vector3(side * (radius + 0.005), -0.12, depth * 0.22);
+      const spurVec = new THREE.Vector3().subVectors(footPos, bracketPos);
+      const spurLen = spurVec.length();
+
+      const spur = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.010, 0.009, spurLen, 12),
+        this.chromeMaterial
+      );
+      spur.position.copy(bracketPos).add(footPos).multiplyScalar(0.5);
+      spur.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), spurVec.clone().normalize());
+      spur.castShadow = true;
       bassGroup.add(spur);
 
+      // Molded heavy black rubber foot resting flat on the riser floor
       const foot = new THREE.Mesh(
-        new THREE.SphereGeometry(0.022, 8, 8),
+        new THREE.CylinderGeometry(0.016, 0.022, 0.024, 12),
         this.blackTrimMaterial
       );
-      foot.position.set(xOffset > 0 ? radius + 0.20 : -radius - 0.20, -0.46, depth * 0.42);
+      foot.position.copy(footPos);
+      foot.castShadow = true;
       bassGroup.add(foot);
     });
 
-    // Front kick pedal centered on the resonant head. The construction uses
-    // the same visual cues as a real single pedal: a long heel/toe plate,
-    // twin side frames, cross axle, cam and a padded beater.
+    // Front kick pedal centered on the resonant head, resting flat on the floor
     const pedalGroup = new THREE.Group();
-    pedalGroup.position.set(0, -0.44, depth / 2 + 0.08);
+    pedalGroup.position.set(0, -0.368, depth / 2 + 0.08);
 
     const basePlate = new THREE.Mesh(
       new THREE.BoxGeometry(0.18, 0.024, 0.34),
@@ -461,6 +484,115 @@ export class DrumKit3D {
 
     this.group.add(bassGroup);
     this.pieceTargets.kick = new THREE.Vector3(0, radius - 0.02, 0);
+  }
+
+  /**
+   * Builds an authentic, heavy-duty double-braced drum hardware tripod base.
+   * Rests strictly vertical at y = 0 on the drum riser floor.
+   * Perfect 120-degree radial symmetry prevents Euler angle shearing and chaotic overlaps.
+   */
+  _createHardwareTripodBase(radius = 0.24, legHeight = 0.18, baseAngle = 0) {
+    const baseGroup = new THREE.Group();
+
+    // 1. Lower Central Column Tube (Chrome)
+    const lowerColumnHeight = legHeight + 0.14;
+    const lowerColumn = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.013, 0.013, lowerColumnHeight, 14),
+      this.chromeMaterial
+    );
+    lowerColumn.position.y = lowerColumnHeight / 2;
+    lowerColumn.castShadow = true;
+    baseGroup.add(lowerColumn);
+
+    // Bottom base end cap resting flat on floor (y = 0)
+    const bottomCap = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.015, 0.015, 0.014, 14),
+      this.blackTrimMaterial
+    );
+    bottomCap.position.y = 0.007;
+    baseGroup.add(bottomCap);
+
+    // 2. Lower Strut Spreader Collar (Chrome)
+    const lowerCollarY = 0.065;
+    const lowerCollar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.017, 0.017, 0.020, 14),
+      this.chromeMaterial
+    );
+    lowerCollar.position.y = lowerCollarY;
+    baseGroup.add(lowerCollar);
+
+    // 3. Upper Leg Hinge Collar (Chrome) with wing T-bolt
+    const upperCollarY = legHeight;
+    const upperCollar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.018, 0.018, 0.024, 14),
+      this.chromeMaterial
+    );
+    upperCollar.position.y = upperCollarY;
+    baseGroup.add(upperCollar);
+
+    const wingBolt = new THREE.Mesh(
+      new THREE.BoxGeometry(0.026, 0.008, 0.008),
+      this.chromeMaterial
+    );
+    wingBolt.position.set(0.018, upperCollarY, 0);
+    baseGroup.add(wingBolt);
+
+    // 4. Memory lock clamp at top of lower tube
+    const memoryLock = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.017, 0.017, 0.016, 14),
+      this.chromeMaterial
+    );
+    memoryLock.position.y = lowerColumnHeight - 0.01;
+    baseGroup.add(memoryLock);
+
+    // Helper to connect a strut cylinder directly between two 3D points
+    const addStrut = (start, end, r = 0.006) => {
+      const dir = new THREE.Vector3().subVectors(end, start);
+      const len = dir.length();
+      const strut = new THREE.Mesh(
+        new THREE.CylinderGeometry(r, r, len, 10),
+        this.chromeMaterial
+      );
+      strut.position.copy(start).add(end).multiplyScalar(0.5);
+      strut.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+      strut.castShadow = true;
+      baseGroup.add(strut);
+      return strut;
+    };
+
+    // 5. 3 Symmetrical Double-Braced Legs (spaced at exact 120° intervals)
+    for (let i = 0; i < 3; i++) {
+      const legAngle = baseAngle + (i * Math.PI * 2) / 3;
+      const cosA = Math.cos(legAngle);
+      const sinA = Math.sin(legAngle);
+
+      // Foot resting flat on the riser floor at y = 0
+      const footPos = new THREE.Vector3(cosA * radius, 0.012, sinA * radius);
+
+      // Upper collar hinge point
+      const upperHinge = new THREE.Vector3(cosA * 0.018, upperCollarY, sinA * 0.018);
+
+      // Main diagonal leg from upper collar to foot
+      addStrut(upperHinge, footPos, 0.007);
+
+      // Lower collar hinge point
+      const lowerHinge = new THREE.Vector3(cosA * 0.017, lowerCollarY, sinA * 0.017);
+
+      // Strut attaches to midpoint of main leg
+      const midLegPoint = new THREE.Vector3().copy(upperHinge).add(footPos).multiplyScalar(0.5);
+      addStrut(lowerHinge, midLegPoint, 0.005);
+
+      // Molded heavy rubber foot resting flat on the floor at y = 0
+      const foot = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.014, 0.018, 0.024, 12),
+        this.blackTrimMaterial
+      );
+      foot.position.copy(footPos);
+      foot.castShadow = true;
+      baseGroup.add(foot);
+    }
+
+    return baseGroup;
   }
 
   /**
@@ -622,25 +754,64 @@ export class DrumKit3D {
       group.position.set(cfg.pos[0], cfg.pos[1], cfg.pos[2]);
       group.rotation.set(cfg.rot[0], cfg.rot[1], cfg.rot[2]);
 
-      // 3 Chrome Floor Legs with rubber feet
+      // 3 Heavy-duty Chrome Floor Legs with Brackets and Molded Rubber Feet
       for (let i = 0; i < 3; i++) {
-        const legAngle = (i * Math.PI * 2) / 3 + 0.3;
-        const lx = Math.cos(legAngle) * (cfg.radius + 0.02);
-        const lz = Math.sin(legAngle) * (cfg.radius + 0.02);
+        const legAngle = (i * Math.PI * 2) / 3 + 0.45;
+        // Bracket on shell (lower third of drum shell)
+        const bx = Math.cos(legAngle) * (cfg.radius + 0.006);
+        const by = -cfg.depth * 0.20;
+        const bz = Math.sin(legAngle) * (cfg.radius + 0.006);
 
-        const leg = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.008, 0.008, cfg.depth + 0.28, 8),
+        const bracket = new THREE.Mesh(
+          new THREE.BoxGeometry(0.024, 0.035, 0.020),
           this.chromeMaterial
         );
-        leg.position.set(lx, -0.12, lz);
-        group.add(leg);
+        bracket.position.set(bx, by, bz);
+        bracket.rotation.y = -legAngle;
+        group.add(bracket);
 
+        const wingBolt = new THREE.Mesh(
+          new THREE.BoxGeometry(0.024, 0.006, 0.006),
+          this.chromeMaterial
+        );
+        wingBolt.position.set(bx * 1.05, by, bz * 1.05);
+        group.add(wingBolt);
+
+        // Compute bracket in kit coordinates
+        const localBracketPos = new THREE.Vector3(bx, by, bz)
+          .applyEuler(new THREE.Euler(cfg.rot[0], cfg.rot[1], cfg.rot[2]));
+        const worldBracketPos = new THREE.Vector3(cfg.pos[0], cfg.pos[1], cfg.pos[2]).add(localBracketPos);
+
+        // Rubber foot on floor (y = 0.012) splayed outward
+        const radX = worldBracketPos.x - cfg.pos[0];
+        const radZ = worldBracketPos.z - cfg.pos[2];
+        const radLen = Math.sqrt(radX * radX + radZ * radZ) || 1;
+        const footX = worldBracketPos.x + (radX / radLen) * 0.09;
+        const footZ = worldBracketPos.z + (radZ / radLen) * 0.09;
+        const footY = 0.012;
+
+        const legStart = worldBracketPos.clone().add(new THREE.Vector3(0, 0.05, 0));
+        const legEnd = new THREE.Vector3(footX, footY, footZ);
+        const legVec = new THREE.Vector3().subVectors(legEnd, legStart);
+        const legLen = legVec.length();
+
+        const legMesh = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.006, 0.006, legLen, 10),
+          this.chromeMaterial
+        );
+        legMesh.position.copy(legStart).add(legEnd).multiplyScalar(0.5);
+        legMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), legVec.clone().normalize());
+        legMesh.castShadow = true;
+        this.group.add(legMesh);
+
+        // Molded heavy rubber foot resting flat on the riser floor
         const foot = new THREE.Mesh(
-          new THREE.SphereGeometry(0.016, 8, 8),
+          new THREE.CylinderGeometry(0.014, 0.018, 0.024, 12),
           this.blackTrimMaterial
         );
-        foot.position.set(lx, -cfg.depth / 2 - 0.24, lz);
-        group.add(foot);
+        foot.position.set(footX, 0.012, footZ);
+        foot.castShadow = true;
+        this.group.add(foot);
       }
 
       this.group.add(group);
@@ -659,40 +830,115 @@ export class DrumKit3D {
    * Builds the Snare Drum in front-left with clear space in front of the bass drum
    */
   _buildSnare() {
-    const snareGroup = new THREE.Group();
-    // Positioned at z = 0.42, well in front of the bass drum (z = 0.00) with zero clipping
-    snareGroup.position.set(-0.42, 0.48, 0.42);
-    snareGroup.rotation.set(0.24, 0.22, -0.08);
-
     const radius = 0.20;
     const depth = 0.13;
+    const snareRot = new THREE.Euler(0.24, 0.22, -0.08);
+
+    // 1. Snare Drum Shell & Batter Head (Tilted and animated on hits)
+    const snareGroup = new THREE.Group();
+    snareGroup.position.set(-0.42, 0.48, 0.42);
+    snareGroup.rotation.copy(snareRot);
 
     const { group: snareMeshGroup, head } = this._createDrumMesh(radius, depth, true);
     snareGroup.add(snareMeshGroup);
+    this.group.add(snareGroup);
 
-    // Chrome Snare Tripod Stand
-    const stand = new THREE.Group();
-    const centralColumn = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.012, 0.012, 0.44, 8),
+    // 2. Heavy-Duty Double-Braced Snare Tripod Stand (sitting flat on the riser floor at y = 0)
+    const standGroup = new THREE.Group();
+    standGroup.position.set(-0.42, 0, 0.42);
+
+    // Grounded symmetrical tripod base (radius 0.22m, collar height 0.16m)
+    const tripodBase = this._createHardwareTripodBase(0.22, 0.16, 0.4);
+    standGroup.add(tripodBase);
+
+    // Central chrome upright column extending to tilter knuckle at y = 0.35
+    const upperColumn = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.010, 0.010, 0.18, 12),
       this.chromeMaterial
     );
-    centralColumn.position.y = -0.26;
-    stand.add(centralColumn);
+    upperColumn.position.y = 0.26;
+    upperColumn.castShadow = true;
+    standGroup.add(upperColumn);
 
+    // Height adjustment collar & memory lock
+    const collar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.015, 0.015, 0.022, 14),
+      this.chromeMaterial
+    );
+    collar.position.y = 0.33;
+    standGroup.add(collar);
+
+    // Tilter ball-joint knuckle housing
+    const tilterJoint = new THREE.Mesh(
+      new THREE.SphereGeometry(0.015, 12, 12),
+      this.chromeMaterial
+    );
+    tilterJoint.position.y = 0.35;
+    standGroup.add(tilterJoint);
+
+    const tilterHandle = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.005, 0.005, 0.038, 8),
+      this.chromeMaterial
+    );
+    tilterHandle.rotation.z = Math.PI / 2;
+    tilterHandle.position.set(0.016, 0.35, 0);
+    standGroup.add(tilterHandle);
+
+    // Tilter Basket Pivot: Tilts to match snare angle to cradle the drum
+    const basketPivot = new THREE.Group();
+    basketPivot.position.y = 0.35;
+    basketPivot.rotation.copy(snareRot);
+
+    // Central basket shaft and tightening adjustment nut
+    const basketShaft = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.009, 0.009, 0.065, 10),
+      this.chromeMaterial
+    );
+    basketShaft.position.y = 0.032;
+    basketPivot.add(basketShaft);
+
+    const basketWheel = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.020, 0.020, 0.012, 16),
+      this.chromeMaterial
+    );
+    basketWheel.position.y = 0.028;
+    basketPivot.add(basketWheel);
+
+    // 3 Rubber-Tipped Basket Arms cradling the bottom rim of the snare
     for (let i = 0; i < 3; i++) {
-      const legAngle = (i * Math.PI * 2) / 3;
-      const leg = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.008, 0.008, 0.30, 8),
+      const armAngle = (i * Math.PI * 2) / 3 + 0.55;
+      const armGroup = new THREE.Group();
+      armGroup.rotation.y = armAngle;
+
+      // Horizontal chrome arm reaching out past drum radius
+      const arm = new THREE.Mesh(
+        new THREE.BoxGeometry(radius + 0.015, 0.008, 0.010),
         this.chromeMaterial
       );
-      leg.position.set(Math.cos(legAngle) * 0.12, -0.38, Math.sin(legAngle) * 0.12);
-      leg.rotation.z = Math.cos(legAngle) * 0.5;
-      leg.rotation.x = Math.sin(legAngle) * 0.5;
-      stand.add(leg);
-    }
-    snareGroup.add(stand);
+      arm.position.set((radius + 0.015) / 2, 0.058, 0);
+      armGroup.add(arm);
 
-    this.group.add(snareGroup);
+      // Upright claw
+      const claw = new THREE.Mesh(
+        new THREE.BoxGeometry(0.008, 0.045, 0.010),
+        this.chromeMaterial
+      );
+      claw.position.set(radius + 0.015, 0.078, 0);
+      armGroup.add(claw);
+
+      // Molded black rubber gripper tip cradling bottom hoop
+      const rubberTip = new THREE.Mesh(
+        new THREE.BoxGeometry(0.014, 0.020, 0.016),
+        this.blackTrimMaterial
+      );
+      rubberTip.position.set(radius + 0.015, 0.095, 0);
+      armGroup.add(rubberTip);
+
+      basketPivot.add(armGroup);
+    }
+    standGroup.add(basketPivot);
+    this.group.add(standGroup);
+
     this.drumHeads.snare = head;
     this.drumRecoilNodes.snare = { node: snareGroup, baseY: snareGroup.position.y };
     const snareHeadPoint = new THREE.Vector3(0, depth / 2 + DRUMSTICK_CONTACT_CLEARANCE, 0)
@@ -707,119 +953,74 @@ export class DrumKit3D {
    * Builds Hi-Hat cymbals on the far lower-left with authentic dual-cymbal clutch and foot pedal
    */
   _buildHiHat() {
-    const hihatGroup = new THREE.Group();
-    hihatGroup.position.set(-0.82, 0.68, 0.35);
-    hihatGroup.rotation.set(0.12, 0.32, -0.08);
+    const hihatPos = new THREE.Vector3(-0.82, 0, 0.35);
+    const cymbalsHeight = 0.70;
 
-    // Chrome Hi-Hat Stand Central Tube (reaching down to the floor at y ~ 0)
-    const stand = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.013, 0.013, 0.68, 12),
+    // 1. Heavy-Duty Double-Braced Hi-Hat Tripod Stand (flat on the riser floor at y = 0)
+    const standGroup = new THREE.Group();
+    standGroup.position.copy(hihatPos);
+
+    // Grounded symmetrical tripod base (radius 0.24m, collar height 0.18m)
+    const tripodBase = this._createHardwareTripodBase(0.24, 0.18, -0.3);
+    standGroup.add(tripodBase);
+
+    // Central Chrome Stand Outer Column
+    const lowerColumn = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.013, 0.013, 0.44, 14),
       this.chromeMaterial
     );
-    stand.position.y = -0.34;
-    hihatGroup.add(stand);
+    lowerColumn.position.y = 0.22;
+    lowerColumn.castShadow = true;
+    standGroup.add(lowerColumn);
 
-    // 3 Chrome Legs for tripod base
-    for (let i = 0; i < 3; i++) {
-      const legAngle = (i * Math.PI * 2) / 3;
-      const leg = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.008, 0.008, 0.38, 8),
-        this.chromeMaterial
-      );
-      leg.position.set(Math.cos(legAngle) * 0.16, -0.52, Math.sin(legAngle) * 0.16);
-      leg.rotation.z = Math.cos(legAngle) * 0.55;
-      leg.rotation.x = Math.sin(legAngle) * 0.55;
-      hihatGroup.add(leg);
+    // Height Adjustment Clamp Collar & Memory Lock
+    const collar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.017, 0.017, 0.024, 14),
+      this.chromeMaterial
+    );
+    collar.position.y = 0.44;
+    standGroup.add(collar);
 
-      const foot = new THREE.Mesh(
-        new THREE.SphereGeometry(0.014, 8, 8),
-        this.blackTrimMaterial
-      );
-      foot.position.set(Math.cos(legAngle) * 0.28, -0.67, Math.sin(legAngle) * 0.28);
-      hihatGroup.add(foot);
-    }
+    const clampScrew = new THREE.Mesh(
+      new THREE.BoxGeometry(0.026, 0.008, 0.008),
+      this.chromeMaterial
+    );
+    clampScrew.position.set(0.016, 0.44, 0);
+    standGroup.add(clampScrew);
 
-    // Chrome Center Pull Rod extending through the entire stand
+    // Telescoping Upper Chrome Tube extending to cymbal seat
+    const upperColumn = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.010, 0.010, 0.28, 14),
+      this.chromeMaterial
+    );
+    upperColumn.position.y = 0.58;
+    upperColumn.castShadow = true;
+    standGroup.add(upperColumn);
+
+    // Center Chrome Pull Rod extending through entire stand
     const pullRod = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.004, 0.004, 0.85, 8),
+      new THREE.CylinderGeometry(0.004, 0.004, 0.82, 8),
       this.chromeMaterial
     );
-    pullRod.position.y = 0.03;
-    hihatGroup.add(pullRod);
+    pullRod.position.y = 0.42;
+    standGroup.add(pullRod);
 
-    // Bottom Cymbal Seat Felt Washer
-    const bottomSeatFelt = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.024, 0.024, 0.012, 16),
-      this.feltMaterial
-    );
-    bottomSeatFelt.position.y = -0.012;
-    hihatGroup.add(bottomSeatFelt);
-
-    // Bottom Cymbal (Inverted, stationary on felt seat)
-    const bottomCymbal = this._createCymbalMesh(0.22, true);
-    bottomCymbal.position.y = 0.00;
-    hihatGroup.add(bottomCymbal);
-
-    // Top Cymbal with Clutch (attached to pull rod, moves up/down)
-    const topPivot = new THREE.Group();
-    topPivot.position.y = HIHAT_CLOSED_Y; // Default closed position resting on bottom cymbal
-
-    const topCymbal = this._createCymbalMesh(0.22, false);
-    topPivot.add(topCymbal);
-
-    // Hi-Hat Clutch Assembly on top cymbal
-    const clutchGroup = new THREE.Group();
-    // Clutch barrel
-    const clutchBarrel = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.011, 0.011, 0.055, 12),
-      this.chromeMaterial
-    );
-    clutchBarrel.position.y = 0.038;
-    clutchGroup.add(clutchBarrel);
-
-    // Clutch T-screw / wing-bolt
-    const tScrew = new THREE.Mesh(
-      new THREE.BoxGeometry(0.028, 0.006, 0.008),
-      this.chromeMaterial
-    );
-    tScrew.position.set(0.014, 0.052, 0);
-    clutchGroup.add(tScrew);
-
-    // Clutch felt washers clamping top cymbal
-    const clutchTopFelt = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.018, 0.018, 0.008, 16),
-      this.feltMaterial
-    );
-    clutchTopFelt.position.y = 0.028;
-    clutchGroup.add(clutchTopFelt);
-
-    const clutchBottomFelt = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.018, 0.018, 0.008, 16),
-      this.feltMaterial
-    );
-    clutchBottomFelt.position.y = 0.018;
-    clutchGroup.add(clutchBottomFelt);
-
-    topPivot.add(clutchGroup);
-    hihatGroup.add(topPivot);
-
-    this.hihatTopPivot = topPivot;
-
-    // Foot Pedal Assembly at base of hi-hat stand
+    // 2. Foot Pedal Assembly (Sitting flat on the floor at y = 0)
     const pedalBase = new THREE.Group();
-    pedalBase.position.set(0.05, -0.66, 0.08); // offset towards player
+    pedalBase.position.set(0.05, 0, 0.09); // offset towards drummer
     pedalBase.rotation.y = 0.35; // facing drummer
 
-    // Heel plate
+    // Heel plate flat on floor
     const heelPlate = new THREE.Mesh(
       new THREE.BoxGeometry(0.08, 0.012, 0.06),
       this.blackTrimMaterial
     );
+    heelPlate.position.set(0, 0.006, 0);
     pedalBase.add(heelPlate);
 
     // Footboard pivot at heel
     const footboardPivot = new THREE.Group();
-    footboardPivot.position.set(0, 0.006, 0.03); // hinge point
+    footboardPivot.position.set(0, 0.008, 0.03); // hinge point
 
     const footboard = new THREE.Mesh(
       new THREE.BoxGeometry(0.075, 0.010, 0.20),
@@ -828,7 +1029,7 @@ export class DrumKit3D {
     footboard.position.set(0, 0.005, 0.10);
     footboardPivot.add(footboard);
 
-    // Chrome toe guard / pedal frame
+    // Chrome toe guard / pedal frame resting flat on floor
     const pedalFrame = new THREE.Mesh(
       new THREE.BoxGeometry(0.09, 0.014, 0.04),
       this.chromeMaterial
@@ -847,19 +1048,77 @@ export class DrumKit3D {
     // Default angle: closed (pedal held down)
     footboardPivot.rotation.x = HIHAT_PEDAL_DOWN_ANGLE;
     pedalBase.add(footboardPivot);
-    hihatGroup.add(pedalBase);
-
+    standGroup.add(pedalBase);
     this.hihatPedalFootboard = footboardPivot;
 
-    // Hit target for drumstick hits (closed position surface)
-    const hihatTopPoint = new THREE.Vector3(0, HIHAT_CLOSED_Y + 0.020 + DRUMSTICK_CONTACT_CLEARANCE, 0)
-      .applyEuler(hihatGroup.rotation);
-    this.pieceTargets.hihat = hihatGroup.position.clone().add(hihatTopPoint);
-    this.pieceTargetTangents.hihat = new THREE.Vector3(1, 0, 0)
-      .applyEuler(hihatGroup.rotation)
-      .normalize();
+    // 3. Cymbals Assembly atop Stand
+    const cymbalsGroup = new THREE.Group();
+    cymbalsGroup.position.set(0, cymbalsHeight, 0);
 
-    this.group.add(hihatGroup);
+    // Bottom Cymbal Seat Felt Washer
+    const bottomSeatFelt = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.024, 0.024, 0.012, 16),
+      this.feltMaterial
+    );
+    bottomSeatFelt.position.y = -0.012;
+    cymbalsGroup.add(bottomSeatFelt);
+
+    // Bottom Cymbal (Inverted, stationary on felt seat)
+    const bottomCymbal = this._createCymbalMesh(0.22, true);
+    bottomCymbal.position.y = 0.00;
+    cymbalsGroup.add(bottomCymbal);
+
+    // Top Cymbal with Clutch (attached to pull rod, moves up/down)
+    const topPivot = new THREE.Group();
+    topPivot.position.y = HIHAT_CLOSED_Y;
+
+    const topCymbal = this._createCymbalMesh(0.22, false);
+    topPivot.add(topCymbal);
+
+    // Hi-Hat Clutch Assembly on top cymbal
+    const clutchGroup = new THREE.Group();
+    const clutchBarrel = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.011, 0.011, 0.055, 12),
+      this.chromeMaterial
+    );
+    clutchBarrel.position.y = 0.038;
+    clutchGroup.add(clutchBarrel);
+
+    const tScrew = new THREE.Mesh(
+      new THREE.BoxGeometry(0.028, 0.006, 0.008),
+      this.chromeMaterial
+    );
+    tScrew.position.set(0.014, 0.052, 0);
+    clutchGroup.add(tScrew);
+
+    const clutchTopFelt = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.018, 0.018, 0.008, 16),
+      this.feltMaterial
+    );
+    clutchTopFelt.position.y = 0.028;
+    clutchGroup.add(clutchTopFelt);
+
+    const clutchBottomFelt = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.018, 0.018, 0.008, 16),
+      this.feltMaterial
+    );
+    clutchBottomFelt.position.y = 0.018;
+    clutchGroup.add(clutchBottomFelt);
+
+    topPivot.add(clutchGroup);
+    cymbalsGroup.add(topPivot);
+    this.hihatTopPivot = topPivot;
+
+    standGroup.add(cymbalsGroup);
+    this.group.add(standGroup);
+
+    // Hit target for drumstick strikes
+    this.pieceTargets.hihat = new THREE.Vector3(
+      hihatPos.x,
+      cymbalsHeight + HIHAT_CLOSED_Y + 0.020 + DRUMSTICK_CONTACT_CLEARANCE,
+      hihatPos.z
+    );
+    this.pieceTargetTangents.hihat = new THREE.Vector3(1, 0, 0);
   }
 
   /**
@@ -926,23 +1185,6 @@ export class DrumKit3D {
     cymbalConfigs.forEach(cfg => {
       const cGroup = new THREE.Group();
       cGroup.position.set(cfg.pos[0], cfg.pos[1], cfg.pos[2]);
-
-      // Chrome boom arm tilter and support rod
-      const tilter = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.010, 0.010, 0.034, 10),
-        this.chromeMaterial
-      );
-      tilter.rotation.z = Math.PI / 2;
-      tilter.position.y = -0.018;
-      cGroup.add(tilter);
-
-      const boomRod = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.007, 0.007, 0.42, 8),
-        this.chromeMaterial
-      );
-      boomRod.position.set(0, -0.21, 0.06);
-      boomRod.rotation.x = 0.28;
-      cGroup.add(boomRod);
 
       const cPivot = new THREE.Group();
       const cMesh = this._createCymbalMesh(cfg.radius, false, cfg.isChina);
@@ -1038,6 +1280,7 @@ export class DrumKit3D {
     // Mounting Hardware (Felt washers, chrome sleeve, and butterfly wingnut)
     // Inverted cymbals (hi-hat bottom) do not have top wingnuts
     if (!inverted) {
+      // --- Top Mounting Hardware ---
       // 1. Felt washer on bell
       const topFelt = new THREE.Mesh(
         new THREE.CylinderGeometry(0.018, 0.018, 0.010, 16),
@@ -1056,10 +1299,10 @@ export class DrumKit3D {
 
       // 3. Central threaded spindle
       const centerPin = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.005, 0.005, 0.036, 12),
+        new THREE.CylinderGeometry(0.005, 0.005, 0.046, 12),
         this.chromeMaterial
       );
-      centerPin.position.y = 0.032;
+      centerPin.position.y = 0.025;
       group.add(centerPin);
 
       // 4. Chrome butterfly wingnut
@@ -1084,6 +1327,56 @@ export class DrumKit3D {
       wingnut.add(rightWing);
 
       group.add(wingnut);
+
+      // --- Bottom Mounting Hardware (CONCENTRIC UNDER BELL CUP) ---
+      // 5. Bottom Felt washer supporting underside of the cymbal bell cup
+      const bottomFelt = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.018, 0.018, 0.010, 16),
+        this.feltMaterial
+      );
+      bottomFelt.position.y = 0.014;
+      group.add(bottomFelt);
+
+      // 6. Bottom Chrome cup washer supporting the bottom felt
+      const bottomCup = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.016, 0.016, 0.004, 16),
+        this.chromeMaterial
+      );
+      bottomCup.position.y = 0.007;
+      group.add(bottomCup);
+
+      // 7. Protective chrome cymbal sleeve / bushing
+      const sleeve = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.007, 0.007, 0.024, 12),
+        this.chromeMaterial
+      );
+      sleeve.position.y = 0.018;
+      group.add(sleeve);
+
+      // 8. Chrome Tilter Knuckle Joint (concentric on cymbal axis)
+      const tilterKnuckle = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.011, 0.011, 0.024, 12),
+        this.chromeMaterial
+      );
+      tilterKnuckle.rotation.z = Math.PI / 2;
+      tilterKnuckle.position.y = -0.006;
+      group.add(tilterKnuckle);
+
+      // Tilter clamp wing-bolt
+      const tilterBolt = new THREE.Mesh(
+        new THREE.BoxGeometry(0.020, 0.006, 0.006),
+        this.chromeMaterial
+      );
+      tilterBolt.position.set(-0.013, -0.006, 0);
+      group.add(tilterBolt);
+
+      // Tilter downward collar socket
+      const tilterSocket = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.009, 0.009, 0.020, 12),
+        this.chromeMaterial
+      );
+      tilterSocket.position.y = -0.020;
+      group.add(tilterSocket);
     }
 
     return group;
