@@ -118,6 +118,24 @@ export class DrumKit3D {
       metalness: 0.02
     });
 
+    // Seamless continuous LatheGeometry for authentic 5A wood drumsticks (Zero gaps, zero seams)
+    const stickPoints = [
+      new THREE.Vector2(0.0000, 0.000), // rounded butt center
+      new THREE.Vector2(0.0050, 0.002), // butt curvature
+      new THREE.Vector2(0.0072, 0.006), // butt to handle
+      new THREE.Vector2(0.0072, 0.180), // cylindrical handle grip
+      new THREE.Vector2(0.0070, 0.220), // shoulder start
+      new THREE.Vector2(0.0052, 0.300), // smooth taper
+      new THREE.Vector2(0.0036, 0.348), // slim neck
+      new THREE.Vector2(0.0035, 0.356), // bead collar
+      new THREE.Vector2(0.0054, 0.366), // acorn tip bead belly
+      new THREE.Vector2(0.0044, 0.375), // tip taper
+      new THREE.Vector2(0.0000, DRUMSTICK_LENGTH) // tip apex (0.380)
+    ];
+    this.stickGeometry = new THREE.LatheGeometry(stickPoints, 20);
+    this.stickGeometry.rotateX(Math.PI / 2);
+    this.stickGeometry.computeVertexNormals();
+
     // Black Hardware & Beater Accent
     this.blackTrimMaterial = new THREE.MeshStandardMaterial({
       color: 0x18181c,
@@ -1146,40 +1164,10 @@ export class DrumKit3D {
 
     const stickArm = new THREE.Group();
 
-    // 1. Smooth rounded butt cap at the wrist grip
-    const buttGeom = new THREE.SphereGeometry(0.0075, 12, 12);
-    const butt = new THREE.Mesh(buttGeom, this.stickMaterial);
-    butt.position.z = 0.004;
-    stickArm.add(butt);
-
-    // 2. Main cylindrical handle & grip section (length 0.21m, radius ~7.2mm)
-    const handleGeom = new THREE.CylinderGeometry(0.0070, 0.0075, 0.21, 14);
-    handleGeom.rotateX(Math.PI / 2);
-    const handle = new THREE.Mesh(handleGeom, this.stickMaterial);
-    handle.position.z = 0.11;
-    handle.castShadow = true;
-    stickArm.add(handle);
-
-    // 3. Gracefully tapered shoulder down to the slim neck (0.13m, radius 7.0mm -> 3.6mm)
-    const taperGeom = new THREE.CylinderGeometry(0.0036, 0.0070, 0.13, 14);
-    taperGeom.rotateX(Math.PI / 2);
-    const taper = new THREE.Mesh(taperGeom, this.stickMaterial);
-    taper.position.z = 0.28;
-    taper.castShadow = true;
-    stickArm.add(taper);
-
-    // 4. Authentic oval acorn drumstick tip bead (at z = DRUMSTICK_LENGTH)
-    const tipNeckGeom = new THREE.CylinderGeometry(0.0055, 0.0036, 0.016, 14);
-    tipNeckGeom.rotateX(Math.PI / 2);
-    const tipNeck = new THREE.Mesh(tipNeckGeom, this.stickMaterial);
-    tipNeck.position.z = 0.355;
-    stickArm.add(tipNeck);
-
-    const tipHeadGeom = new THREE.SphereGeometry(0.0055, 12, 12);
-    tipHeadGeom.scale(1, 1, 1.4);
-    const tipHead = new THREE.Mesh(tipHeadGeom, this.stickMaterial);
-    tipHead.position.z = DRUMSTICK_LENGTH;
-    stickArm.add(tipHead);
+    // Unified seamless drumstick (single solid body from butt to acorn tip with zero gaps)
+    const stickMesh = new THREE.Mesh(this.stickGeometry, this.stickMaterial);
+    stickMesh.castShadow = true;
+    stickArm.add(stickMesh);
 
     pivot.add(stickArm);
 
