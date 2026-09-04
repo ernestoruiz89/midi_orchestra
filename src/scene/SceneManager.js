@@ -279,7 +279,7 @@ export class SceneManager {
       trumpet: 'trumpet',
       sax: 'trumpet',
       violin: 'violin',
-      flute: 'guitar',
+      flute: 'flute',
       xylophone: 'drum',
       synth: 'piano'
     };

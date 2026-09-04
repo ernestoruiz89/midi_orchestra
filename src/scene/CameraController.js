@@ -37,7 +37,7 @@ export class CameraController {
       trumpet: { pos: new THREE.Vector3(3.40, 1.56, 1.50), target: new THREE.Vector3(4.40, 1.40, 0.40) },
       sax: { pos: new THREE.Vector3(2.10, 1.55, 2.30), target: new THREE.Vector3(3.40, 1.25, 1.80) },
       violin: { pos: new THREE.Vector3(-3.45, 1.48, -0.75), target: new THREE.Vector3(-4.20, 1.22, -1.80) },
-      flute: { pos: new THREE.Vector3(1.4, 1.45, 2.85), target: new THREE.Vector3(1.6, 1.30, 1.8) },
+      flute: { pos: new THREE.Vector3(1.15, 1.56, 2.22), target: new THREE.Vector3(1.60, 1.30, 1.80) },
       xylophone: { pos: new THREE.Vector3(0, 1.85, 3.25), target: new THREE.Vector3(0, 0.95, 1.6) },
       synth: { pos: new THREE.Vector3(-3.0, 2.15, 3.75), target: new THREE.Vector3(-4.0, 1.30, 1.70) },
       guitar_2: { pos: new THREE.Vector3(2.35, 1.45, 2.05), target: new THREE.Vector3(2.00, 1.15, 0.60) },

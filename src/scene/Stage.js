@@ -161,6 +161,7 @@ export class Stage {
       { x: 2.2, z: 3.2, target: [2.8, 1.4, 0.6], color: 0xffeedd, name: 'guitar_spot' },
       { x: 5.5, z: 3.2, target: [4.2, 1.5, 0.4], color: 0xffea00, name: 'trumpet_spot' },
       { x: -3.8, z: 2.2, target: [-4.2, 1.25, -1.8], color: 0xffbe76, name: 'violin_spot' },
+      { x: 2.0, z: 2.8, target: [1.6, 1.30, 1.8], color: 0x70f5ff, name: 'flute_spot' },
       { x: 0.0, z: -4.2, target: [0, 1.5, 0], color: 0xbf00ff, name: 'center_back_spot' }
     ];
 
@@ -283,7 +284,8 @@ export class Stage {
       drum_spot: 'drums',
       guitar_spot: ['guitar', 'acousticGuitar'],
       trumpet_spot: 'trumpet',
-      violin_spot: 'violin'
+      violin_spot: 'violin',
+      flute_spot: 'flute'
     };
 
     this.spotlights.forEach(spot => {
