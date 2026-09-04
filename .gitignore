@@ -12,6 +12,7 @@ yarn-error.log*
 
 # Test Screenshots
 screenshot_*.png
+screenshots/
 
 # Editor / OS files
 .DS_Store
