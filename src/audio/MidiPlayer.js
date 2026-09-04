@@ -12,6 +12,13 @@ const INSTRUMENT_SHOW_BEFORE_SECONDS = 1;
 const INSTRUMENT_SHOW_BETWEEN_SECONDS = 7;
 const INSTRUMENT_SHOW_AFTER_SECONDS = 2;
 
+// requestAnimationFrame is intentionally paused by browsers for hidden tabs.
+// MIDI audio must use its own timer or every event accumulated in the hidden
+// interval will fire in one noisy burst when the tab becomes visible again.
+const AUDIO_TIMER_INTERVAL_MS = 25;
+const MAX_AUDIO_CATCH_UP_SECONDS = 0.2;
+const MAX_VISUAL_CATCH_UP_SECONDS = 0.2;
+
 const DEFAULT_GM_PROGRAMS = {
   piano: 0,
   drums: 0,
@@ -107,6 +114,11 @@ export class MidiPlayer {
     // Animation frame / timing
     this.lastFrameTime = 0;
     this.rafId = null;
+    this.audioTimerId = null;
+    this.audioProcessedTime = 0;
+    this.visualProcessedTime = 0;
+    this.playbackAnchorTime = 0;
+    this.playbackAnchorSongTime = 0;
 
     // Pre-processed unified note event list
     this.events = [];
@@ -754,6 +766,10 @@ export class MidiPlayer {
     this.isPlaying = true;
     this.isPaused = false;
     this.lastFrameTime = performance.now();
+    this.playbackAnchorTime = this.lastFrameTime;
+    this.playbackAnchorSongTime = this.currentTime;
+    this.audioProcessedTime = this.currentTime - 0.000001;
+    this.visualProcessedTime = this.currentTime - 0.000001;
 
     if (this.onStateChange) this.onStateChange(true, false);
 
@@ -815,6 +831,14 @@ export class MidiPlayer {
   }
 
   setPlaybackRate(rate) {
+    if (this.isPlaying) {
+      const now = performance.now();
+      this.currentTime = this._getPlaybackTime(now);
+      this.playbackAnchorTime = now;
+      this.playbackAnchorSongTime = this.currentTime;
+      this.audioProcessedTime = this.currentTime;
+      this.visualProcessedTime = this.currentTime;
+    }
     this.playbackRate = Math.max(0.25, Math.min(3.0, rate));
   }
 
@@ -824,19 +848,28 @@ export class MidiPlayer {
 
   _startLoop() {
     this._cancelLoop();
+    this._startAudioTimer();
 
     const loop = (now) => {
       if (!this.isPlaying) return;
 
-      const deltaMs = now - this.lastFrameTime;
+      const previousVisualTime = this.visualProcessedTime;
+      const nextTime = this._getPlaybackTime(now);
+      const visualDelta = nextTime - previousVisualTime;
       this.lastFrameTime = now;
+      this.currentTime = nextTime;
+      this.visualProcessedTime = nextTime;
 
-      const deltaSec = (deltaMs / 1000) * this.playbackRate;
-      const prevTime = this.currentTime;
-      this.currentTime += deltaSec;
-
-      // Trigger events occurring between prevTime and currentTime
-      this._processEventsWindow(prevTime, this.currentTime);
+      // Visual callbacks stay on animation frames. If the browser suspended
+      // rendering, discard stale animations instead of replaying them at once.
+      if (visualDelta >= 0 && visualDelta <= MAX_VISUAL_CATCH_UP_SECONDS) {
+        this._processEventsWindow(previousVisualTime, this.currentTime, {
+          audio: false,
+          visual: true
+        });
+      } else if (visualDelta > MAX_VISUAL_CATCH_UP_SECONDS) {
+        this._releaseAllVisuals();
+      }
       this._emitVisibleInstruments(this.currentTime);
 
       // Smooth decay of instrument activity meters for VU meters and Director Camera
@@ -877,23 +910,71 @@ export class MidiPlayer {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
     }
+    if (this.audioTimerId) {
+      clearInterval(this.audioTimerId);
+      this.audioTimerId = null;
+    }
   }
 
-  _processEventsWindow(startTime, endTime) {
+  _getPlaybackTime(now = performance.now()) {
+    if (!this.isPlaying) return this.currentTime;
+    const elapsed = Math.max(0, now - this.playbackAnchorTime) / 1000;
+    return Math.min(this.duration, this.playbackAnchorSongTime + elapsed * this.playbackRate);
+  }
+
+  _startAudioTimer() {
+    const tick = () => {
+      if (!this.isPlaying) return;
+
+      const songTime = this._getPlaybackTime();
+      const elapsed = songTime - this.audioProcessedTime;
+
+      if (elapsed > MAX_AUDIO_CATCH_UP_SECONDS) {
+        // A heavily throttled or sleeping browser must never replay its entire
+        // backlog. Reconstruct MIDI controller state and continue from "now".
+        this.soundEngine.stopAll();
+        this._syncMidiControllersAt(songTime);
+        this.audioProcessedTime = songTime;
+      } else if (elapsed >= 0) {
+        this._processEventsWindow(this.audioProcessedTime, songTime, {
+          audio: true,
+          visual: false
+        });
+        this.audioProcessedTime = songTime;
+      }
+
+      // Keep transport state accurate while rendering is suspended.
+      this.currentTime = songTime;
+      if (songTime >= this.duration) {
+        if (this.isLooping) {
+          this.seek(0);
+        } else {
+          this.stop();
+        }
+      }
+    };
+
+    tick();
+    this.audioTimerId = setInterval(tick, AUDIO_TIMER_INTERVAL_MS);
+  }
+
+  _processEventsWindow(startTime, endTime, { audio = true, visual = true } = {}) {
     for (let i = 0; i < this.events.length; i++) {
       const ev = this.events[i];
 
       // Optimization: events are sorted by time
-      if (ev.time < startTime) continue;
+      // The start of a window is exclusive so adjacent timer ticks cannot
+      // trigger the same MIDI event twice.
+      if (ev.time <= startTime) continue;
       if (ev.time > endTime) break;
 
       if (ev.type === 'cc') {
-        this.soundEngine.applyMidiControlChange(ev.channel, ev.controller, ev.value);
+        if (audio) this.soundEngine.applyMidiControlChange(ev.channel, ev.controller, ev.value);
       } else if (ev.type === 'pitchBend') {
-        this.soundEngine.applyMidiPitchBend(ev.channel, ev.value);
+        if (audio) this.soundEngine.applyMidiPitchBend(ev.channel, ev.value);
       } else if (ev.type === 'prepare') {
         // A preparatory drumstick motion is deliberately visual-only.
-        if (this.onNotePrepare) {
+        if (visual && this.onNotePrepare) {
           this.onNotePrepare(
             ev.instrument,
             ev.midi,
@@ -921,7 +1002,7 @@ export class MidiPlayer {
         }
       } else if (ev.type === 'on') {
         // Register real-time activity for MIDIJam Director and HUD VU meters
-        if (this.instrumentActivity[ev.instrument] !== undefined) {
+        if (visual && this.instrumentActivity[ev.instrument] !== undefined) {
           this.instrumentActivity[ev.instrument] = Math.max(
             this.instrumentActivity[ev.instrument],
             ev.velocity
@@ -930,17 +1011,19 @@ export class MidiPlayer {
 
         // Trigger Audio with exact General MIDI Program and Channel routing
         const noteParam = ev.instrument === 'drums' ? ev.midi : ev.name;
-        this.soundEngine.triggerNoteOn(
-          ev.instrument,
-          noteParam,
-          ev.velocity,
-          undefined,
-          ev.programNumber,
-          ev.channel,
-          ev.instanceId
-        );
+        if (audio) {
+          this.soundEngine.triggerNoteOn(
+            ev.instrument,
+            noteParam,
+            ev.velocity,
+            undefined,
+            ev.programNumber,
+            ev.channel,
+            ev.instanceId
+          );
+        }
         // Trigger 3D Visuals
-        if (this.onNoteOn) {
+        if (visual && this.onNoteOn) {
           const visualPitch = (ev.instrument === 'drums' && (ev.programNumber === 119 || ev.midi === 119))
             ? 'reverseCymbal'
             : ev.midi;
@@ -1007,16 +1090,18 @@ export class MidiPlayer {
       } else if (ev.type === 'off') {
         // Release Audio
         const noteParamOff = ev.instrument === 'drums' ? ev.midi : ev.name;
-        this.soundEngine.triggerNoteOff(
-          ev.instrument,
-          noteParamOff,
-          undefined,
-          ev.programNumber,
-          ev.channel,
-          ev.instanceId
-        );
+        if (audio) {
+          this.soundEngine.triggerNoteOff(
+            ev.instrument,
+            noteParamOff,
+            undefined,
+            ev.programNumber,
+            ev.channel,
+            ev.instanceId
+          );
+        }
         // Release 3D Visuals
-        if (this.onNoteOff) {
+        if (visual && this.onNoteOff) {
           const visualPitchOff = (ev.instrument === 'drums' && (ev.programNumber === 119 || ev.midi === 119))
             ? 'reverseCymbal'
             : ev.midi;
