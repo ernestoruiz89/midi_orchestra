@@ -8,6 +8,7 @@ import { Bass3D } from './Bass3D.js';
 import { Trumpet3D } from './Trumpet3D.js';
 import { Saxophone3D } from './Saxophone3D.js';
 import { Violin3D } from './Violin3D.js';
+import { Cello3D } from './Cello3D.js';
 import { Flute3D } from './Flute3D.js';
 import { Xylophone3D } from './Xylophone3D.js';
 import { Synth3D } from './Synth3D.js';
@@ -64,6 +65,7 @@ export class SceneManager {
     this.trumpet = new Trumpet3D(this.scene);
     this.sax = new Saxophone3D(this.scene);
     this.violin = new Violin3D(this.scene);
+    this.cello = new Cello3D(this.scene);
     this.flute = new Flute3D(this.scene);
     this.xylophone = new Xylophone3D(this.scene);
     this.synth = new Synth3D(this.scene, { tier: 1, hasStand: true });
@@ -113,6 +115,12 @@ export class SceneManager {
     this.violin_2.group.rotation.set(0.12, Math.PI * 0.18, -0.06);
     this.violin_2.varnishMaterial.color.setHex(0x421d0d); // Dark Antique Violin
     this.violin_2.group.visible = false;
+
+    this.cello_2 = new Cello3D(this.scene);
+    this.cello_2.group.position.set(-3.7, 1.15, -1.6);
+    this.cello_2.group.rotation.set(0.14, Math.PI * 0.18, -0.05);
+    this.cello_2.varnishMaterial.color.setHex(0x522210); // Darker vintage varnish
+    this.cello_2.group.visible = false;
 
     this.flute_2 = new Flute3D(this.scene);
     this.flute_2.group.position.set(2.3, 1.30, 2.4);
@@ -170,6 +178,7 @@ export class SceneManager {
       trumpet: this.trumpet,
       sax: this.sax,
       violin: this.violin,
+      cello: this.cello,
       flute: this.flute,
       xylophone: this.xylophone,
       synth: this.synth,
@@ -186,6 +195,7 @@ export class SceneManager {
       trumpet_2: this.trumpet_2,
       sax_2: this.sax_2,
       violin_2: this.violin_2,
+      cello_2: this.cello_2,
       flute_2: this.flute_2,
       xylophone_2: this.xylophone_2,
       synth_2: this.synth_2,
@@ -279,6 +289,7 @@ export class SceneManager {
       trumpet: 'trumpet',
       sax: 'trumpet',
       violin: 'violin',
+      cello: 'cello',
       flute: 'flute',
       xylophone: 'drum',
       synth: 'piano'

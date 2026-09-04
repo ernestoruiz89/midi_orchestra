@@ -83,6 +83,7 @@
     <button class="cam-btn" data-preset="trumpet" title="Trumpet Close-up" data-i18n="camera.trumpet" data-i18n-title="camera.trumpetTitle">🎺 Trumpet</button>
     <button class="cam-btn" data-preset="sax" title="Alto Saxophone Close-up" data-i18n="camera.sax" data-i18n-title="camera.saxTitle">🎷 Sax</button>
     <button class="cam-btn" data-preset="violin" title="Violin Close-up" data-i18n="camera.violin" data-i18n-title="camera.violinTitle">🎻 Violin</button>
+    <button class="cam-btn" data-preset="cello" title="Cello Close-up" data-i18n="camera.cello" data-i18n-title="camera.celloTitle">🎻 Cello</button>
     <button class="cam-btn" data-preset="flute" title="Concert Flute Close-up" data-i18n="camera.flute" data-i18n-title="camera.fluteTitle">🪈 Flute</button>
     <button class="cam-btn" data-preset="xylophone" title="Xylophone Close-up" data-i18n="camera.xylophone" data-i18n-title="camera.xylophoneTitle">🪵 Xylophone</button>
     <button class="cam-btn" data-preset="synth" title="Synthesizer Close-up" data-i18n="camera.synth" data-i18n-title="camera.synthTitle">🎹 Synth</button>
@@ -95,6 +96,7 @@
     <button class="cam-btn" data-preset="trumpet_2" title="Trumpet 2 Close-up" data-i18n="camera.trumpet_2" style="display: none;">🎺 Trumpet 2</button>
     <button class="cam-btn" data-preset="sax_2" title="Sax 2 Close-up" data-i18n="camera.sax_2" style="display: none;">🎷 Sax 2</button>
     <button class="cam-btn" data-preset="violin_2" title="Violin 2 Close-up" data-i18n="camera.violin_2" style="display: none;">🎻 Violin 2</button>
+    <button class="cam-btn" data-preset="cello_2" title="Cello 2 Close-up" data-i18n="camera.cello_2" style="display: none;">🎻 Cello 2</button>
     <button class="cam-btn" data-preset="flute_2" title="Flute 2 Close-up" data-i18n="camera.flute_2" style="display: none;">🪈 Flute 2</button>
     <button class="cam-btn" data-preset="bass_2" title="Bass 2 Close-up" data-i18n="camera.bass_2" style="display: none;">🎸 Bass 2</button>
     <button class="cam-btn" data-preset="synth_2" title="Synth 2 Close-up" data-i18n="camera.synth_2" style="display: none;">🎹 Synth 2</button>
@@ -349,6 +351,20 @@
             <span class="strip-name" data-i18n="instruments.violin">Violin</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-violin"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Cello Channel -->
+        <div class="mixer-strip" data-inst="cello">
+          <div class="strip-header">
+            <span class="strip-icon">🎻</span>
+            <span class="strip-name" data-i18n="instruments.cello">Cello</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-cello"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>

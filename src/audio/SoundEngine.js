@@ -60,7 +60,7 @@ export const GM_PROGRAM_MAP = {
   // Strings & Orchestral (40-47)
   40: { sf: 'violin', bus: 'violin' },
   41: { sf: 'viola', bus: 'violin' },
-  42: { sf: 'cello', bus: 'violin' },
+  42: { sf: 'cello', bus: 'cello' },
   43: { sf: 'contrabass', bus: 'violin' },
   44: { sf: 'tremolo_strings', bus: 'violin' },
   45: { sf: 'pizzicato_strings', bus: 'violin' },
@@ -204,6 +204,8 @@ export class SoundEngine {
       sax_2: 0.65,
       violin: 0.68,
       violin_2: 0.68,
+      cello: 0.68,
+      cello_2: 0.68,
       flute: 0.60,
       flute_2: 0.60,
       xylophone: 0.60,
@@ -574,7 +576,7 @@ export class SoundEngine {
 
   _buildInstrumentChannels(ctx) {
     const instrumentNames = [
-      'piano', 'drums', 'bass', 'guitar', 'acousticGuitar', 'trumpet', 'sax', 'violin', 'flute', 'xylophone', 'synth'
+      'piano', 'drums', 'bass', 'guitar', 'acousticGuitar', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth'
     ];
     this.nativeInputs = {};
 
@@ -598,6 +600,7 @@ export class SoundEngine {
       case 'piano': return -0.40;
       case 'bass': return -0.20;
       case 'violin': return -0.28;
+      case 'cello': return -0.22;
       case 'synth': return -0.35;
       case 'drums': return 0.0;
       case 'xylophone': return 0.05;
@@ -800,6 +803,7 @@ export class SoundEngine {
       { name: 'brass_section', bus: 'trumpet' },
       { name: 'tenor_sax', bus: 'sax' },
       { name: 'violin', bus: 'violin' },
+      { name: 'cello', bus: 'cello' },
       { name: 'string_ensemble_1', bus: 'violin' },
       { name: 'flute', bus: 'flute' },
       { name: 'xylophone', bus: 'xylophone' },
@@ -1201,6 +1205,12 @@ export class SoundEngine {
       envelope: { attack: 0.08, decay: 0.5, sustain: 0.85, release: 0.6 }
     }).connect(this.channels.violin);
 
+    // Cello / Low Strings: Rich warm bowed acoustic cello model
+    this.synths.cello = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'sawtooth' },
+      envelope: { attack: 0.1, decay: 0.6, sustain: 0.85, release: 0.7 }
+    }).connect(this.channels.cello);
+
     // Flute: Pure breathy sine/triangle model
     this.synths.flute = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'triangle' },
@@ -1290,6 +1300,7 @@ export class SoundEngine {
           trumpet: 'trumpet',
           sax: 'tenor_sax',
           violin: 'violin',
+          cello: 'cello',
           flute: 'flute',
           xylophone: 'xylophone',
           synth: 'lead_1_square'
@@ -1589,6 +1600,7 @@ export class SoundEngine {
       if (this.synths.synth) this.synths.synth.releaseAll();
       if (this.synths.sax) this.synths.sax.releaseAll();
       if (this.synths.violin) this.synths.violin.releaseAll();
+      if (this.synths.cello) this.synths.cello.releaseAll();
       if (this.synths.flute) this.synths.flute.releaseAll();
       if (this.synths.xylophone) this.synths.xylophone.releaseAll();
       if (this.synths.bass) this.synths.bass.triggerRelease();

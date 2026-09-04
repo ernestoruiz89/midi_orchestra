@@ -14,6 +14,7 @@ const DEFAULT_GM_PROGRAMS = {
   trumpet: 56,
   sax: 66,
   violin: 40,
+  cello: 42,
   flute: 73,
   xylophone: 13,
   synth: 80
@@ -37,7 +38,7 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
   // 32-39: Bass
   32: 'bass', 33: 'bass', 34: 'bass', 35: 'bass', 36: 'bass', 37: 'bass', 38: 'bass', 39: 'bass',
   // 40-47: Solo Strings & Timpani
-  40: 'violin', 41: 'violin', 42: 'violin', 43: 'violin', 44: 'violin', 45: 'violin', 46: 'violin', 47: 'xylophone',
+  40: 'violin', 41: 'violin', 42: 'cello', 43: 'violin', 44: 'violin', 45: 'violin', 46: 'violin', 47: 'xylophone',
   // 48-55: Ensemble & Choir & Orchestra Hit
   48: 'violin', 49: 'violin', 50: 'violin', 51: 'violin', 52: 'synth', 53: 'synth', 54: 'synth', 55: 'synth',
   // 56-63: Brass
@@ -64,7 +65,7 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
 
 const VALID_3D_INSTRUMENTS = new Set([
   'piano', 'drums', 'bass', 'guitar', 'acousticGuitar',
-  'trumpet', 'sax', 'violin', 'flute', 'xylophone', 'synth'
+  'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth'
 ]);
 
 /**
@@ -117,6 +118,7 @@ export class MidiPlayer {
       trumpet: 0,
       sax: 0,
       violin: 0,
+      cello: 0,
       flute: 0,
       xylophone: 0,
       synth: 0
@@ -343,8 +345,13 @@ export class MidiPlayer {
       return 'trumpet';
     }
 
-    // H. Violin / Strings Section:
-    if (/\b(violin|viol[ií]n|viola|cello|violoncello|violonchelo|strings?|cuerdas?|fiddle|harp|arpa|orchestra|orquesta)\b/i.test(trackName)) {
+    // H. Cello / Violonchelo:
+    if (/\b(cello|violoncello|violonchelo|chelo)\b/i.test(trackName)) {
+      return 'cello';
+    }
+
+    // I. Violin / Strings Section:
+    if (/\b(violin|viol[ií]n|viola|strings?|cuerdas?|fiddle|harp|arpa|orchestra|orquesta)\b/i.test(trackName)) {
       return 'violin';
     }
 
@@ -710,10 +717,10 @@ export class MidiPlayer {
   _releaseAllVisuals() {
     if (this.onNoteOff) {
       const allInsts = [
-        'piano', 'drums', 'guitar', 'bass', 'trumpet', 'sax', 'violin', 'flute', 'xylophone', 'synth',
+        'piano', 'drums', 'guitar', 'bass', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth',
         'acousticGuitar', 'piano_2', 'piano_3', 'piano_4', 'guitar_2', 'guitar_3', 'guitar_4',
         'acousticGuitar_2', 'acousticGuitar_3', 'acousticGuitar_4',
-        'bass_2', 'trumpet_2', 'sax_2', 'violin_2', 'flute_2', 'xylophone_2',
+        'bass_2', 'trumpet_2', 'sax_2', 'violin_2', 'cello_2', 'flute_2', 'xylophone_2',
         'synth_2', 'synth_3', 'synth_4'
       ];
       for (let note = 21; note <= 108; note++) {
