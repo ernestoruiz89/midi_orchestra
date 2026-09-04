@@ -477,7 +477,7 @@ export class UIManager {
       this.dom.drawerMixer.classList.add('hidden');
     });
 
-    // Volume sliders and Mute / Solo buttons for all 10 instruments
+    // Volume sliders and Mute / Solo buttons for available mixer channels.
     this.dom.mixerVuBars = {};
     const strips = this.dom.drawerMixer.querySelectorAll('.mixer-strip');
     strips.forEach(strip => {
@@ -830,22 +830,15 @@ export class UIManager {
       }
     });
 
-    // 4. Update Mixer Drawer: ALWAYS show all 10 orchestra instruments, show duplicates if present
+    // 4. Update Mixer Drawer: show only channels that are actually assigned
+    // to a MIDI track, including any duplicate instrument instances.
     if (this.dom.drawerMixer) {
       const strips = this.dom.drawerMixer.querySelectorAll('.mixer-strip');
       strips.forEach(strip => {
         const inst = strip.dataset.inst;
-        const isDuplicate = inst.includes('_');
-        if (!isDuplicate) {
-          // All 10 base orchestra instruments are ALWAYS visible in the studio mixer!
-          strip.style.display = 'flex';
-          const isPlaying = activeSet.has(inst);
-          strip.classList.toggle('channel-inactive', !isPlaying);
-        } else {
-          // Duplicates are displayed when that second instance is active in the song
-          const isPresent = activeSet.has(inst);
-          strip.style.display = isPresent ? 'flex' : 'none';
-        }
+        const isAssigned = activeSet.has(inst);
+        strip.style.display = isAssigned ? 'flex' : 'none';
+        strip.classList.remove('channel-inactive');
       });
     }
   }
