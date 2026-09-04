@@ -9,6 +9,7 @@ import { Trumpet3D } from './Trumpet3D.js';
 import { Saxophone3D } from './Saxophone3D.js';
 import { Violin3D } from './Violin3D.js';
 import { Cello3D } from './Cello3D.js';
+import { DoubleBass3D } from './DoubleBass3D.js';
 import { Flute3D } from './Flute3D.js';
 import { Xylophone3D } from './Xylophone3D.js';
 import { Synth3D } from './Synth3D.js';
@@ -62,6 +63,7 @@ export class SceneManager {
     this.acousticGuitar = new AcousticGuitar3D(this.scene, { index: 1 });
     this.acousticGuitar.group.position.set(1.05, 1.17, 1.45);
     this.bass = new Bass3D(this.scene);
+    this.doubleBass = new DoubleBass3D(this.scene);
     this.trumpet = new Trumpet3D(this.scene);
     this.sax = new Saxophone3D(this.scene);
     this.violin = new Violin3D(this.scene);
@@ -122,6 +124,12 @@ export class SceneManager {
     this.cello_2.varnishMaterial.color.setHex(0x522210); // Darker vintage varnish
     this.cello_2.group.visible = false;
 
+    this.doubleBass_2 = new DoubleBass3D(this.scene);
+    this.doubleBass_2.group.position.set(-3.1, 1.25, -0.35);
+    this.doubleBass_2.group.rotation.set(0.12, Math.PI * 0.16, -0.04);
+    this.doubleBass_2.varnishMaterial.color.setHex(0x421808); // Dark antique varnish
+    this.doubleBass_2.group.visible = false;
+
     this.flute_2 = new Flute3D(this.scene);
     this.flute_2.group.position.set(2.3, 1.30, 2.4);
     this.flute_2.group.rotation.y = -0.28;
@@ -175,6 +183,7 @@ export class SceneManager {
       guitar: this.guitar,
       acousticGuitar: this.acousticGuitar,
       bass: this.bass,
+      doubleBass: this.doubleBass,
       trumpet: this.trumpet,
       sax: this.sax,
       violin: this.violin,
@@ -192,6 +201,7 @@ export class SceneManager {
       acousticGuitar_3: this.acousticGuitar_3,
       acousticGuitar_4: this.acousticGuitar_4,
       bass_2: this.bass_2,
+      doubleBass_2: this.doubleBass_2,
       trumpet_2: this.trumpet_2,
       sax_2: this.sax_2,
       violin_2: this.violin_2,
@@ -286,6 +296,7 @@ export class SceneManager {
       guitar: 'guitar',
       acousticGuitar: 'guitar',
       bass: 'bass',
+      doubleBass: 'bass',
       trumpet: 'trumpet',
       sax: 'trumpet',
       violin: 'violin',

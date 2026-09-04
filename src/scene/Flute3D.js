@@ -527,11 +527,11 @@ export class Flute3D {
       });
     }
 
-    // Footjoint Acoustic Pulse Ring (expanding soft 3D torus at open end x = +0.35)
-    const footPulseGeom = new THREE.TorusGeometry(0.0095, 0.0018, 8, 16);
+    // Footjoint Acoustic Pulse Ring (expanding at open end x = +0.35)
+    const footPulseGeom = new THREE.TorusGeometry(0.014, 0.003, 8, 16);
     footPulseGeom.rotateY(Math.PI / 2);
     this.footVentMaterial = new THREE.MeshBasicMaterial({
-      color: 0x48e8ff,
+      color: 0x70e8ff,
       transparent: true,
       opacity: 0,
       blending: THREE.AdditiveBlending,
@@ -662,15 +662,15 @@ export class Flute3D {
 
     // 5. Footjoint Acoustic Vent Pulse
     if (this.footVentMaterial) {
-      this.footVentMaterial.opacity = 0.45 * vel;
+      this.footVentMaterial.opacity = 0.6 * vel;
       this.footVent.scale.set(1.0, 1.0, 1.0);
       gsap.killTweensOf(this.footVentMaterial);
       gsap.killTweensOf(this.footVent.scale);
 
       gsap.to(this.footVent.scale, {
-        x: 1.8,
-        y: 1.8,
-        z: 1.8,
+        x: 2.5,
+        y: 2.5,
+        z: 2.5,
         duration: 0.5,
         ease: 'power1.out'
       });
@@ -733,31 +733,31 @@ export class Flute3D {
 
       // --- 1. CONTINUOUS BREATH VORTEX ANIMATION ---
       const vel = this.activeNote.velocity;
-      const breathSpeed = 1.2;
+      const breathSpeed = 1.4;
 
       this.breathParticles.forEach(bp => {
         // Cyclic progress along helical stream
         const cycleTime = 1.0;
         const progress = ((this.activeNote.elapsed * breathSpeed + bp.offsetTime) % cycleTime) / cycleTime;
 
-        // Delicate spiraling jet from embouchure hole outwards
+        // Visible spiraling jet from embouchure hole outwards and upwards
         const spiralAngle = progress * Math.PI * 4.0;
-        const spiralRadius = 0.002 + progress * 0.008;
+        const spiralRadius = 0.005 + progress * 0.018;
 
-        bp.mesh.position.x = -0.25 + (progress * 0.024) + Math.cos(spiralAngle) * spiralRadius;
-        bp.mesh.position.y = 0.016 + (progress * 0.032) + Math.sin(spiralAngle) * spiralRadius;
-        bp.mesh.position.z = (progress * 0.012);
+        bp.mesh.position.x = -0.25 + (progress * 0.06) + Math.cos(spiralAngle) * spiralRadius;
+        bp.mesh.position.y = 0.016 + (progress * 0.08) + Math.sin(spiralAngle) * spiralRadius;
+        bp.mesh.position.z = (progress * 0.025);
 
-        const currentScale = bp.baseScale * (0.8 + progress * 1.4);
+        const currentScale = bp.baseScale * (0.9 + progress * 1.8);
         bp.mesh.scale.set(currentScale, currentScale, currentScale);
         bp.mesh.rotation.z += dt * 3.5;
 
-        // Smooth delicate opacity envelope (max 0.28 for crystalline elegance)
+        // Strong opacity envelope (max 0.65 for clear visibility)
         let alpha = 0;
-        if (progress < 0.25) {
-          alpha = (progress / 0.25) * 0.28 * vel;
+        if (progress < 0.2) {
+          alpha = (progress / 0.2) * 0.65 * vel;
         } else {
-          alpha = (1.0 - (progress - 0.25) / 0.75) * 0.28 * vel;
+          alpha = (1.0 - (progress - 0.2) / 0.8) * 0.65 * vel;
         }
         bp.material.opacity = alpha;
       });

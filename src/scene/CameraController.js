@@ -34,6 +34,8 @@ export class CameraController {
       acousticGuitar_3: { pos: new THREE.Vector3(1.55, 1.34, 2.05), target: new THREE.Vector3(1.50, 1.00, 0.95) },
       acousticGuitar_4: { pos: new THREE.Vector3(1.78, 1.26, 1.80), target: new THREE.Vector3(1.72, 0.92, 0.70) },
       bass: { pos: new THREE.Vector3(-1.65, 1.15, 1.35), target: new THREE.Vector3(-2.0, 0.95, -0.1) },
+      doubleBass: { pos: new THREE.Vector3(-2.85, 1.45, 1.65), target: new THREE.Vector3(-2.85, 1.25, -0.70) },
+      doubleBass_2: { pos: new THREE.Vector3(-3.25, 1.45, 1.25), target: new THREE.Vector3(-3.10, 1.20, -0.35) },
       trumpet: { pos: new THREE.Vector3(3.40, 1.56, 1.50), target: new THREE.Vector3(4.40, 1.40, 0.40) },
       sax: { pos: new THREE.Vector3(2.10, 1.55, 2.30), target: new THREE.Vector3(3.40, 1.25, 1.80) },
       violin: { pos: new THREE.Vector3(-3.45, 1.48, -0.75), target: new THREE.Vector3(-4.20, 1.22, -1.80) },

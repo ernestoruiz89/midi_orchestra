@@ -14,6 +14,7 @@ export class UIManager {
     this.isSeeking = false;
     this.isMutedMaster = false;
     this.previousMasterVolume = soundEngine.masterVolume;
+    this.showAllInstruments = localStorage.getItem('midi_orchestra_instrument_visibility') === 'all';
 
     this._cacheDOM();
     this._bindPlaybackControls();
@@ -28,6 +29,8 @@ export class UIManager {
     this._bindLanguageSwitcher();
     this._bindGlobalKeyboardShortcuts();
     this._bindMidiPlayerCallbacks();
+    this.midiPlayer.setAlwaysShowInstruments(this.showAllInstruments);
+    this._updateInstrumentVisibilityButton();
   }
 
   _cacheDOM() {
@@ -62,6 +65,8 @@ export class UIManager {
       btnDirectorMode: document.getElementById('btn-director-mode'),
       camButtons: document.querySelectorAll('.cam-btn[data-preset]'),
       btnAutoRotate: document.getElementById('btn-auto-rotate'),
+      btnLightShow: document.getElementById('btn-light-show'),
+      btnInstrumentVisibility: document.getElementById('btn-instrument-visibility'),
 
       // MIDIJam Virtual Band Strip
       bandCards: document.querySelectorAll('.band-inst-card'),
@@ -222,6 +227,44 @@ export class UIManager {
       this.dom.btnAutoRotate.classList.toggle('active', active);
       this.showToast(active ? i18n.t('toasts.orbitOn') : i18n.t('toasts.orbitOff'));
     });
+
+    // Light Show Toggle
+    if (this.dom.btnLightShow) {
+      this.dom.btnLightShow.addEventListener('click', () => {
+        const active = this.sceneManager.stage.toggleLightShow();
+        this.dom.btnLightShow.classList.toggle('active', active);
+        this.showToast(active ? i18n.t('toasts.lightShowOn') : i18n.t('toasts.lightShowOff'));
+      });
+    }
+
+    if (this.dom.btnInstrumentVisibility) {
+      this.dom.btnInstrumentVisibility.addEventListener('click', () => {
+        this.showAllInstruments = !this.showAllInstruments;
+        localStorage.setItem(
+          'midi_orchestra_instrument_visibility',
+          this.showAllInstruments ? 'all' : 'dynamic'
+        );
+        this.midiPlayer.setAlwaysShowInstruments(this.showAllInstruments);
+        this._updateInstrumentVisibilityButton();
+        this.showToast(i18n.t(
+          this.showAllInstruments ? 'toasts.instrumentsAll' : 'toasts.instrumentsDynamic'
+        ));
+      });
+    }
+  }
+
+  _updateInstrumentVisibilityButton() {
+    const button = this.dom?.btnInstrumentVisibility;
+    if (!button) return;
+
+    button.classList.toggle('active', this.showAllInstruments);
+    button.textContent = i18n.t(
+      this.showAllInstruments ? 'camera.instrumentsAll' : 'camera.instrumentsDynamic'
+    );
+    button.title = i18n.t(
+      this.showAllInstruments ? 'camera.instrumentsAllTitle' : 'camera.instrumentsDynamicTitle'
+    );
+    button.setAttribute('aria-pressed', String(this.showAllInstruments));
   }
 
   _bindVirtualBandStrip() {
@@ -247,7 +290,7 @@ export class UIManager {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const inst = btn.dataset.inst;
-        const allInsts = ['piano', 'drums', 'guitar', 'acousticGuitar', 'bass', 'trumpet', 'sax', 'violin', 'flute', 'xylophone', 'synth'];
+        const allInsts = ['piano', 'drums', 'guitar', 'acousticGuitar', 'bass', 'doubleBass', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth'];
         const instLabel = i18n.t('instruments.' + inst) || inst;
         if (this.soloedInstrument === inst) {
           // Un-solo
@@ -540,11 +583,13 @@ export class UIManager {
       { id: 'piano', label: isEs ? '🎹 Piano de Cola' : '🎹 Grand Piano' },
       { id: 'drums', label: isEs ? '🥁 Batería Acústica' : '🥁 Acoustic Drums' },
       { id: 'bass', label: isEs ? '🎸 Bajo Eléctrico' : '🎸 Electric Bass' },
+      { id: 'doubleBass', label: isEs ? '🎻 Contrabajo / Bajo Acústico' : '🎻 Double Bass / Upright Bass' },
       { id: 'guitar', label: isEs ? '🎸 Guitarra Eléctrica' : '🎸 Electric Guitar' },
       { id: 'acousticGuitar', label: isEs ? '🎼 Guitarra Acústica' : '🎼 Acoustic Guitar' },
       { id: 'trumpet', label: isEs ? '🎺 Trompeta / Metales' : '🎺 Trumpet / Brass' },
       { id: 'sax', label: isEs ? '🎷 Saxofón Tenor/Alto' : '🎷 Tenor/Alto Saxophone' },
       { id: 'violin', label: isEs ? '🎻 Violín de Concierto' : '🎻 Concert Violin' },
+      { id: 'cello', label: isEs ? '🎻 Violonchelo de Concierto' : '🎻 Concert Cello' },
       { id: 'flute', label: isEs ? '🪈 Flauta Travesera' : '🪈 Concert Flute' },
       { id: 'xylophone', label: isEs ? '🪵 Xilófono / Marimba' : '🪵 Xylophone / Marimba' },
       { id: 'synth', label: isEs ? '🎹 Sintetizador Workstation' : '🎹 Synthesizer Workstation' }
@@ -611,6 +656,7 @@ export class UIManager {
 
   _onLocaleChanged(locale) {
     this._bindDemoSongsModal();
+    this._updateInstrumentVisibilityButton();
     if (this.midiPlayer && this.midiPlayer.trackInfos && this.midiPlayer.trackInfos.length > 0) {
       this._renderTracksTable();
     }
@@ -736,6 +782,15 @@ export class UIManager {
       this._applyActiveInstruments(activeList);
     };
 
+    // MIDIs2Jam2-style stage density: the dock keeps every assigned track
+    // available, while the 3D stage only shows instruments near an actual
+    // performance window.
+    this.midiPlayer.onVisibleInstrumentsChanged = (visibleList) => {
+      if (this.sceneManager && typeof this.sceneManager.setVisibleInstruments === 'function') {
+        this.sceneManager.setVisibleInstruments(visibleList);
+      }
+    };
+
     // Highlight active instruments when song is loaded
     this.midiPlayer.onSongLoaded = (songInfo) => {
       this.dom.songTitle.textContent = songInfo.name;
@@ -751,9 +806,10 @@ export class UIManager {
     const activeList = activeInstrumentsList || this.midiPlayer.getActiveInstruments();
     const activeSet = new Set(activeList);
 
-    // 1. Update 3D Stage: only assigned instruments remain visible
+    // 1. Update the 3D stage using the current musical time. Assigned
+    // instruments remain available in the UI even while resting off-stage.
     if (this.sceneManager && typeof this.sceneManager.setVisibleInstruments === 'function') {
-      this.sceneManager.setVisibleInstruments(activeSet);
+      this.sceneManager.setVisibleInstruments(this.midiPlayer.getVisibleInstruments());
     }
 
     // 2. Update JAM BAND dock: hide cards for instruments not in this song

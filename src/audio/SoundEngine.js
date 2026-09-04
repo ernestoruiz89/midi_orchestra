@@ -48,7 +48,7 @@ export const GM_PROGRAM_MAP = {
   31: { sf: 'guitar_harmonics', bus: 'guitar' },
 
   // Basses (32-39)
-  32: { sf: 'acoustic_bass', bus: 'bass' },
+  32: { sf: 'acoustic_bass', bus: 'doubleBass' },
   33: { sf: 'electric_bass_finger', bus: 'bass' },
   34: { sf: 'electric_bass_pick', bus: 'bass' },
   35: { sf: 'fretless_bass', bus: 'bass' },
@@ -61,7 +61,7 @@ export const GM_PROGRAM_MAP = {
   40: { sf: 'violin', bus: 'violin' },
   41: { sf: 'viola', bus: 'violin' },
   42: { sf: 'cello', bus: 'cello' },
-  43: { sf: 'contrabass', bus: 'violin' },
+  43: { sf: 'contrabass', bus: 'doubleBass' },
   44: { sf: 'tremolo_strings', bus: 'violin' },
   45: { sf: 'pizzicato_strings', bus: 'violin' },
   46: { sf: 'orchestral_harp', bus: 'violin' },
@@ -190,6 +190,8 @@ export class SoundEngine {
       drums: 0.46,
       bass: 0.72,
       bass_2: 0.72,
+      doubleBass: 0.72,
+      doubleBass_2: 0.72,
       guitar: 0.68,
       guitar_2: 0.68,
       guitar_3: 0.68,
@@ -576,7 +578,7 @@ export class SoundEngine {
 
   _buildInstrumentChannels(ctx) {
     const instrumentNames = [
-      'piano', 'drums', 'bass', 'guitar', 'acousticGuitar', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth'
+      'piano', 'drums', 'bass', 'doubleBass', 'guitar', 'acousticGuitar', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth'
     ];
     this.nativeInputs = {};
 
@@ -584,7 +586,7 @@ export class SoundEngine {
       const channel = new Tone.Channel({
         volume: Tone.gainToDb(this.volumes[inst] ?? 0.85),
         pan: this._getStereoPan(inst)
-      }).connect(inst === 'drums' || inst === 'bass' ? this.compressor : this.chorus);
+      }).connect(inst === 'drums' || inst === 'bass' || inst === 'doubleBass' ? this.compressor : this.chorus);
 
       this.channels[inst] = channel;
 
@@ -599,6 +601,7 @@ export class SoundEngine {
     switch (inst) {
       case 'piano': return -0.40;
       case 'bass': return -0.20;
+      case 'doubleBass': return -0.22;
       case 'violin': return -0.28;
       case 'cello': return -0.22;
       case 'synth': return -0.35;
@@ -799,6 +802,7 @@ export class SoundEngine {
       { name: 'acoustic_guitar_nylon', bus: 'acousticGuitar' },
       { name: 'electric_bass_finger', bus: 'bass' },
       { name: 'slap_bass_1', bus: 'bass' },
+      { name: 'acoustic_bass', bus: 'doubleBass' },
       { name: 'trumpet', bus: 'trumpet' },
       { name: 'brass_section', bus: 'trumpet' },
       { name: 'tenor_sax', bus: 'sax' },
@@ -1211,6 +1215,12 @@ export class SoundEngine {
       envelope: { attack: 0.1, decay: 0.6, sustain: 0.85, release: 0.7 }
     }).connect(this.channels.cello);
 
+    // Double Bass / Contrabass: Deep resonant wooden upright acoustic bass model
+    this.synths.doubleBass = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.04, decay: 0.8, sustain: 0.4, release: 0.8 }
+    }).connect(this.channels.doubleBass);
+
     // Flute: Pure breathy sine/triangle model
     this.synths.flute = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'triangle' },
@@ -1297,6 +1307,7 @@ export class SoundEngine {
           guitar: 'electric_guitar_clean',
           acousticGuitar: 'acoustic_guitar_steel',
           bass: 'electric_bass_finger',
+          doubleBass: 'acoustic_bass',
           trumpet: 'trumpet',
           sax: 'tenor_sax',
           violin: 'violin',
@@ -1601,6 +1612,7 @@ export class SoundEngine {
       if (this.synths.sax) this.synths.sax.releaseAll();
       if (this.synths.violin) this.synths.violin.releaseAll();
       if (this.synths.cello) this.synths.cello.releaseAll();
+      if (this.synths.doubleBass) this.synths.doubleBass.releaseAll();
       if (this.synths.flute) this.synths.flute.releaseAll();
       if (this.synths.xylophone) this.synths.xylophone.releaseAll();
       if (this.synths.bass) this.synths.bass.triggerRelease();

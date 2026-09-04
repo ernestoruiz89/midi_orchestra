@@ -14,6 +14,8 @@ export class Stage {
     this.spotlights = [];
     this.equalizerBars = [];
     this.dustParticles = null;
+    this.lightShowEnabled = false;  // Light animation toggle
+    this.lightShowTime = 0;         // Accumulated time for light animation
 
     this._buildMaterials();
     this._buildStageFloor();
@@ -162,8 +164,7 @@ export class Stage {
       { x: 5.5, z: 3.2, target: [4.2, 1.5, 0.4], color: 0xffea00, name: 'trumpet_spot' },
       { x: -3.8, z: 2.2, target: [-4.2, 1.25, -1.8], color: 0xffbe76, name: 'violin_spot' },
       { x: -2.8, z: 2.4, target: [-3.3, 1.15, -1.2], color: 0xff9f43, name: 'cello_spot' },
-      { x: 2.0, z: 2.8, target: [1.6, 1.30, 1.8], color: 0x70f5ff, name: 'flute_spot' },
-      { x: 0.0, z: -4.2, target: [0, 1.5, 0], color: 0xbf00ff, name: 'center_back_spot' }
+      { x: 2.0, z: 2.8, target: [1.6, 1.30, 1.8], color: 0x70f5ff, name: 'flute_spot' }
     ];
 
     spotConfigs.forEach((cfg) => {
@@ -210,6 +211,7 @@ export class Stage {
       const beamMesh = new THREE.Mesh(beamGeom, beamMat);
       beamMesh.lookAt(targetObj.position);
       beamMesh.rotation.x -= Math.PI / 2;
+      beamMesh.visible = false; // Hidden by default; shown when Light Show is enabled
       spotGroup.add(beamMesh);
 
       this.group.add(spotGroup);
@@ -281,7 +283,7 @@ export class Stage {
   updateSpotlightsForActiveInstruments(activeSet) {
     const spotMap = {
       piano_spot: 'piano',
-      bass_spot: 'bass',
+      bass_spot: ['bass', 'doubleBass'],
       drum_spot: 'drums',
       guitar_spot: ['guitar', 'acousticGuitar'],
       trumpet_spot: 'trumpet',
@@ -295,14 +297,15 @@ export class Stage {
       if (inst) {
         const isVisible = Array.isArray(inst) ? inst.some(name => activeSet.has(name)) : activeSet.has(inst);
         spot.light.intensity = isVisible ? spot.baseIntensity : 0;
-        spot.beam.visible = isVisible;
+        // Beam cones only visible when Light Show is enabled AND instrument is active
+        spot.beam.visible = this.lightShowEnabled && isVisible;
       }
     });
   }
 
   pulseInstrumentSpotlight(instrumentName, velocity = 0.8) {
     const spot = this.spotlights.find(s => s.name.includes(instrumentName));
-    if (!spot || spot.beam.visible === false) return;
+    if (!spot || spot.light.intensity === 0) return;
 
     gsap.killTweensOf(spot.light);
     gsap.killTweensOf(spot.beam.material);
@@ -319,6 +322,38 @@ export class Stage {
       .to(spot.beam.material, { opacity: 0.18, duration: 0.35, ease: 'power2.out' });
   }
 
+  /**
+   * Toggle the animated light show on/off.
+   * When enabled, spotlights cycle colors, breathe intensity and gently sway.
+   * @returns {boolean} new state
+   */
+  toggleLightShow() {
+    this.lightShowEnabled = !this.lightShowEnabled;
+
+    if (this.lightShowEnabled) {
+      // Show beam cones for spots that have their light on
+      this.spotlights.forEach(spot => {
+        if (spot.light.intensity > 0) {
+          spot.beam.visible = true;
+        }
+      });
+    } else {
+      // Reset every spotlight back to its original static state and hide beams
+      this.spotlights.forEach(spot => {
+        const c = new THREE.Color(spot.baseColor);
+        spot.light.color.copy(c);
+        spot.light.intensity = spot.beam.visible ? spot.baseIntensity : 0;
+        spot.beam.material.color.copy(c);
+        spot.beam.material.opacity = 0.18;
+        spot.beam.visible = false;
+        spot.group.rotation.x = 0;
+        spot.group.rotation.z = 0;
+      });
+    }
+
+    return this.lightShowEnabled;
+  }
+
   update(delta, visualizerData = null) {
     // 1. Animate Atmospheric Dust Particles
     if (this.dustParticles) {
@@ -331,6 +366,33 @@ export class Stage {
         pos[i * 3] += Math.cos(time + i) * 0.003;
       }
       this.dustParticles.geometry.attributes.position.needsUpdate = true;
+    }
+
+    // 2. Animated Light Show (when enabled)
+    if (this.lightShowEnabled) {
+      this.lightShowTime += delta;
+      const t = this.lightShowTime;
+
+      this.spotlights.forEach((spot, i) => {
+        if (!spot.beam.visible) return;
+
+        // Color cycling: each spot has its own phase offset
+        const hue = ((t * 0.12) + (i * 0.125)) % 1.0;
+        const color = new THREE.Color().setHSL(hue, 0.9, 0.55);
+        spot.light.color.copy(color);
+        spot.beam.material.color.copy(color);
+
+        // Intensity breathing
+        const breathe = 0.7 + 0.3 * Math.sin(t * 2.5 + i * 1.2);
+        spot.light.intensity = spot.baseIntensity * breathe;
+
+        // Beam opacity pulsing
+        spot.beam.material.opacity = 0.12 + 0.10 * Math.sin(t * 3.0 + i * 0.9);
+
+        // Gentle fixture sway (small rotation of the whole spotlight group)
+        spot.group.rotation.x = Math.sin(t * 0.8 + i * 1.5) * 0.04;
+        spot.group.rotation.z = Math.cos(t * 0.6 + i * 1.1) * 0.03;
+      });
     }
 
   }

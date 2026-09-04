@@ -471,6 +471,21 @@ body {
   50% { box-shadow: 0 0 16px rgba(255, 0, 128, 0.6); }
 }
 
+#btn-light-show.active {
+  background: linear-gradient(135deg, rgba(255, 200, 0, 0.25), rgba(255, 0, 200, 0.25));
+  border-color: #ffc800;
+  color: #ffc800;
+  font-weight: 700;
+  box-shadow: 0 0 14px rgba(255, 200, 0, 0.4);
+  animation: pulseLightShow 2s infinite ease-in-out;
+}
+
+@keyframes pulseLightShow {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 200, 0, 0.3); }
+  33% { box-shadow: 0 0 16px rgba(255, 0, 200, 0.5); }
+  66% { box-shadow: 0 0 16px rgba(0, 200, 255, 0.5); }
+}
+
 /* ==================== PLAYBACK TOOLBAR ==================== */
 .playback-bar {
   position: absolute;

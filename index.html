@@ -84,6 +84,7 @@
     <button class="cam-btn" data-preset="sax" title="Alto Saxophone Close-up" data-i18n="camera.sax" data-i18n-title="camera.saxTitle">🎷 Sax</button>
     <button class="cam-btn" data-preset="violin" title="Violin Close-up" data-i18n="camera.violin" data-i18n-title="camera.violinTitle">🎻 Violin</button>
     <button class="cam-btn" data-preset="cello" title="Cello Close-up" data-i18n="camera.cello" data-i18n-title="camera.celloTitle">🎻 Cello</button>
+    <button class="cam-btn" data-preset="doubleBass" title="Double Bass Close-up" data-i18n="camera.doubleBass" data-i18n-title="camera.doubleBassTitle">🎻 Contrabajo</button>
     <button class="cam-btn" data-preset="flute" title="Concert Flute Close-up" data-i18n="camera.flute" data-i18n-title="camera.fluteTitle">🪈 Flute</button>
     <button class="cam-btn" data-preset="xylophone" title="Xylophone Close-up" data-i18n="camera.xylophone" data-i18n-title="camera.xylophoneTitle">🪵 Xylophone</button>
     <button class="cam-btn" data-preset="synth" title="Synthesizer Close-up" data-i18n="camera.synth" data-i18n-title="camera.synthTitle">🎹 Synth</button>
@@ -97,6 +98,7 @@
     <button class="cam-btn" data-preset="sax_2" title="Sax 2 Close-up" data-i18n="camera.sax_2" style="display: none;">🎷 Sax 2</button>
     <button class="cam-btn" data-preset="violin_2" title="Violin 2 Close-up" data-i18n="camera.violin_2" style="display: none;">🎻 Violin 2</button>
     <button class="cam-btn" data-preset="cello_2" title="Cello 2 Close-up" data-i18n="camera.cello_2" style="display: none;">🎻 Cello 2</button>
+    <button class="cam-btn" data-preset="doubleBass_2" title="Double Bass 2 Close-up" data-i18n="camera.doubleBass_2" style="display: none;">🎻 Contrabajo 2</button>
     <button class="cam-btn" data-preset="flute_2" title="Flute 2 Close-up" data-i18n="camera.flute_2" style="display: none;">🪈 Flute 2</button>
     <button class="cam-btn" data-preset="bass_2" title="Bass 2 Close-up" data-i18n="camera.bass_2" style="display: none;">🎸 Bass 2</button>
     <button class="cam-btn" data-preset="synth_2" title="Synth 2 Close-up" data-i18n="camera.synth_2" style="display: none;">🎹 Synth 2</button>
@@ -105,6 +107,8 @@
     <button class="cam-btn" data-preset="piano_2" title="Piano 2 Close-up" data-i18n="camera.piano_2" style="display: none;">🎹 Piano 2</button>
     <button class="cam-btn" data-preset="piano_3" title="Piano 3 Close-up" data-i18n="camera.piano_3" style="display: none;">🎹 Piano 3</button>
     <button class="cam-btn" data-preset="piano_4" title="Piano 4 Close-up" data-i18n="camera.piano_4" style="display: none;">🎹 Piano 4</button>
+    <button id="btn-instrument-visibility" class="cam-btn cam-action" title="Show instruments only near their notes">👁 Instruments: Dynamic</button>
+    <button id="btn-light-show" class="cam-btn cam-action" title="Animated Light Show: Color cycling, intensity breathing &amp; spotlight sway" data-i18n="camera.lightShow" data-i18n-title="camera.lightShowTitle">💡 Light Show</button>
     <button id="btn-auto-rotate" class="cam-btn cam-action" title="Automatic Cinematic Orbit Rotation" data-i18n="camera.orbit" data-i18n-title="camera.orbitTitle">🔄 Orbit</button>
   </div>
 
@@ -365,6 +369,34 @@
             <span class="strip-name" data-i18n="instruments.cello">Cello</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-cello"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Double Bass Channel -->
+        <div class="mixer-strip" data-inst="doubleBass">
+          <div class="strip-header">
+            <span class="strip-icon">🎻</span>
+            <span class="strip-name" data-i18n="instruments.doubleBass">Contrabajo</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-doubleBass"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Double Bass 2 Channel -->
+        <div class="mixer-strip" data-inst="doubleBass_2" style="display: none;">
+          <div class="strip-header">
+            <span class="strip-icon">🎻</span>
+            <span class="strip-name" data-i18n="instruments.doubleBass_2">Contrabajo 2</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-doubleBass_2"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>

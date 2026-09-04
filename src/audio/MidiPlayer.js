@@ -5,12 +5,20 @@ const Midi = toneMidi.Midi || toneMidi.default?.Midi || toneMidi.default || tone
 // visual hit before the note, but the sound must remain sample-accurate.
 const DRUM_STICK_ANTICIPATION_SECONDS = 0.22;
 
+// MIDIs2Jam2 visibility rules: reveal shortly before the next performance,
+// keep an instrument on stage through brief musical rests, and remove it once
+// it has genuinely become inactive.
+const INSTRUMENT_SHOW_BEFORE_SECONDS = 1;
+const INSTRUMENT_SHOW_BETWEEN_SECONDS = 7;
+const INSTRUMENT_SHOW_AFTER_SECONDS = 2;
+
 const DEFAULT_GM_PROGRAMS = {
   piano: 0,
   drums: 0,
   guitar: 27,
   acousticGuitar: 25,
   bass: 33,
+  doubleBass: 32,
   trumpet: 56,
   sax: 66,
   violin: 40,
@@ -36,9 +44,9 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
   // 26-31: Electric Guitar
   26: 'guitar', 27: 'guitar', 28: 'guitar', 29: 'guitar', 30: 'guitar', 31: 'guitar',
   // 32-39: Bass
-  32: 'bass', 33: 'bass', 34: 'bass', 35: 'bass', 36: 'bass', 37: 'bass', 38: 'bass', 39: 'bass',
+  32: 'doubleBass', 33: 'bass', 34: 'bass', 35: 'bass', 36: 'bass', 37: 'bass', 38: 'bass', 39: 'bass',
   // 40-47: Solo Strings & Timpani
-  40: 'violin', 41: 'violin', 42: 'cello', 43: 'violin', 44: 'violin', 45: 'violin', 46: 'violin', 47: 'xylophone',
+  40: 'violin', 41: 'violin', 42: 'cello', 43: 'doubleBass', 44: 'violin', 45: 'violin', 46: 'violin', 47: 'xylophone',
   // 48-55: Ensemble & Choir & Orchestra Hit
   48: 'violin', 49: 'violin', 50: 'violin', 51: 'violin', 52: 'synth', 53: 'synth', 54: 'synth', 55: 'synth',
   // 56-63: Brass
@@ -64,7 +72,7 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
 };
 
 const VALID_3D_INSTRUMENTS = new Set([
-  'piano', 'drums', 'bass', 'guitar', 'acousticGuitar',
+  'piano', 'drums', 'bass', 'doubleBass', 'guitar', 'acousticGuitar',
   'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth'
 ]);
 
@@ -86,6 +94,7 @@ export class MidiPlayer {
     this.currentTime = 0;
     this.playbackRate = 1.0;
     this.isLooping = false;
+    this.alwaysShowInstruments = false;
 
     // Animation frame / timing
     this.lastFrameTime = 0;
@@ -96,6 +105,8 @@ export class MidiPlayer {
     this.activeNoteEvents = new Set();
     this.trackInfos = [];
     this.totalNoteCount = 0;
+    this.instrumentVisibilityWindows = new Map();
+    this.lastVisibleInstrumentSignature = null;
 
     // Callbacks
     this.onNotePrepare = null;  // (instrument, noteNumber, noteName, velocity, duration) => {}
@@ -107,6 +118,7 @@ export class MidiPlayer {
     this.onTrackUpdate = null;  // (trackInfos) => {}
     this.onActivityUpdate = null; // (activityMap) => {}
     this.onActiveInstrumentsChanged = null; // (activeInstrumentsList) => {}
+    this.onVisibleInstrumentsChanged = null; // (currentlyVisibleInstanceIds) => {}
 
     // Real-time instrument activity (0.0 to 1.0) for MIDIJam HUD meters and Director Cam
     this.instrumentActivity = {
@@ -115,6 +127,7 @@ export class MidiPlayer {
       guitar: 0,
       acousticGuitar: 0,
       bass: 0,
+      doubleBass: 0,
       trumpet: 0,
       sax: 0,
       violin: 0,
@@ -282,6 +295,8 @@ export class MidiPlayer {
       this.duration = this.events[this.events.length - 1].time;
     }
 
+    this._rebuildInstrumentVisibilityWindows();
+
     // Pre-load accurate General MIDI soundfonts for this song
     if (this.soundEngine && typeof this.soundEngine.prepareTrackInstruments === 'function') {
       this.soundEngine.prepareTrackInstruments(this.trackInfos);
@@ -305,24 +320,42 @@ export class MidiPlayer {
     }
 
     const trackName = (track.name || '').toLowerCase();
+    const prog = track.instrument && typeof track.instrument.number === 'number' ? track.instrument.number : -1;
 
-    // 3. High-Precision Track Name Inspection (Arranger Intent)
-    // A. Piano / Keyboard / Organ:
+    // 3. Authoritative MIDI Program Code Assignment (GM 1-127)
+    // When a track contains an explicit non-zero program code, it reflects the composer's
+    // deliberate GM instrument choice (e.g. 32 Acoustic Bass -> doubleBass, 35 Fretless Bass -> bass).
+    if (prog > 0 && prog <= 127 && GM_PROGRAM_TO_INSTRUMENT[prog]) {
+      return GM_PROGRAM_TO_INSTRUMENT[prog];
+    }
+
+    // 4. High-Precision Track Name Inspection (Arranger Intent for Program 0 or unassigned tracks)
+    // A. Double Bass / Contrabajo:
+    if (/\b(contrabajo|double\s*bass|upright\s*bass|acoustic\s*bass|bajo\s*ac[uú]stico|standup\s*bass)\b/i.test(trackName)) {
+      return 'doubleBass';
+    }
+
+    // B. Cello / Violonchelo:
+    if (/\b(cello|violoncello|violonchelo|chelo)\b/i.test(trackName)) {
+      return 'cello';
+    }
+
+    // C. Piano / Keyboard / Organ:
     if (/\b(piano|pno|grand\s*piano|keyboard|teclado|rhodes|wurlitzer|clavinet|clavi|harpsichord|organ[oó]?|hammond|accordion|acorde[oó]n)\b/i.test(trackName)) {
       return 'piano';
     }
 
-    // B. Drums / Percussion:
+    // D. Drums / Percussion:
     if (/\b(drums?|drumkit|bater[ií]a|percussion|perc|timbales|caja|bombo|hi-?hat)\b/i.test(trackName) && !/steel\s*drum/i.test(trackName)) {
       return 'drums';
     }
 
-    // C. Bass:
-    if (/\b(bass|bajo|contrabajo|fretless)\b/i.test(trackName) && !/\b(brass|bassoon)\b/i.test(trackName)) {
+    // E. Bass (Electric / Generic):
+    if (/\b(bass|bajo|fretless)\b/i.test(trackName) && !/\b(brass|bassoon)\b/i.test(trackName)) {
       return 'bass';
     }
 
-    // D. Acoustic Guitar (requires explicit acoustic indicator alongside guitar, never standalone 'acoustic'):
+    // F. Acoustic Guitar (requires explicit acoustic indicator alongside guitar, never standalone 'acoustic'):
     if (
       /\b(acoustic\s*guitar|guitarra\s*ac[uú]stica|nylon\s*guitar|steel\s*guitar|spanish\s*guitar|classical\s*guitar|ac[uú]stic[ao]\s*gtr|ac\.?\s*gtr|guitarra\s*espa[ñn]ola)\b/i.test(trackName) ||
       (/\b(guitar|guitarra|gtr)\b/i.test(trackName) && /\b(acoustic|ac[uú]stic[ao]|nylon|steel|cl[aá]sic[ao]|folk|spanish|espa[ñn]ol[ao]?)\b/i.test(trackName))
@@ -330,53 +363,47 @@ export class MidiPlayer {
       return 'acousticGuitar';
     }
 
-    // E. Electric Guitar:
+    // G. Electric Guitar:
     if (/\b(guitar|guitarra|gtr|strat|les\s*paul|telecaster|overdrive|distortion|riff)\b/i.test(trackName)) {
       return 'guitar';
     }
 
-    // F. Saxophone:
+    // H. Saxophone:
     if (/\b(sax|saxo|saxophone|saxof[oó]n|alto\s*sax|tenor\s*sax|soprano\s*sax|baritone\s*sax)\b/i.test(trackName)) {
       return 'sax';
     }
 
-    // G. Trumpet / Brass:
+    // I. Trumpet / Brass:
     if (/\b(trumpet|trompeta|brass|horns?|tuba|trombone|tromb[oó]n|cornet|metales)\b/i.test(trackName)) {
       return 'trumpet';
     }
 
-    // H. Cello / Violonchelo:
-    if (/\b(cello|violoncello|violonchelo|chelo)\b/i.test(trackName)) {
-      return 'cello';
-    }
-
-    // I. Violin / Strings Section:
+    // J. Violin / Strings Section:
     if (/\b(violin|viol[ií]n|viola|strings?|cuerdas?|fiddle|harp|arpa|orchestra|orquesta)\b/i.test(trackName)) {
       return 'violin';
     }
 
-    // I. Flute / Woodwinds:
+    // K. Flute / Woodwinds:
     if (/\b(flute|flauta|piccolo|recorder|pan\s*flute|clarinet|clarinete|oboe|bassoon|fagot|whistle|ocarina|woodwinds?)\b/i.test(trackName)) {
       return 'flute';
     }
 
-    // J. Xylophone / Chromatic Mallets:
+    // L. Xylophone / Chromatic Mallets:
     if (/\b(xylo(phone)?|xil[oó]fono|marimba|vibra(phone)?|glockenspiel|glock|bells?|campanas?|celesta|dulcimer|chimes?|steel\s*drums?)\b/i.test(trackName)) {
       return 'xylophone';
     }
 
-    // K. Synthesizer:
+    // M. Synthesizer:
     if (/\b(synth|sintetizador|synthesizer|lead|pad|saw|square|techno|moog|sequencer)\b/i.test(trackName)) {
       return 'synth';
     }
 
-    // 4. Authoritative General MIDI Level 1 Program Map (0-127)
-    const prog = track.instrument && typeof track.instrument.number === 'number' ? track.instrument.number : -1;
-    if (prog >= 0 && prog <= 127 && GM_PROGRAM_TO_INSTRUMENT[prog]) {
-      return GM_PROGRAM_TO_INSTRUMENT[prog];
+    // 5. If program code is explicitly 0 (Acoustic Grand Piano):
+    if (prog === 0) {
+      return 'piano';
     }
 
-    // 5. Tone.js Instrument Family & Name Fallback
+    // 6. Tone.js Instrument Family & Name Fallback
     const instFamily = (track.instrument?.family || '').toLowerCase();
     const instName = (track.instrument?.name || '').toLowerCase();
 
@@ -390,9 +417,14 @@ export class MidiPlayer {
       return 'guitar';
     }
     if (instFamily.includes('bass')) {
+      if (instName.includes('acoustic') || instName.includes('upright') || instName.includes('contrabass')) {
+        return 'doubleBass';
+      }
       return 'bass';
     }
     if (instFamily.includes('strings') || instFamily.includes('orchestral')) {
+      if (instName.includes('cello')) return 'cello';
+      if (instName.includes('contrabass') || instName.includes('double bass')) return 'doubleBass';
       return 'violin';
     }
     if (instFamily.includes('brass')) {
@@ -414,12 +446,87 @@ export class MidiPlayer {
       return 'drums';
     }
 
-    // 6. Default Fallback: General MIDI specification defaults unassigned tracks to Program 0 (Acoustic Grand Piano)
+    // 7. Default Fallback: General MIDI specification defaults unassigned tracks to Program 0 (Acoustic Grand Piano)
     return 'piano';
   }
 
   getActiveInstruments() {
     return Array.from(new Set(this.trackInfos.map(t => t.instanceId).filter(Boolean)));
+  }
+
+  /**
+   * Builds merged activity windows for every instrument instance. Sustained
+   * notes remain visible until their Note Off, while short rests of up to the
+   * MIDIs2Jam2 seven-second threshold do not make the model flicker.
+   */
+  _rebuildInstrumentVisibilityWindows() {
+    const notesByInstance = new Map();
+
+    this.events.forEach(event => {
+      if (event.type !== 'on') return;
+      const instanceId = event.instanceId || event.instrument;
+      if (!instanceId) return;
+      if (!notesByInstance.has(instanceId)) notesByInstance.set(instanceId, []);
+      notesByInstance.get(instanceId).push({
+        start: event.time,
+        end: event.time + Math.max(0, event.duration || 0)
+      });
+    });
+
+    this.instrumentVisibilityWindows = new Map();
+    notesByInstance.forEach((notes, instanceId) => {
+      notes.sort((a, b) => a.start - b.start || a.end - b.end);
+      const windows = [];
+
+      notes.forEach(note => {
+        const previous = windows[windows.length - 1];
+        const windowStart = Math.max(0, note.start - INSTRUMENT_SHOW_BEFORE_SECONDS);
+        const windowEnd = note.end + INSTRUMENT_SHOW_AFTER_SECONDS;
+
+        if (previous && note.start - previous.lastActivityEnd <= INSTRUMENT_SHOW_BETWEEN_SECONDS) {
+          previous.end = Math.max(previous.end, windowEnd);
+          previous.lastActivityEnd = Math.max(previous.lastActivityEnd, note.end);
+        } else {
+          windows.push({
+            start: windowStart,
+            end: windowEnd,
+            lastActivityEnd: note.end
+          });
+        }
+      });
+
+      this.instrumentVisibilityWindows.set(
+        instanceId,
+        windows.map(({ start, end }) => ({ start, end }))
+      );
+    });
+
+    this.lastVisibleInstrumentSignature = null;
+  }
+
+  getVisibleInstruments(time = this.currentTime) {
+    if (this.alwaysShowInstruments) return this.getActiveInstruments();
+
+    return this.getActiveInstruments().filter(instanceId => {
+      const windows = this.instrumentVisibilityWindows.get(instanceId) || [];
+      return windows.some(window => time >= window.start && time <= window.end);
+    });
+  }
+
+  setAlwaysShowInstruments(alwaysShow) {
+    this.alwaysShowInstruments = Boolean(alwaysShow);
+    this._emitVisibleInstruments(this.currentTime, true);
+  }
+
+  _emitVisibleInstruments(time = this.currentTime, force = false) {
+    const visible = this.getVisibleInstruments(time);
+    const signature = [...visible].sort().join('|');
+    if (!force && signature === this.lastVisibleInstrumentSignature) return;
+
+    this.lastVisibleInstrumentSignature = signature;
+    if (this.onVisibleInstrumentsChanged) {
+      this.onVisibleInstrumentsChanged(visible);
+    }
   }
 
   setTrackInstrument(trackIndex, newInstrument) {
@@ -458,6 +565,8 @@ export class MidiPlayer {
           ev.channel = t.channel;
         }
       });
+
+      this._rebuildInstrumentVisibilityWindows();
 
       if (this.soundEngine && typeof this.soundEngine.prepareTrackInstruments === 'function') {
         this.soundEngine.prepareTrackInstruments(this.trackInfos);
@@ -501,6 +610,8 @@ export class MidiPlayer {
 
     if (this.onStateChange) this.onStateChange(true, false);
 
+    this._emitVisibleInstruments(this.currentTime, true);
+
     this._startLoop();
   }
 
@@ -511,6 +622,8 @@ export class MidiPlayer {
     this._cancelLoop();
     this.soundEngine.stopAll();
     this._releaseAllVisuals();
+
+    this._emitVisibleInstruments(this.currentTime, true);
 
     if (this.onStateChange) this.onStateChange(false, true);
   }
@@ -525,6 +638,8 @@ export class MidiPlayer {
       this.soundEngine.resetMidiChannelState();
     }
     this._releaseAllVisuals();
+
+    this._emitVisibleInstruments(0, true);
 
     if (this.onProgress) this.onProgress(0, this.duration, 0);
     if (this.onStateChange) this.onStateChange(false, false);
@@ -542,6 +657,7 @@ export class MidiPlayer {
     this._releaseAllVisuals();
     this.currentTime = clampedTime;
     this._syncMidiControllersAt(clampedTime);
+    this._emitVisibleInstruments(clampedTime, true);
 
     const percent = this.duration > 0 ? (this.currentTime / this.duration) * 100 : 0;
     if (this.onProgress) this.onProgress(this.currentTime, this.duration, percent);
@@ -574,6 +690,7 @@ export class MidiPlayer {
 
       // Trigger events occurring between prevTime and currentTime
       this._processEventsWindow(prevTime, this.currentTime);
+      this._emitVisibleInstruments(this.currentTime);
 
       // Smooth decay of instrument activity meters for VU meters and Director Camera
       for (const inst in this.instrumentActivity) {
@@ -717,10 +834,10 @@ export class MidiPlayer {
   _releaseAllVisuals() {
     if (this.onNoteOff) {
       const allInsts = [
-        'piano', 'drums', 'guitar', 'bass', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth',
+        'piano', 'drums', 'guitar', 'bass', 'doubleBass', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth',
         'acousticGuitar', 'piano_2', 'piano_3', 'piano_4', 'guitar_2', 'guitar_3', 'guitar_4',
         'acousticGuitar_2', 'acousticGuitar_3', 'acousticGuitar_4',
-        'bass_2', 'trumpet_2', 'sax_2', 'violin_2', 'cello_2', 'flute_2', 'xylophone_2',
+        'bass_2', 'doubleBass_2', 'trumpet_2', 'sax_2', 'violin_2', 'cello_2', 'flute_2', 'xylophone_2',
         'synth_2', 'synth_3', 'synth_4'
       ];
       for (let note = 21; note <= 108; note++) {
