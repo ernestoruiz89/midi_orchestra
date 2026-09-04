@@ -24,6 +24,10 @@ export class Flute3D {
 
     this.keys = [];
     this.breathParticles = [];
+    this.breathIntakeOrigin = new THREE.Vector3(-0.25, 0.018, 0);
+    this.airOutputRings = [];
+    this.airOutputOrigin = new THREE.Vector3(0.354, 0, 0);
+    this.airOutputDirection = new THREE.Vector3(1, 0, 0);
     this.activeNote = null;
     this.resonancePhase = 0;
 
@@ -503,8 +507,7 @@ export class Flute3D {
   _buildBreathDynamics() {
     this.breathParticles = [];
 
-    // Delicate Helical Vortex & Acoustic Breath Particles
-    // Emerges from the embouchure hole (x = -0.25, y = 0.016, z = 0)
+    // Small helical intake stream entering through the embouchure.
     const particleCount = 14;
     for (let i = 0; i < particleCount; i++) {
       const geom = new THREE.TorusGeometry(0.0032 + i * 0.0006, 0.0008, 8, 16);
@@ -516,7 +519,7 @@ export class Flute3D {
         depthWrite: false
       });
       const ring = new THREE.Mesh(geom, mat);
-      ring.position.set(-0.25, 0.018, 0);
+      ring.position.copy(this.breathIntakeOrigin);
       ring.rotation.x = Math.PI * 0.45;
       this.group.add(ring);
 
@@ -525,6 +528,35 @@ export class Flute3D {
         material: mat,
         baseScale: 0.5 + (i * 0.08),
         offsetTime: (i / particleCount) * 1.0,
+        active: false
+      });
+    }
+
+    // Larger acoustic waves leaving the open footjoint.
+    this.airOutputRings = [];
+    const outputRingCount = 9;
+    for (let i = 0; i < outputRingCount; i++) {
+      const geom = new THREE.TorusGeometry(0.014, 0.0015, 10, 28);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0x38e2ff,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const ring = new THREE.Mesh(geom, mat);
+      ring.position.copy(this.airOutputOrigin);
+      ring.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 0, 1),
+        this.airOutputDirection
+      );
+      this.group.add(ring);
+
+      this.airOutputRings.push({
+        mesh: ring,
+        material: mat,
+        baseScale: 0.82 + (i * 0.025),
+        offsetTime: (i / outputRingCount) * 1.0,
         active: false
       });
     }
@@ -650,6 +682,9 @@ export class Flute3D {
     this.breathParticles.forEach(bp => {
       bp.active = true;
     });
+    this.airOutputRings.forEach(ring => {
+      ring.active = true;
+    });
 
     // 4. Silver & Gold Resonant Sheen Flash
     if (this.silverMaterial) {
@@ -711,6 +746,14 @@ export class Flute3D {
           ease: 'power2.in'
         });
       });
+      this.airOutputRings.forEach(ring => {
+        ring.active = false;
+        gsap.to(ring.material, {
+          opacity: 0,
+          duration: 0.25,
+          ease: 'power2.in'
+        });
+      });
 
       // Foot vent fade
       if (this.footVentMaterial) {
@@ -742,19 +785,18 @@ export class Flute3D {
         const cycleTime = 1.0;
         const progress = ((this.activeNote.elapsed * breathSpeed + bp.offsetTime) % cycleTime) / cycleTime;
 
-        // Visible spiraling jet from embouchure hole outwards and upwards
+        // Visible spiraling jet entering the embouchure.
         const spiralAngle = progress * Math.PI * 4.0;
         const spiralRadius = 0.005 + progress * 0.018;
 
         bp.mesh.position.x = -0.25 + (progress * 0.06) + Math.cos(spiralAngle) * spiralRadius;
         bp.mesh.position.y = 0.016 + (progress * 0.08) + Math.sin(spiralAngle) * spiralRadius;
-        bp.mesh.position.z = (progress * 0.025);
+        bp.mesh.position.z = progress * 0.025;
 
         const currentScale = bp.baseScale * (0.9 + progress * 1.8);
         bp.mesh.scale.set(currentScale, currentScale, currentScale);
         bp.mesh.rotation.z += dt * 3.5;
 
-        // Strong opacity envelope (max 0.65 for clear visibility)
         let alpha = 0;
         if (progress < 0.2) {
           alpha = (progress / 0.2) * 0.65 * vel;
@@ -762,6 +804,19 @@ export class Flute3D {
           alpha = (1.0 - (progress - 0.2) / 0.8) * 0.65 * vel;
         }
         bp.material.opacity = alpha;
+      });
+
+      this.airOutputRings.forEach(ring => {
+        const progress = ((this.activeNote.elapsed * breathSpeed + ring.offsetTime) % 1.0);
+        const travel = 0.008 + progress * 0.34;
+        ring.mesh.position.copy(this.airOutputOrigin).addScaledVector(this.airOutputDirection, travel);
+
+        const currentScale = ring.baseScale * (0.85 + progress * 3.4);
+        ring.mesh.scale.set(currentScale, currentScale, currentScale);
+
+        ring.material.opacity = progress < 0.14
+          ? (progress / 0.14) * 0.58 * vel
+          : (1.0 - (progress - 0.14) / 0.86) * 0.58 * vel;
       });
 
       // --- 2. ACOUSTIC STANDING WAVE VIBRATO PULSATION ---

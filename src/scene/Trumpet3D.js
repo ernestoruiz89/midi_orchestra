@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
+import { AirIntakeEffect } from './AirIntakeEffect.js';
 
 /**
  * Trumpet3D: Precision Engineered Bb Brass Trumpet
@@ -30,6 +31,7 @@ export class Trumpet3D {
     this.bellMesh = null;
     this.trumpetBody = null;
     this.shockwaveRings = [];
+    this.airIntake = null;
 
     this._buildMaterials();
     this._buildStand();
@@ -383,6 +385,11 @@ export class Trumpet3D {
     );
     mpRim.position.x = 0.063;
     mpGroup.add(mpRim);
+    this.airIntake = new AirIntakeEffect(mpGroup, {
+      origin: new THREE.Vector3(0.063, 0, 0),
+      outwardDirection: new THREE.Vector3(1, 0, 0),
+      distance: 0.14
+    });
     body.add(mpGroup);
 
     // Pinky Hook near Valve 3 on top of leadpipe
@@ -592,6 +599,7 @@ export class Trumpet3D {
 
   onNoteOn(midiPitch, velocity = 0.8) {
     const vel = Math.max(0.3, Math.min(1.0, velocity));
+    this.airIntake?.start(vel);
 
     // Realistic Trumpet Valve Fingering
     const pitchInOctave = midiPitch % 12;
@@ -676,10 +684,11 @@ export class Trumpet3D {
   }
 
   onNoteOff(midiPitch) {
-    // Smooth reset
+    this.airIntake?.stop();
   }
 
   update(delta) {
+    this.airIntake?.update(delta);
     // Idle gentle stage breathing
     if (this.trumpetBody) {
       this.trumpetBody.rotation.y = Math.sin(Date.now() * 0.0018) * 0.015;

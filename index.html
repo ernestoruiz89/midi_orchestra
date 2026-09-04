@@ -98,6 +98,8 @@
     <button class="cam-btn" data-preset="flute" title="Concert Flute Close-up" data-i18n="camera.flute" data-i18n-title="camera.fluteTitle">🪈 Flute</button>
     <button class="cam-btn" data-preset="xylophone" title="Xylophone Close-up" data-i18n="camera.xylophone" data-i18n-title="camera.xylophoneTitle">🪵 Xylophone</button>
     <button class="cam-btn" data-preset="cabasa" title="Cabasa Close-up" data-i18n="camera.cabasa" data-i18n-title="camera.cabasaTitle">🪇 Cabasa</button>
+    <button class="cam-btn" data-preset="congas" title="Bongos & Congas Close-up" data-i18n="camera.congas" data-i18n-title="camera.congasTitle">🪘 Bongó y Congas</button>
+    <button class="cam-btn" data-preset="timbales" title="Timbales & Agogô Close-up" data-i18n="camera.timbales" data-i18n-title="camera.timbalesTitle">🪘 Timbales</button>
     <button class="cam-btn" data-preset="synth" title="Synthesizer Close-up" data-i18n="camera.synth" data-i18n-title="camera.synthTitle">🎹 Synth</button>
     <button class="cam-btn" data-preset="guitar_2" title="Guitar 2 Close-up" data-i18n="camera.guitar_2" style="display: none;">🎸 Guitar 2</button>
     <button class="cam-btn" data-preset="guitar_3" title="Guitar 3 Close-up" data-i18n="camera.guitar_3" style="display: none;">🎸 Guitar 3</button>
@@ -485,6 +487,34 @@
           </div>
         </div>
 
+        <!-- Bongos & Congas Channel -->
+        <div class="mixer-strip" data-inst="congas">
+          <div class="strip-header">
+            <span class="strip-icon">🪘</span>
+            <span class="strip-name" data-i18n="instruments.congas">Bongó y Congas</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-congas"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Timbales & Agogô Channel -->
+        <div class="mixer-strip" data-inst="timbales">
+          <div class="strip-header">
+            <span class="strip-icon">🪘</span>
+            <span class="strip-name" data-i18n="instruments.timbales">Timbales</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-timbales"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
         <!-- Synthesizer Channel -->
         <div class="mixer-strip" data-inst="synth">
           <div class="strip-header">
@@ -602,6 +632,7 @@
                 <th data-i18n="tracksModal.colNum">#</th>
                 <th data-i18n="tracksModal.colName">Track Name</th>
                 <th data-i18n="tracksModal.colChannel">Channel</th>
+                <th data-i18n="tracksModal.colMidiCode">MIDI Code (GM)</th>
                 <th data-i18n="tracksModal.colNotes">Notes</th>
                 <th data-i18n="tracksModal.colInst">Assigned 3D Instrument</th>
               </tr>

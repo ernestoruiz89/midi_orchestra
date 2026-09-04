@@ -1,4 +1,5 @@
 import { DemoSongs } from '../audio/DemoSongs.js';
+import { GM_PROGRAM_MAP } from '../audio/SoundEngine.js';
 import { i18n } from '../i18n/I18nManager.js';
 
 /**
@@ -290,7 +291,12 @@ export class UIManager {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const inst = btn.dataset.inst;
-        const allInsts = ['piano', 'drums', 'guitar', 'acousticGuitar', 'bass', 'doubleBass', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth'];
+        const allInsts = [
+          'piano', 'drums', 'guitar', 'acousticGuitar', 'bass', 'doubleBass',
+          'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute',
+          'xylophone', 'synth', 'cabasa', 'congas', 'timbales',
+          'tambourine', 'maracas', 'whistle', 'guiro', 'triangle'
+        ];
         const instLabel = i18n.t('instruments.' + inst) || inst;
         if (this.soloedInstrument === inst) {
           // Un-solo
@@ -575,7 +581,7 @@ export class UIManager {
     const isEs = i18n.getLocale() === 'es';
 
     if (tracks.length === 0) {
-      this.dom.tracksTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888;">${isEs ? 'No hay pistas cargadas' : 'No tracks loaded'}</td></tr>`;
+      this.dom.tracksTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#888;">${isEs ? 'No hay pistas cargadas' : 'No tracks loaded'}</td></tr>`;
       return;
     }
 
@@ -587,12 +593,22 @@ export class UIManager {
       { id: 'guitar', label: isEs ? '🎸 Guitarra Eléctrica' : '🎸 Electric Guitar' },
       { id: 'acousticGuitar', label: isEs ? '🎼 Guitarra Acústica' : '🎼 Acoustic Guitar' },
       { id: 'trumpet', label: isEs ? '🎺 Trompeta / Metales' : '🎺 Trumpet / Brass' },
+      { id: 'frenchHorn', label: isEs ? '📯 Corno Francés' : '📯 French Horn' },
       { id: 'sax', label: isEs ? '🎷 Saxofón Tenor/Alto' : '🎷 Tenor/Alto Saxophone' },
+      { id: 'clarinet', label: isEs ? '🪵 Clarinete' : '🪵 Clarinet' },
       { id: 'violin', label: isEs ? '🎻 Violín de Concierto' : '🎻 Concert Violin' },
       { id: 'cello', label: isEs ? '🎻 Violonchelo de Concierto' : '🎻 Concert Cello' },
       { id: 'flute', label: isEs ? '🪈 Flauta Travesera' : '🪈 Concert Flute' },
       { id: 'xylophone', label: isEs ? '🪵 Xilófono / Marimba' : '🪵 Xylophone / Marimba' },
-      { id: 'synth', label: isEs ? '🎹 Sintetizador Workstation' : '🎹 Synthesizer Workstation' }
+      { id: 'synth', label: isEs ? '🎹 Sintetizador Workstation' : '🎹 Synthesizer Workstation' },
+      { id: 'cabasa', label: isEs ? '🪇 Cabasa / Percusión Latina' : '🪇 Cabasa / Latin Percussion' },
+      { id: 'tambourine', label: isEs ? '🪘 Pandereta' : '🪘 Tambourine' },
+      { id: 'maracas', label: isEs ? '🪇 Maracas' : '🪇 Maracas' },
+      { id: 'guiro', label: isEs ? '🪵 Güiro' : '🪵 Guiro' },
+      { id: 'whistle', label: isEs ? '📯 Silbato de Samba' : '📯 Samba Whistle' },
+      { id: 'triangle', label: isEs ? '🔺 Triángulo' : '🔺 Triangle' },
+      { id: 'congas', label: isEs ? '🪘 Bongó y Congas' : '🪘 Bongos & Congas' },
+      { id: 'timbales', label: isEs ? '🪘 Timbales y Agogô' : '🪘 Timbales & Agogô' }
     ];
 
     tracks.forEach((track, idx) => {
@@ -606,11 +622,14 @@ export class UIManager {
       selectHtml += `</select>`;
 
       const instanceTag = track.instanceIndex > 0 ? `<span style="color:#00f0ff; font-size:0.75rem; margin-left:6px; background:rgba(0,240,255,0.15); padding:2px 6px; border-radius:4px;">(${isEs ? 'Instancia' : 'Instance'} ${track.instanceIndex + 1})</span>` : '';
+      const midiCode = Number.isInteger(track.programNumber) ? track.programNumber : '-';
+      const midiInstrumentName = this._getMidiProgramName(track, isEs);
 
       row.innerHTML = `
         <td>${idx + 1}</td>
         <td><strong>${track.name}</strong>${instanceTag}</td>
         <td>${track.channel !== undefined ? track.channel : '-'}</td>
+        <td><code class="midi-code" title="${midiInstrumentName}" aria-label="${midiInstrumentName}">${midiCode}</code></td>
         <td>${track.noteCount}</td>
         <td>${selectHtml}</td>
       `;
@@ -626,6 +645,24 @@ export class UIManager {
 
       this.dom.tracksTableBody.appendChild(row);
     });
+  }
+
+  _getMidiProgramName(track, isEs) {
+    if (track.channel === 9 || track.instrument === 'drums') {
+      return isEs ? 'Kit de percusión (canal MIDI 10)' : 'Percussion kit (MIDI channel 10)';
+    }
+
+    const program = Number.isInteger(track.programNumber) ? track.programNumber : null;
+    const soundfontName = program !== null ? GM_PROGRAM_MAP[program]?.sf : null;
+    if (!soundfontName) {
+      return isEs ? 'Programa MIDI desconocido' : 'Unknown MIDI program';
+    }
+
+    return soundfontName
+      .split(/_+/)
+      .filter(Boolean)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
 
   _bindHelpModal() {

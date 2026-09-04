@@ -27,9 +27,9 @@ export class CameraController {
       piano_topdown: { pos: new THREE.Vector3(-3.37, 2.33, 0.74), target: new THREE.Vector3(-3.54, 0.96, 0.38) },
       piano_closeup: { pos: new THREE.Vector3(-3.23, 1.33, 1.04), target: new THREE.Vector3(-3.54, 0.96, 0.38) },
       piano_sweep: { pos: new THREE.Vector3(-2.11, 1.43, 0.81), target: new THREE.Vector3(-3.71, 0.96, 0.46) },
-      drums: { pos: new THREE.Vector3(0.00, 2.30, 3.40), target: new THREE.Vector3(0.00, 0.95, -0.45) },
-      drums_overhead: { pos: new THREE.Vector3(0.00, 3.40, 0.65), target: new THREE.Vector3(0.00, 0.85, -0.45) },
-      drums_side: { pos: new THREE.Vector3(-2.45, 1.65, 1.50), target: new THREE.Vector3(0.00, 0.95, -0.45) },
+      drums: { pos: new THREE.Vector3(0.00, 2.30, 4.05), target: new THREE.Vector3(0.00, 0.95, 0.20) },
+      drums_overhead: { pos: new THREE.Vector3(0.00, 3.40, 1.35), target: new THREE.Vector3(0.00, 0.85, 0.20) },
+      drums_side: { pos: new THREE.Vector3(-2.45, 1.65, 2.15), target: new THREE.Vector3(0.00, 0.95, 0.20) },
       guitar: { pos: new THREE.Vector3(2.85, 1.45, 3.85), target: new THREE.Vector3(2.80, 1.25, 0.95) },
       guitar_neck: { pos: new THREE.Vector3(3.10, 1.45, 2.45), target: new THREE.Vector3(2.95, 1.30, 0.95) },
       guitar_closeup: { pos: new THREE.Vector3(2.45, 1.35, 2.45), target: new THREE.Vector3(2.55, 1.20, 0.95) },
@@ -61,8 +61,22 @@ export class CameraController {
       xylophone: { pos: new THREE.Vector3(-3.00, 1.78, 2.10), target: new THREE.Vector3(-3.54, 0.96, 0.38) },
       xylophone_topdown: { pos: new THREE.Vector3(-3.37, 2.45, 0.70), target: new THREE.Vector3(-3.54, 0.96, 0.38) },
       xylophone_closeup: { pos: new THREE.Vector3(-3.23, 1.30, 1.15), target: new THREE.Vector3(-3.54, 0.96, 0.38) },
-      cabasa: { pos: new THREE.Vector3(-1.20, 1.25, 2.75), target: new THREE.Vector3(-1.20, 1.05, 1.80) },
-      cabasa_closeup: { pos: new THREE.Vector3(-1.20, 1.18, 2.45), target: new THREE.Vector3(-1.20, 1.05, 1.80) },
+      cabasa: { pos: new THREE.Vector3(-1.35, 1.25, 1.55), target: new THREE.Vector3(-1.35, 1.05, 0.65) },
+      cabasa_closeup: { pos: new THREE.Vector3(-1.35, 1.15, 1.15), target: new THREE.Vector3(-1.35, 1.05, 0.65) },
+      tambourine: { pos: new THREE.Vector3(-2.15, 1.35, 0.75), target: new THREE.Vector3(-1.65, 1.15, 0.15) },
+      tambourine_closeup: { pos: new THREE.Vector3(-2.00, 1.25, 0.50), target: new THREE.Vector3(-1.65, 1.15, 0.15) },
+      triangle: { pos: new THREE.Vector3(-1.28, 1.45, 1.85), target: new THREE.Vector3(-1.28, 1.28, 1.05) },
+      triangle_closeup: { pos: new THREE.Vector3(-1.28, 1.36, 1.50), target: new THREE.Vector3(-1.28, 1.28, 1.05) },
+      maracas: { pos: new THREE.Vector3(1.35, 1.25, 1.55), target: new THREE.Vector3(1.35, 1.05, 0.65) },
+      maracas_closeup: { pos: new THREE.Vector3(1.35, 1.15, 1.15), target: new THREE.Vector3(1.35, 1.05, 0.65) },
+      guiro: { pos: new THREE.Vector3(2.15, 1.35, 0.75), target: new THREE.Vector3(1.65, 1.12, 0.15) },
+      guiro_closeup: { pos: new THREE.Vector3(2.00, 1.25, 0.50), target: new THREE.Vector3(1.65, 1.12, 0.15) },
+      whistle: { pos: new THREE.Vector3(1.28, 1.45, 1.85), target: new THREE.Vector3(1.28, 1.28, 1.05) },
+      whistle_closeup: { pos: new THREE.Vector3(1.28, 1.36, 1.50), target: new THREE.Vector3(1.28, 1.28, 1.05) },
+      congas: { pos: new THREE.Vector3(1.65, 1.65, 0.25), target: new THREE.Vector3(1.65, 1.25, -1.15) },
+      congas_closeup: { pos: new THREE.Vector3(1.65, 1.55, -0.15), target: new THREE.Vector3(1.65, 1.30, -1.15) },
+      timbales: { pos: new THREE.Vector3(-1.65, 1.65, 0.25), target: new THREE.Vector3(-1.65, 1.25, -1.15) },
+      timbales_closeup: { pos: new THREE.Vector3(-1.65, 1.55, -0.15), target: new THREE.Vector3(-1.65, 1.30, -1.15) },
       synth: { pos: new THREE.Vector3(-3.00, 1.75, 3.15), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
       synth_topdown: { pos: new THREE.Vector3(-3.37, 2.40, 2.38), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
       synth_closeup: { pos: new THREE.Vector3(-3.23, 1.35, 2.75), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
@@ -235,16 +249,16 @@ export class CameraController {
     if (name === 'drums') {
       // Entire drum kit: all 7 cymbals, 4 rack toms, 2 floor toms, snare, 22" bass drum, pedals and stands
       this.presets.drums = {
-        pos: new THREE.Vector3(basePos.x, 2.30, 3.40),
-        target: new THREE.Vector3(basePos.x, 0.95, -0.45)
+        pos: new THREE.Vector3(basePos.x, 2.30, basePos.z + 3.85),
+        target: new THREE.Vector3(basePos.x, 0.95, basePos.z)
       };
       this.presets.drums_overhead = {
-        pos: new THREE.Vector3(basePos.x, 3.40, 0.65),
-        target: new THREE.Vector3(basePos.x, 0.85, -0.45)
+        pos: new THREE.Vector3(basePos.x, 3.40, basePos.z + 1.15),
+        target: new THREE.Vector3(basePos.x, 0.85, basePos.z)
       };
       this.presets.drums_side = {
-        pos: new THREE.Vector3(basePos.x - 2.45, 1.65, 1.50),
-        target: new THREE.Vector3(basePos.x, 0.95, -0.45)
+        pos: new THREE.Vector3(basePos.x - 2.45, 1.65, basePos.z + 1.95),
+        target: new THREE.Vector3(basePos.x, 0.95, basePos.z)
       };
       return;
     }
@@ -397,15 +411,56 @@ export class CameraController {
       return;
     }
 
-    if (name.startsWith('cabasa')) {
-      // Corrugated steel cylinder, metal ball loops, mahogany caps and handle
+    if (name.startsWith('cabasa') || name.startsWith('tambourine') || name.startsWith('maracas') || name.startsWith('guiro')) {
+      const isLeft = instrumentGroup ? instrumentGroup.position.x < 0 : name === 'cabasa' || name === 'tambourine';
+      const xOff = isLeft ? -0.16 : 0.16;
       this.presets[name] = {
-        pos: localToWorld(0.0, 0.12, 0.95),
+        pos: localToWorld(xOff, 0.16, 0.85),
         target: localToWorld(0.0, 0.0, 0.0)
       };
       this.presets[`${name}_closeup`] = {
-        pos: localToWorld(0.0, 0.06, 0.65),
+        pos: localToWorld(xOff * 0.7, 0.08, 0.52),
         target: localToWorld(0.0, 0.02, 0.0)
+      };
+      return;
+    }
+
+    if (name.startsWith('triangle') || name.startsWith('whistle')) {
+      const isLeft = instrumentGroup ? instrumentGroup.position.x < 0 : name === 'triangle';
+      const xOff = isLeft ? -0.15 : 0.15;
+      this.presets[name] = {
+        pos: localToWorld(xOff, 0.12, 0.75),
+        target: localToWorld(0.0, 0.0, 0.0)
+      };
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(xOff * 0.6, 0.06, 0.45),
+        target: localToWorld(0.0, 0.0, 0.0)
+      };
+      return;
+    }
+
+    if (name.startsWith('congas')) {
+      // Bongo & Conga combo set on stand
+      this.presets[name] = {
+        pos: localToWorld(0.0, 1.45, 1.50),
+        target: localToWorld(0.0, 1.05, 0.0)
+      };
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(0.0, 1.35, 1.10),
+        target: localToWorld(0.0, 1.10, 0.0)
+      };
+      return;
+    }
+
+    if (name.startsWith('timbales')) {
+      // Concert Timbales & Agogô percussion set on stand
+      this.presets[name] = {
+        pos: localToWorld(0.0, 1.45, 1.40),
+        target: localToWorld(0.0, 1.05, 0.0)
+      };
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(0.0, 1.35, 1.00),
+        target: localToWorld(0.0, 1.10, 0.0)
       };
       return;
     }

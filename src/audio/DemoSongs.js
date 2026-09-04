@@ -538,6 +538,51 @@ export class DemoSongs {
         drums.push({ time: barStart + (h * 0.5) * beat, duration: 0.1, midi: 42, name: 'F#1', velocity: 0.7 });
       }
 
+      // Mambo Campana / Cowbell & Timbales Cáscara (MIDI 56, 65, 66)
+      const bellPattern = [0, 1.0, 1.75, 2.0, 3.0, 3.5];
+      bellPattern.forEach(bp => {
+        drums.push({ time: barStart + bp * beat, duration: 0.15, midi: 56, name: 'Cowbell', velocity: 0.88 });
+      });
+
+      // Timbales accents and fills
+      if (bar % 2 === 1) {
+        drums.push({ time: barStart + 3.0 * beat, duration: 0.12, midi: 65, name: 'High Timbale', velocity: 0.92 });
+        drums.push({ time: barStart + 3.5 * beat, duration: 0.12, midi: 66, name: 'Low Timbale', velocity: 0.95 });
+      }
+
+      // Maracas (70) & Cabasa (69) latin shaker groove
+      [0.5, 1.5, 2.5, 3.5].forEach(t => {
+        drums.push({ time: barStart + t * beat, duration: 0.1, midi: 70, name: 'Maracas', velocity: 0.78 });
+      });
+      [0.0, 2.0].forEach(t => {
+        drums.push({ time: barStart + t * beat, duration: 0.12, midi: 69, name: 'Cabasa', velocity: 0.8 });
+      });
+
+      // Guiro (73 Short, 74 Long) scraping rhythm
+      [0.0, 1.0, 2.0, 3.0].forEach(t => {
+        drums.push({ time: barStart + t * beat, duration: 0.2, midi: 74, name: 'Long Guiro', velocity: 0.82 });
+        drums.push({ time: barStart + (t + 0.75) * beat, duration: 0.1, midi: 73, name: 'Short Guiro', velocity: 0.76 });
+      });
+
+      // Tambourine (54) backbeat accents
+      [1.0, 3.0].forEach(t => {
+        drums.push({ time: barStart + t * beat, duration: 0.12, midi: 54, name: 'Tambourine', velocity: 0.84 });
+      });
+
+      // Triangle (80 Muted, 81 Open)
+      drums.push({ time: barStart + 0.0 * beat, duration: 0.25, midi: 81, name: 'Open Triangle', velocity: 0.8 });
+      drums.push({ time: barStart + 2.0 * beat, duration: 0.15, midi: 80, name: 'Muted Triangle', velocity: 0.75 });
+
+      // Samba Whistle (71 Short, 72 Long) call and breaks
+      if (bar === 0 || bar === 4) {
+        drums.push({ time: barStart + 0.0 * beat, duration: 0.15, midi: 71, name: 'Short Whistle', velocity: 0.95 });
+        drums.push({ time: barStart + 0.5 * beat, duration: 0.15, midi: 71, name: 'Short Whistle', velocity: 0.95 });
+        drums.push({ time: barStart + 1.0 * beat, duration: 0.35, midi: 72, name: 'Long Whistle', velocity: 1.0 });
+      } else if (bar === 7) {
+        drums.push({ time: barStart + 3.0 * beat, duration: 0.12, midi: 71, name: 'Short Whistle', velocity: 0.95 });
+        drums.push({ time: barStart + 3.5 * beat, duration: 0.25, midi: 72, name: 'Long Whistle', velocity: 1.0 });
+      }
+
       // Bass Tumbao
       const root = bar % 4 === 0 ? 'G2' : bar % 4 === 1 ? 'C3' : bar % 4 === 2 ? 'D3' : 'G2';
       bass.push({ time: barStart + 1.5 * beat, duration: 0.4 * beat, midi: noteToMidi(root), name: root, velocity: 0.9 });

@@ -15,10 +15,10 @@ export class Cabasa3D {
     this.scene = scene;
     this.group = new THREE.Group();
 
-    // Positioned in the auxiliary percussion section (adjacent to drum riser and xylophone)
-    this.group.position.set(-1.2, 1.15, 1.9);
-    // Tilted slightly up and towards audience for optimal visibility
-    this.group.rotation.set(0.18, Math.PI * 0.22, -0.12);
+    // Positioned floating alongside the drum kit (hi-hat side)
+    this.group.position.set(-1.18, 1.05, 0.50);
+    // Ergonomic playing angle
+    this.group.rotation.set(0.22, 0.15, -0.10);
 
     this.cabasaModel = null;
     this.beadCylinder = null;
@@ -26,7 +26,6 @@ export class Cabasa3D {
     this.twistDirection = 1;
 
     this._buildMaterials();
-    this._buildStand();
     this._buildCabasa();
     this._buildSparkleRings();
 
@@ -81,63 +80,6 @@ export class Cabasa3D {
       roughness: 0.85,
       metalness: 0.05
     });
-  }
-
-  _buildStand() {
-    const stand = new THREE.Group();
-    stand.position.set(0, -1.15, 0);
-
-    // 1. Heavy cast round chrome base with beveled edge matching flute and violin
-    const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.16, 0.19, 0.030, 24),
-      this.chromeMaterial
-    );
-    base.position.y = 0.015;
-    stand.add(base);
-
-    // 3 Black rubber feet underneath
-    for (let i = 0; i < 3; i++) {
-      const angle = (i * Math.PI * 2) / 3;
-      const foot = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.014, 0.014, 0.008, 12),
-        this.standMaterial
-      );
-      foot.position.set(Math.cos(angle) * 0.15, -0.004, Math.sin(angle) * 0.15);
-      stand.add(foot);
-    }
-
-    // 2. Telescopic central chrome column with locking collar
-    const lowerPole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.013, 0.013, 0.60, 14),
-      this.chromeMaterial
-    );
-    lowerPole.position.y = 0.30;
-    stand.add(lowerPole);
-
-    const collar = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.019, 0.019, 0.038, 16),
-      this.chromeMaterial
-    );
-    collar.position.y = 0.60;
-    stand.add(collar);
-
-    const upperPole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.009, 0.009, 0.50, 14),
-      this.chromeMaterial
-    );
-    upperPole.position.y = 0.85;
-    stand.add(upperPole);
-
-    // Velvet-padded cradle holding the cabasa handle & base
-    const cradle = new THREE.Mesh(
-      new THREE.TorusGeometry(0.040, 0.009, 8, 18, Math.PI),
-      this.standMaterial
-    );
-    cradle.position.set(0, 1.05, 0);
-    cradle.rotation.x = Math.PI / 2;
-    stand.add(cradle);
-
-    this.group.add(stand);
   }
 
   _buildCabasa() {

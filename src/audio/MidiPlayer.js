@@ -28,7 +28,14 @@ const DEFAULT_GM_PROGRAMS = {
   flute: 73,
   xylophone: 13,
   synth: 80,
-  cabasa: 69
+  cabasa: 69,
+  congas: 63,
+  timbales: 65,
+  tambourine: 54,
+  maracas: 70,
+  whistle: 71,
+  guiro: 73,
+  triangle: 81
 };
 
 /**
@@ -38,25 +45,22 @@ const DEFAULT_GM_PROGRAMS = {
 export const GM_PROGRAM_TO_INSTRUMENT = {
   // 0-7: Piano
   0: 'piano', 1: 'piano', 2: 'piano', 3: 'piano', 4: 'piano', 5: 'piano', 6: 'piano', 7: 'piano',
-  // 8-15: Chromatic Percussion / Mallets
+  // 8-15: Chromatic Percussion
   8: 'xylophone', 9: 'xylophone', 10: 'xylophone', 11: 'xylophone', 12: 'xylophone', 13: 'xylophone', 14: 'xylophone', 15: 'xylophone',
-  // 16-23: Organ & Accordion
-  16: 'piano', 17: 'piano', 18: 'piano', 19: 'piano', 20: 'piano', 21: 'piano', 22: 'flute', 23: 'piano',
-  // 24-25: Acoustic Guitar
-  24: 'acousticGuitar', 25: 'acousticGuitar',
-  // 26-31: Electric Guitar
-  26: 'guitar', 27: 'guitar', 28: 'guitar', 29: 'guitar', 30: 'guitar', 31: 'guitar',
+  // 16-23: Organ
+  16: 'piano', 17: 'piano', 18: 'piano', 19: 'piano', 20: 'piano', 21: 'piano', 22: 'piano', 23: 'piano',
+  // 24-31: Guitar
+  24: 'acousticGuitar', 25: 'acousticGuitar', 26: 'guitar', 27: 'guitar', 28: 'guitar', 29: 'guitar', 30: 'guitar', 31: 'guitar',
   // 32-39: Bass
-  32: 'doubleBass', 33: 'bass', 34: 'bass', 35: 'bass', 36: 'bass', 37: 'bass', 38: 'bass', 39: 'bass',
-  // 40-47: Solo Strings & Timpani
-  40: 'violin', 41: 'violin', 42: 'cello', 43: 'doubleBass', 44: 'violin', 45: 'violin', 46: 'violin', 47: 'xylophone',
-  // 48-55: Ensemble & Choir & Orchestra Hit
-  48: 'violin', 49: 'violin', 50: 'violin', 51: 'violin', 52: 'synth', 53: 'synth', 54: 'synth', 55: 'synth',
+  32: 'doubleBass', 33: 'bass', 34: 'bass', 35: 'bass', 36: 'bass', 37: 'bass', 38: 'synth', 39: 'synth',
+  // 40-47: Strings
+  40: 'violin', 41: 'violin', 42: 'cello', 43: 'doubleBass', 44: 'violin', 45: 'violin', 46: 'guitar', 47: 'drums',
+  // 48-55: Ensemble
+  48: 'violin', 49: 'violin', 50: 'synth', 51: 'synth', 52: 'flute', 53: 'flute', 54: 'synth', 55: 'drums',
   // 56-63: Brass
   56: 'trumpet', 57: 'trumpet', 58: 'trumpet', 59: 'trumpet', 60: 'frenchHorn', 61: 'trumpet', 62: 'trumpet', 63: 'trumpet',
-  // 64-67: Saxophone
+  // 64-71: Reed
   64: 'sax', 65: 'sax', 66: 'sax', 67: 'sax',
-  // 68-71: Woodwind Reeds
   68: 'flute', 69: 'flute', 70: 'flute', 71: 'clarinet',
   // 72-79: Pipes / Woodwinds
   72: 'flute', 73: 'flute', 74: 'flute', 75: 'flute', 76: 'flute', 77: 'flute', 78: 'flute', 79: 'flute',
@@ -68,15 +72,16 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
   96: 'synth', 97: 'synth', 98: 'synth', 99: 'synth', 100: 'synth', 101: 'synth', 102: 'synth', 103: 'synth',
   // 104-111: Ethnic
   104: 'guitar', 105: 'guitar', 106: 'guitar', 107: 'guitar', 108: 'xylophone', 109: 'flute', 110: 'violin', 111: 'flute',
-  // 112-119: Percussive & Drums
-  112: 'xylophone', 113: 'xylophone', 114: 'xylophone', 115: 'xylophone', 116: 'drums', 117: 'drums', 118: 'drums', 119: 'drums',
+  // 112-119: Percussive & Drums (113 = Agogo -> timbales set, 119 = Reverse Cymbal -> played on drum kit cymbal)
+  112: 'xylophone', 113: 'timbales', 114: 'xylophone', 115: 'xylophone', 116: 'drums', 117: 'drums', 118: 'drums', 119: 'drums',
   // 120-127: Sound Effects
   120: 'guitar', 121: 'flute', 122: 'synth', 123: 'synth', 124: 'synth', 125: 'synth', 126: 'synth', 127: 'drums'
 };
 
 const VALID_3D_INSTRUMENTS = new Set([
   'piano', 'drums', 'bass', 'doubleBass', 'guitar', 'acousticGuitar',
-  'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'synth', 'cabasa'
+  'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'synth', 'cabasa', 'congas', 'timbales',
+  'tambourine', 'maracas', 'whistle', 'guiro', 'triangle'
 ]);
 
 /**
@@ -140,7 +145,14 @@ export class MidiPlayer {
       synth: 0,
       frenchHorn: 0,
       clarinet: 0,
-      cabasa: 0
+      cabasa: 0,
+      congas: 0,
+      timbales: 0,
+      tambourine: 0,
+      maracas: 0,
+      whistle: 0,
+      guiro: 0,
+      triangle: 0
     };
   }
 
@@ -262,7 +274,7 @@ export class MidiPlayer {
 
         // Percussion needs a readable physical preparation. This event is
         // visual-only, so it never reaches the synthesizer before the note.
-        if (detectedInstrument === 'drums') {
+        if (detectedInstrument === 'drums' || detectedInstrument === 'timbales' || detectedInstrument === 'congas') {
           this.events.push({
             type: 'prepare',
             time: Math.max(0, note.time - DRUM_STICK_ANTICIPATION_SECONDS),
@@ -355,7 +367,31 @@ export class MidiPlayer {
     if (/\b(cabasa|afuche)\b/i.test(trackName)) {
       return 'cabasa';
     }
-    if (/\b(drums?|drumkit|bater[ií]a|percussion|perc|timbales|caja|bombo|hi-?hat)\b/i.test(trackName) && !/steel\s*drum/i.test(trackName)) {
+    if (/\b(tambourine|pandereta)\b/i.test(trackName)) {
+      return 'tambourine';
+    }
+    if (/\b(maracas?)\b/i.test(trackName)) {
+      return 'maracas';
+    }
+    if (/\b(whistle|silbato|apito)\b/i.test(trackName)) {
+      return 'whistle';
+    }
+    if (/\b(guiro|güiro)\b/i.test(trackName)) {
+      return 'guiro';
+    }
+    if (/\b(triangle|triangulo)\b/i.test(trackName)) {
+      return 'triangle';
+    }
+    if (/\b(bongo|bongos|bong[oó]s?|conga|congas|tumbadora|tumbadoras|quinto|tumba|latin\s*perc(ussion)?)\b/i.test(trackName)) {
+      return 'congas';
+    }
+    if (/\b(timbal|timbale|timbales|pailas?|agogo|cencerro|mambo\s*bell)\b/i.test(trackName)) {
+      return 'timbales';
+    }
+    if (/\b(reverse\s*cymbal|rev\s*cymbal|platillo\s*invertido|cymbal\s*reverse)\b/i.test(trackName)) {
+      return 'drums';
+    }
+    if (/\b(drums?|drumkit|bater[ií]a|percussion|perc|caja|bombo|hi-?hat)\b/i.test(trackName) && !/steel\s*drum/i.test(trackName)) {
       return 'drums';
     }
 
@@ -474,9 +510,37 @@ export class MidiPlayer {
 
   getActiveInstruments() {
     const list = new Set(this.trackInfos.map(t => t.instanceId).filter(Boolean));
-    const hasCabasaNote = this.events.some(e => e.instrument === 'drums' && e.midi === 69);
+    const hasCabasaNote = this.events.some(e => (e.instrument === 'drums' && e.midi === 69) || e.instrument === 'cabasa');
     if (hasCabasaNote) {
       list.add('cabasa');
+    }
+    const hasCongasNote = this.events.some(e => (e.instrument === 'drums' && e.midi >= 60 && e.midi <= 64) || e.instrument === 'congas');
+    if (hasCongasNote) {
+      list.add('congas');
+    }
+    const hasTimbalesNote = this.events.some(e => (e.instrument === 'drums' && (e.midi === 56 || (e.midi >= 65 && e.midi <= 68))) || e.instrument === 'timbales');
+    if (hasTimbalesNote) {
+      list.add('timbales');
+    }
+    const hasTambourineNote = this.events.some(e => (e.instrument === 'drums' && e.midi === 54) || e.instrument === 'tambourine');
+    if (hasTambourineNote) {
+      list.add('tambourine');
+    }
+    const hasMaracasNote = this.events.some(e => (e.instrument === 'drums' && e.midi === 70) || e.instrument === 'maracas');
+    if (hasMaracasNote) {
+      list.add('maracas');
+    }
+    const hasWhistleNote = this.events.some(e => (e.instrument === 'drums' && (e.midi === 71 || e.midi === 72)) || e.instrument === 'whistle');
+    if (hasWhistleNote) {
+      list.add('whistle');
+    }
+    const hasGuiroNote = this.events.some(e => (e.instrument === 'drums' && (e.midi === 73 || e.midi === 74)) || e.instrument === 'guiro');
+    if (hasGuiroNote) {
+      list.add('guiro');
+    }
+    const hasTriangleNote = this.events.some(e => (e.instrument === 'drums' && (e.midi === 80 || e.midi === 81)) || e.instrument === 'triangle');
+    if (hasTriangleNote) {
+      list.add('triangle');
     }
     return Array.from(list);
   }
@@ -501,6 +565,55 @@ export class MidiPlayer {
       if (event.instrument === 'drums' && event.midi === 69) {
         if (!notesByInstance.has('cabasa')) notesByInstance.set('cabasa', []);
         notesByInstance.get('cabasa').push({
+          start: event.time,
+          end: event.time + Math.max(0, event.duration || 0.1)
+        });
+      }
+      if (event.instrument === 'drums' && event.midi === 54) {
+        if (!notesByInstance.has('tambourine')) notesByInstance.set('tambourine', []);
+        notesByInstance.get('tambourine').push({
+          start: event.time,
+          end: event.time + Math.max(0, event.duration || 0.1)
+        });
+      }
+      if (event.instrument === 'drums' && event.midi === 70) {
+        if (!notesByInstance.has('maracas')) notesByInstance.set('maracas', []);
+        notesByInstance.get('maracas').push({
+          start: event.time,
+          end: event.time + Math.max(0, event.duration || 0.1)
+        });
+      }
+      if (event.instrument === 'drums' && (event.midi === 71 || event.midi === 72)) {
+        if (!notesByInstance.has('whistle')) notesByInstance.set('whistle', []);
+        notesByInstance.get('whistle').push({
+          start: event.time,
+          end: event.time + Math.max(0, event.duration || 0.1)
+        });
+      }
+      if (event.instrument === 'drums' && (event.midi === 73 || event.midi === 74)) {
+        if (!notesByInstance.has('guiro')) notesByInstance.set('guiro', []);
+        notesByInstance.get('guiro').push({
+          start: event.time,
+          end: event.time + Math.max(0, event.duration || 0.1)
+        });
+      }
+      if (event.instrument === 'drums' && (event.midi === 80 || event.midi === 81)) {
+        if (!notesByInstance.has('triangle')) notesByInstance.set('triangle', []);
+        notesByInstance.get('triangle').push({
+          start: event.time,
+          end: event.time + Math.max(0, event.duration || 0.1)
+        });
+      }
+      if (event.instrument === 'drums' && event.midi >= 60 && event.midi <= 64) {
+        if (!notesByInstance.has('congas')) notesByInstance.set('congas', []);
+        notesByInstance.get('congas').push({
+          start: event.time,
+          end: event.time + Math.max(0, event.duration || 0.1)
+        });
+      }
+      if (event.instrument === 'drums' && (event.midi === 56 || (event.midi >= 65 && event.midi <= 68))) {
+        if (!notesByInstance.has('timbales')) notesByInstance.set('timbales', []);
+        notesByInstance.get('timbales').push({
           start: event.time,
           end: event.time + Math.max(0, event.duration || 0.1)
         });
@@ -792,6 +905,19 @@ export class MidiPlayer {
             ev.noteTime ?? ev.time,
             ev.trackIndex
           );
+          if (ev.instrument === 'drums' && ev.midi >= 60 && ev.midi <= 64) {
+            this.onNotePrepare(
+              'congas',
+              ev.midi,
+              ev.name || 'Congas',
+              ev.velocity,
+              ev.duration,
+              'congas',
+              0,
+              ev.noteTime ?? ev.time,
+              ev.trackIndex
+            );
+          }
         }
       } else if (ev.type === 'on') {
         // Register real-time activity for MIDIJam Director and HUD VU meters
@@ -815,9 +941,12 @@ export class MidiPlayer {
         );
         // Trigger 3D Visuals
         if (this.onNoteOn) {
+          const visualPitch = (ev.instrument === 'drums' && (ev.programNumber === 119 || ev.midi === 119))
+            ? 'reverseCymbal'
+            : ev.midi;
           this.onNoteOn(
             ev.instrument,
-            ev.midi,
+            visualPitch,
             ev.name,
             ev.velocity,
             ev.duration,
@@ -831,6 +960,48 @@ export class MidiPlayer {
               this.instrumentActivity['cabasa'] = Math.max(this.instrumentActivity['cabasa'], ev.velocity);
             }
             this.onNoteOn('cabasa', 69, 'Cabasa', ev.velocity, ev.duration, 'cabasa', 0, ev.time, ev.trackIndex);
+          }
+          if (ev.instrument === 'drums' && ev.midi >= 60 && ev.midi <= 64) {
+            if (this.instrumentActivity['congas'] !== undefined) {
+              this.instrumentActivity['congas'] = Math.max(this.instrumentActivity['congas'], ev.velocity);
+            }
+            this.onNoteOn('congas', ev.midi, ev.name || 'Congas', ev.velocity, ev.duration, 'congas', 0, ev.time, ev.trackIndex);
+          }
+          if (ev.instrument === 'drums' && (ev.midi === 56 || (ev.midi >= 65 && ev.midi <= 68))) {
+            if (this.instrumentActivity['timbales'] !== undefined) {
+              this.instrumentActivity['timbales'] = Math.max(this.instrumentActivity['timbales'], ev.velocity);
+            }
+            this.onNoteOn('timbales', ev.midi, ev.name || 'Timbales', ev.velocity, ev.duration, 'timbales', 0, ev.time, ev.trackIndex);
+          }
+          if (ev.instrument === 'drums' && ev.midi === 54) {
+            if (this.instrumentActivity['tambourine'] !== undefined) {
+              this.instrumentActivity['tambourine'] = Math.max(this.instrumentActivity['tambourine'], ev.velocity);
+            }
+            this.onNoteOn('tambourine', 54, 'Tambourine', ev.velocity, ev.duration, 'tambourine', 0, ev.time, ev.trackIndex);
+          }
+          if (ev.instrument === 'drums' && ev.midi === 70) {
+            if (this.instrumentActivity['maracas'] !== undefined) {
+              this.instrumentActivity['maracas'] = Math.max(this.instrumentActivity['maracas'], ev.velocity);
+            }
+            this.onNoteOn('maracas', 70, 'Maracas', ev.velocity, ev.duration, 'maracas', 0, ev.time, ev.trackIndex);
+          }
+          if (ev.instrument === 'drums' && (ev.midi === 71 || ev.midi === 72)) {
+            if (this.instrumentActivity['whistle'] !== undefined) {
+              this.instrumentActivity['whistle'] = Math.max(this.instrumentActivity['whistle'], ev.velocity);
+            }
+            this.onNoteOn('whistle', ev.midi, 'Whistle', ev.velocity, ev.duration, 'whistle', 0, ev.time, ev.trackIndex);
+          }
+          if (ev.instrument === 'drums' && (ev.midi === 73 || ev.midi === 74)) {
+            if (this.instrumentActivity['guiro'] !== undefined) {
+              this.instrumentActivity['guiro'] = Math.max(this.instrumentActivity['guiro'], ev.velocity);
+            }
+            this.onNoteOn('guiro', ev.midi, 'Guiro', ev.velocity, ev.duration, 'guiro', 0, ev.time, ev.trackIndex);
+          }
+          if (ev.instrument === 'drums' && (ev.midi === 80 || ev.midi === 81)) {
+            if (this.instrumentActivity['triangle'] !== undefined) {
+              this.instrumentActivity['triangle'] = Math.max(this.instrumentActivity['triangle'], ev.velocity);
+            }
+            this.onNoteOn('triangle', ev.midi, 'Triangle', ev.velocity, ev.duration, 'triangle', 0, ev.time, ev.trackIndex);
           }
         }
       } else if (ev.type === 'off') {
@@ -846,9 +1017,33 @@ export class MidiPlayer {
         );
         // Release 3D Visuals
         if (this.onNoteOff) {
-          this.onNoteOff(ev.instrument, ev.midi, ev.name, false, ev.instanceId, ev.instanceIndex);
+          const visualPitchOff = (ev.instrument === 'drums' && (ev.programNumber === 119 || ev.midi === 119))
+            ? 'reverseCymbal'
+            : ev.midi;
+          this.onNoteOff(ev.instrument, visualPitchOff, ev.name, false, ev.instanceId, ev.instanceIndex);
           if (ev.instrument === 'drums' && ev.midi === 69) {
             this.onNoteOff('cabasa', 69, 'Cabasa', false, 'cabasa', 0);
+          }
+          if (ev.instrument === 'drums' && ev.midi >= 60 && ev.midi <= 64) {
+            this.onNoteOff('congas', ev.midi, ev.name || 'Congas', false, 'congas', 0);
+          }
+          if (ev.instrument === 'drums' && (ev.midi === 56 || (ev.midi >= 65 && ev.midi <= 68))) {
+            this.onNoteOff('timbales', ev.midi, ev.name || 'Timbales', false, 'timbales', 0);
+          }
+          if (ev.instrument === 'drums' && ev.midi === 54) {
+            this.onNoteOff('tambourine', 54, 'Tambourine', false, 'tambourine', 0);
+          }
+          if (ev.instrument === 'drums' && ev.midi === 70) {
+            this.onNoteOff('maracas', 70, 'Maracas', false, 'maracas', 0);
+          }
+          if (ev.instrument === 'drums' && (ev.midi === 71 || ev.midi === 72)) {
+            this.onNoteOff('whistle', ev.midi, 'Whistle', false, 'whistle', 0);
+          }
+          if (ev.instrument === 'drums' && (ev.midi === 73 || ev.midi === 74)) {
+            this.onNoteOff('guiro', ev.midi, 'Guiro', false, 'guiro', 0);
+          }
+          if (ev.instrument === 'drums' && (ev.midi === 80 || ev.midi === 81)) {
+            this.onNoteOff('triangle', ev.midi, 'Triangle', false, 'triangle', 0);
           }
         }
       }
@@ -877,7 +1072,8 @@ export class MidiPlayer {
   _releaseAllVisuals() {
     if (this.onNoteOff) {
       const allInsts = [
-        'piano', 'drums', 'guitar', 'bass', 'doubleBass', 'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'synth', 'cabasa',
+        'piano', 'drums', 'guitar', 'bass', 'doubleBass', 'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'synth', 'cabasa', 'congas', 'timbales',
+        'tambourine', 'maracas', 'whistle', 'guiro', 'triangle',
         'acousticGuitar', 'piano_2', 'piano_3', 'piano_4', 'guitar_2', 'guitar_3', 'guitar_4',
         'acousticGuitar_2', 'acousticGuitar_3', 'acousticGuitar_4',
         'bass_2', 'doubleBass_2', 'trumpet_2', 'frenchHorn_2', 'sax_2', 'clarinet_2', 'violin_2', 'cello_2', 'flute_2', 'xylophone_2',

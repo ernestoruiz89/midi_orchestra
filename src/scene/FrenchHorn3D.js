@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
+import { AirIntakeEffect } from './AirIntakeEffect.js';
 
 /**
  * FrenchHorn3D: Double French Horn in F/Bb
@@ -21,8 +22,10 @@ export class FrenchHorn3D {
 
     this.valves = [];
     this.bellMesh = null;
+    this.bellLipOffset = 0;
     this.hornBody = null;
     this.shockwaveRings = [];
+    this.airIntake = null;
 
     this._buildMaterials();
     this._buildStand();
@@ -223,6 +226,11 @@ export class FrenchHorn3D {
     mpRim.position.y = 0.035;
     mpRim.rotation.x = Math.PI / 2;
     mpGroup.add(mpRim);
+    this.airIntake = new AirIntakeEffect(mpGroup, {
+      origin: new THREE.Vector3(0, 0.035, 0),
+      outwardDirection: new THREE.Vector3(0, 1, 0),
+      distance: 0.14
+    });
 
     // Shank
     const mpShank = new THREE.Mesh(
@@ -349,6 +357,7 @@ export class FrenchHorn3D {
     // Profile curve for authentic exponential bell flare:
     // Starts at rBranch (seamless connection) and curves smoothly into wide 29cm flare
     const bellLength = 0.19;
+    this.bellLipOffset = bellLength;
     const rRim = 0.145;
     const bellProfilePoints = [];
     const bellSegments = 32;
@@ -398,14 +407,19 @@ export class FrenchHorn3D {
           side: THREE.DoubleSide
         })
       );
-      ring.position.set(0.19, 0.00, 0.42);
-      this.group.add(ring);
+      // RingGeometry faces local +Z. Rotate it so its normal follows the
+      // bell's local +Y axis, then parent it to the bell itself. This keeps
+      // the wave centered on the lip even while the horn recoils or rotates.
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(0, this.bellLipOffset + 0.012, 0);
+      this.bellMesh.add(ring);
       this.shockwaveRings.push(ring);
     }
   }
 
   onNoteOn(midiPitch, velocity = 0.8, eventTime = null, trackIndex = null, duration = 0.5) {
     const vel = Math.min(1.0, Math.max(0.2, velocity));
+    this.airIntake?.start(vel);
     const pitchInOctave = midiPitch % 12;
 
     // Authentic French horn fingering simulation:
@@ -463,11 +477,8 @@ export class FrenchHorn3D {
     // Acoustic Shockwave Ring Emission from the wide bell
     const idleRing = this.shockwaveRings.find(r => r.material.opacity <= 0.05);
     if (idleRing && this.bellMesh) {
-      const bellWorldPos = new THREE.Vector3();
-      this.bellMesh.getWorldPosition(bellWorldPos);
-      const localBellPos = this.group.worldToLocal(bellWorldPos);
-
-      idleRing.position.copy(localBellPos);
+      const ringStartY = this.bellLipOffset + 0.012;
+      idleRing.position.set(0, ringStartY, 0);
       idleRing.scale.set(1, 1, 1);
       idleRing.material.opacity = 0.80 * vel;
 
@@ -476,9 +487,7 @@ export class FrenchHorn3D {
       gsap.killTweensOf(idleRing.material);
 
       gsap.to(idleRing.position, {
-        x: localBellPos.x + 0.35,
-        y: localBellPos.y - 0.20,
-        z: localBellPos.z + 0.40,
+        y: ringStartY + 0.48,
         duration: 0.58,
         ease: 'power1.out'
       });
@@ -498,6 +507,7 @@ export class FrenchHorn3D {
   }
 
   onNoteOff(midiPitch, force = false) {
+    this.airIntake?.stop();
     // Return valves smoothly
     this.valves.forEach(v => {
       gsap.to(v.group.position, {
@@ -509,6 +519,7 @@ export class FrenchHorn3D {
   }
 
   update(delta) {
+    this.airIntake?.update(delta);
     // Idle gentle orchestral stage breathing
     if (this.hornBody) {
       this.hornBody.rotation.x = Math.sin(Date.now() * 0.0016) * 0.010;

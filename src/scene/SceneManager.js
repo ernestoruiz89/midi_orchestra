@@ -11,6 +11,13 @@ import { Saxophone3D } from './Saxophone3D.js';
 import { FrenchHorn3D } from './FrenchHorn3D.js';
 import { Clarinet3D } from './Clarinet3D.js';
 import { Cabasa3D } from './Cabasa3D.js';
+import { Tambourine3D } from './Tambourine3D.js';
+import { Maracas3D } from './Maracas3D.js';
+import { Guiro3D } from './Guiro3D.js';
+import { Whistle3D } from './Whistle3D.js';
+import { Triangle3D } from './Triangle3D.js';
+import { BongoCongas3D } from './BongoCongas3D.js';
+import { Timbales3D } from './Timbales3D.js';
 import { Violin3D } from './Violin3D.js';
 import { Cello3D } from './Cello3D.js';
 import { DoubleBass3D } from './DoubleBass3D.js';
@@ -78,6 +85,13 @@ export class SceneManager {
     this.xylophone = new Xylophone3D(this.scene);
     this.xylophone.group.rotation.copy(this.piano.group.rotation);
     this.cabasa = new Cabasa3D(this.scene);
+    this.tambourine = new Tambourine3D(this.scene);
+    this.maracas = new Maracas3D(this.scene);
+    this.guiro = new Guiro3D(this.scene);
+    this.whistle = new Whistle3D(this.scene);
+    this.triangle = new Triangle3D(this.scene);
+    this.congas = new BongoCongas3D(this.scene);
+    this.timbales = new Timbales3D(this.scene);
     this.synth = new Synth3D(this.scene, { tier: 1, hasStand: true });
     this.synth.group.rotation.copy(this.piano.group.rotation);
 
@@ -203,6 +217,13 @@ export class SceneManager {
       xylophone: this.xylophone,
       synth: this.synth,
       cabasa: this.cabasa,
+      tambourine: this.tambourine,
+      maracas: this.maracas,
+      guiro: this.guiro,
+      whistle: this.whistle,
+      triangle: this.triangle,
+      congas: this.congas,
+      timbales: this.timbales,
       piano_2: this.piano_2,
       piano_3: this.piano_3,
       piano_4: this.piano_4,
@@ -270,9 +291,9 @@ export class SceneManager {
 
   getStageFloorElevation(x, z) {
     // Drum Riser Platform Deck boundaries on stage:
-    // Center at (0, -0.60), Width 4.6 (X: -2.30 to +2.30), Depth 3.6 (Z: -2.40 to +1.20)
+    // Center at (0, -0.45), Width 4.8 (X: -2.40 to +2.40), Depth 3.8 (Z: -2.35 to +1.45)
     // Top deck elevation = 0.20m above main stage floor
-    const onRiser = x >= -2.35 && x <= 2.35 && z >= -2.45 && z <= 1.25;
+    const onRiser = x >= -2.45 && x <= 2.45 && z >= -2.40 && z <= 1.50;
     return onRiser ? 0.20 : 0.0;
   }
 
@@ -293,7 +314,14 @@ export class SceneManager {
       frenchHorn: { width: 1.6, depth: 1.2, priority: 55 },
       sax: { width: 1.55, depth: 1.1, priority: 58 },
       clarinet: { width: 1.4, depth: 1.1, priority: 57 },
-      cabasa: { width: 1.2, depth: 1.0, priority: 50 }
+      cabasa: { width: 1.2, depth: 1.0, priority: 50 },
+      tambourine: { width: 1.1, depth: 1.0, priority: 50 },
+      maracas: { width: 1.1, depth: 1.0, priority: 50 },
+      guiro: { width: 1.1, depth: 1.0, priority: 50 },
+      whistle: { width: 1.0, depth: 0.9, priority: 48 },
+      triangle: { width: 1.0, depth: 0.9, priority: 48 },
+      congas: { width: 1.5, depth: 1.3, priority: 65 },
+      timbales: { width: 1.4, depth: 1.1, priority: 64 }
     };
     return footprints[family] || { width: 1.8, depth: 1.2, priority: 50 };
   }
@@ -478,14 +506,99 @@ export class SceneManager {
     const placements = new Map();
     const drumUnit = units.find(unit => unit.family === 'drums');
     const remaining = units.filter(unit => unit !== drumUnit);
-    const keyboards = remaining.filter(unit => ['piano', 'synth', 'xylophone'].includes(unit.family));
-    const strings = remaining.filter(unit => ['violin', 'cello', 'doubleBass'].includes(unit.family));
-    const electricGuitars = remaining.filter(unit => unit.family === 'guitar');
-    const acousticGuitars = remaining.filter(unit => unit.family === 'acousticGuitar');
-    const basses = remaining.filter(unit => unit.family === 'bass');
+
+    // Dedicated percussion section: timbales, congas/bongos, cabasa, tambourine, maracas, guiro, whistle, triangle
+    const percussionFamilies = ['timbales', 'congas', 'cabasa', 'tambourine', 'maracas', 'guiro', 'whistle', 'triangle'];
+    const timbalesUnits = remaining.filter(unit => unit.family === 'timbales');
+    const congasUnits = remaining.filter(unit => unit.family === 'congas');
+    const cabasaUnits = remaining.filter(unit => unit.family === 'cabasa');
+    const tambourineUnits = remaining.filter(unit => unit.family === 'tambourine');
+    const triangleUnits = remaining.filter(unit => unit.family === 'triangle');
+    const maracasUnits = remaining.filter(unit => unit.family === 'maracas');
+    const guiroUnits = remaining.filter(unit => unit.family === 'guiro');
+    const whistleUnits = remaining.filter(unit => unit.family === 'whistle');
+
+    const placePercussion = () => {
+      // 1. Timbales: Left behind drums on the riser platform
+      timbalesUnits.forEach((unit, idx) => {
+        placements.set(unit.id, {
+          x: -1.65 - idx * 0.40,
+          z: -1.15 - idx * 0.35,
+          y: 0.20
+        });
+      });
+
+      // 2. Bongó y Congas: Right behind drums on the riser platform
+      congasUnits.forEach((unit, idx) => {
+        placements.set(unit.id, {
+          x: 1.65 + idx * 0.40,
+          z: -1.15 - idx * 0.35,
+          y: 0.20
+        });
+      });
+
+      // 3. Left wing (hi-hat / crash side) floating auxiliary percussion
+      cabasaUnits.forEach((unit, idx) => {
+        placements.set(unit.id, {
+          x: -1.35 - idx * 0.28,
+          z: 0.65 + idx * 0.15,
+          y: 1.05
+        });
+      });
+
+      tambourineUnits.forEach((unit, idx) => {
+        placements.set(unit.id, {
+          x: -1.65 - idx * 0.28,
+          z: 0.15 + idx * 0.15,
+          y: 1.15
+        });
+      });
+
+      // Triangle placed forward-left in open air, completely clear of cymbals
+      triangleUnits.forEach((unit, idx) => {
+        placements.set(unit.id, {
+          x: -1.28 - idx * 0.25,
+          z: 1.05 + idx * 0.15,
+          y: 1.28
+        });
+      });
+
+      // 4. Right wing (ride / floor tom side) floating auxiliary percussion
+      maracasUnits.forEach((unit, idx) => {
+        placements.set(unit.id, {
+          x: 1.35 + idx * 0.28,
+          z: 0.65 + idx * 0.15,
+          y: 1.05
+        });
+      });
+
+      guiroUnits.forEach((unit, idx) => {
+        placements.set(unit.id, {
+          x: 1.65 + idx * 0.28,
+          z: 0.15 + idx * 0.15,
+          y: 1.12
+        });
+      });
+
+      // Whistle placed forward-right in open air, completely clear of cymbals
+      whistleUnits.forEach((unit, idx) => {
+        placements.set(unit.id, {
+          x: 1.28 + idx * 0.25,
+          z: 1.05 + idx * 0.15,
+          y: 1.28
+        });
+      });
+    };
+
+    const melodicUnits = remaining.filter(unit => !percussionFamilies.includes(unit.family));
+    const keyboards = melodicUnits.filter(unit => ['piano', 'synth', 'xylophone'].includes(unit.family));
+    const strings = melodicUnits.filter(unit => ['violin', 'cello', 'doubleBass'].includes(unit.family));
+    const electricGuitars = melodicUnits.filter(unit => unit.family === 'guitar');
+    const acousticGuitars = melodicUnits.filter(unit => unit.family === 'acousticGuitar');
+    const basses = melodicUnits.filter(unit => unit.family === 'bass');
     const guitars = [...electricGuitars, ...acousticGuitars];
-    const winds = remaining.filter(unit => ['trumpet', 'sax', 'flute', 'frenchHorn', 'clarinet'].includes(unit.family));
-    const auxiliaries = remaining.filter(unit =>
+    const winds = melodicUnits.filter(unit => ['trumpet', 'sax', 'flute', 'frenchHorn', 'clarinet'].includes(unit.family));
+    const auxiliaries = melodicUnits.filter(unit =>
       !keyboards.includes(unit) && !strings.includes(unit) &&
       !guitars.includes(unit) && !basses.includes(unit) && !winds.includes(unit)
     );
@@ -568,8 +681,9 @@ export class SceneManager {
     );
 
     if (drumUnit) {
-      // The drum kit is the only fixed anchor: it must stay centered on its riser.
-      placements.set(drumUnit.id, { x: 0, z: -0.6 });
+      // The drum kit is the anchor: moved forward on the riser towards +Z
+      placements.set(drumUnit.id, { x: 0, z: 0.20, y: 0.20 });
+      placePercussion();
       const leftEdge = -(drumUnit.width / 2 + 0.55);
       const rightEdge = drumUnit.width / 2 + 0.55;
       // Put the electric bass at the front-left corner of the drum riser. A
@@ -609,6 +723,7 @@ export class SceneManager {
         frontEdge: Math.min(guitarLayout.backEdge, windLayout.backEdge) - 0.2
       });
     } else {
+      placePercussion();
       const leftItems = [...basses, ...keyboards, ...strings, ...leftAuxiliaries];
       const rightItems = [...guitars, ...winds, ...rightAuxiliaries];
       const bassWidth = this._measureSectionWidth(basses, 3.75, 0.3);
@@ -674,7 +789,10 @@ export class SceneManager {
         const home = this.instrumentHomeTransforms.get(key);
         // Elevate instruments resting on the drum riser platform so feet, stands,
         // and sustain pedals sit on top of the deck rather than being buried 0.20m underneath.
-        const riserElevation = key === 'drums' ? 0 : this.getStageFloorElevation(placement.x, placement.z);
+        const riserPercussion = ['drums', 'timbales', 'congas', 'cabasa', 'tambourine', 'maracas', 'guiro', 'whistle', 'triangle'];
+        const riserElevation = riserPercussion.includes(this._getInstrumentFamily(key))
+          ? 0
+          : this.getStageFloorElevation(placement.x, placement.z);
         const baseY = (placement.y !== undefined ? placement.y : home.y) + riserElevation;
         const targetPosition = new THREE.Vector3(
           placement.x,
@@ -793,9 +911,16 @@ export class SceneManager {
       violin: 'violin',
       cello: 'cello',
       flute: 'flute',
-      xylophone: 'drum',
+      xylophone: 'piano',
       synth: 'piano',
-      cabasa: 'drum'
+      cabasa: 'drum',
+      tambourine: 'drum',
+      maracas: 'drum',
+      guiro: 'drum',
+      whistle: 'drum',
+      triangle: 'drum',
+      congas: 'drum',
+      timbales: 'drum'
     };
     const spotName = spotMap[baseInst] || 'piano';
     this.stage.pulseInstrumentSpotlight(spotName, velocity);

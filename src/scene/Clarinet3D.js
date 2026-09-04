@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
+import { AirIntakeEffect } from './AirIntakeEffect.js';
 
 /**
  * Clarinet3D: Professional Concert Bb Clarinet (Boehm System)
@@ -24,6 +25,7 @@ export class Clarinet3D {
     this.clarinetBody = null;
     this.bellMesh = null;
     this.resonanceRings = [];
+    this.airIntake = null;
 
     this._buildMaterials();
     this._buildStand();
@@ -334,6 +336,11 @@ export class Clarinet3D {
     beak.position.set(0, currY + mpHeight - 0.015, -0.003);
     beak.rotation.x = -0.22;
     cl.add(beak);
+    this.airIntake = new AirIntakeEffect(cl, {
+      origin: new THREE.Vector3(0, currY + mpHeight, -0.003),
+      outwardDirection: new THREE.Vector3(0, 1, 0),
+      distance: 0.13
+    });
 
     // Natural cane reed on flat back face
     const reed = new THREE.Mesh(
@@ -466,6 +473,7 @@ export class Clarinet3D {
 
   onNoteOn(midiPitch, velocity = 0.8, eventTime = null, trackIndex = null, duration = 0.5) {
     const vel = Math.min(1.0, Math.max(0.2, velocity));
+    this.airIntake?.start(vel);
     const pitchInOctave = midiPitch % 12;
 
     // Authentic woodwind fingering: higher notes open more tone holes, lower notes close them
@@ -529,6 +537,7 @@ export class Clarinet3D {
   }
 
   onNoteOff(midiPitch, force = false) {
+    this.airIntake?.stop();
     this.keys.forEach(k => {
       gsap.to(k.group.position, {
         z: k.baseZ,
@@ -539,6 +548,7 @@ export class Clarinet3D {
   }
 
   update(delta) {
+    this.airIntake?.update(delta);
     // Gentle idle concert stage sway
     if (this.clarinetBody) {
       this.clarinetBody.rotation.z = Math.sin(Date.now() * 0.0018) * 0.008;

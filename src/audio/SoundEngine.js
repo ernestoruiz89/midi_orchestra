@@ -218,7 +218,14 @@ export class SoundEngine {
       synth_4: 0.62,
       frenchHorn: 0.65,
       clarinet: 0.62,
-      cabasa: 0.55
+      cabasa: 0.55,
+      congas: 0.62,
+      timbales: 0.60,
+      tambourine: 0.58,
+      maracas: 0.55,
+      whistle: 0.52,
+      guiro: 0.58,
+      triangle: 0.52
     };
 
     this.muted = {};
@@ -582,15 +589,18 @@ export class SoundEngine {
   _buildInstrumentChannels(ctx) {
     const instrumentNames = [
       'piano', 'drums', 'bass', 'doubleBass', 'guitar', 'acousticGuitar', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth',
-      'frenchHorn', 'clarinet', 'cabasa'
+      'frenchHorn', 'clarinet', 'cabasa', 'congas', 'timbales',
+      'tambourine', 'maracas', 'whistle', 'guiro', 'triangle'
     ];
     this.nativeInputs = {};
+
+    const percCompressorSet = new Set(['drums', 'bass', 'doubleBass', 'cabasa', 'congas', 'timbales', 'tambourine', 'maracas', 'whistle', 'guiro', 'triangle']);
 
     instrumentNames.forEach(inst => {
       const channel = new Tone.Channel({
         volume: Tone.gainToDb(this.volumes[inst] ?? 0.85),
         pan: this._getStereoPan(inst)
-      }).connect(inst === 'drums' || inst === 'bass' || inst === 'doubleBass' || inst === 'cabasa' ? this.compressor : this.chorus);
+      }).connect(percCompressorSet.has(inst) ? this.compressor : this.chorus);
 
       this.channels[inst] = channel;
 
@@ -618,7 +628,14 @@ export class SoundEngine {
       case 'trumpet': return 0.45;
       case 'frenchHorn': return 0.40;
       case 'clarinet': return 0.22;
-      case 'cabasa': return -0.10;
+      case 'timbales': return -0.15;
+      case 'cabasa': return -0.12;
+      case 'tambourine': return -0.18;
+      case 'triangle': return -0.15;
+      case 'congas': return 0.15;
+      case 'maracas': return 0.18;
+      case 'guiro': return 0.15;
+      case 'whistle': return 0.12;
       default: return 0;
     }
   }
@@ -1305,8 +1322,8 @@ export class SoundEngine {
       }
 
       // B. 2. Procedural drums (compatibility fallback)
-      if (instrument === 'drums') {
-        this._triggerDrumSound(note, vel, time, channel);
+      if (instrument === 'drums' || instrument === 'congas' || instrument === 'timbales' || instrument === 'cabasa' || instrument === 'tambourine' || instrument === 'maracas' || instrument === 'whistle' || instrument === 'guiro' || instrument === 'triangle') {
+        this._triggerDrumSound(note, vel, time, channel, instrument);
         return;
       }
 
@@ -1421,7 +1438,7 @@ export class SoundEngine {
     }
   }
 
-  _triggerDrumSound(pitchOrPiece, velocity = 0.8, time = undefined, channel = 9) {
+  _triggerDrumSound(pitchOrPiece, velocity = 0.8, time = undefined, channel = 9, instrument = 'drums') {
     let piece = pitchOrPiece;
     if (typeof pitchOrPiece === 'number') {
       piece = this.midiPitchToDrumPiece(pitchOrPiece);
@@ -1461,7 +1478,7 @@ export class SoundEngine {
       gain.gain.value = this._getMidiVelocityGain(velocity) * this._getMidiChannelGain(channel) * pieceTrim;
 
       source.connect(gain);
-      const dest = this.nativeInputs.drums || ctx.destination;
+      const dest = this.nativeInputs[instrument] || this.nativeInputs.drums || ctx.destination;
       gain.connect(dest);
 
       this.activeDrumSources.push(source);
@@ -1525,6 +1542,7 @@ export class SoundEngine {
     if (pitch === 79) return 'cuicaOpen';
     if (pitch === 80) return 'triangleMuted';
     if (pitch === 81) return 'triangleOpen';
+    if (pitch === 119 || pitch === 'reverseCymbal') return 'crash2';
     return null;
   }
 

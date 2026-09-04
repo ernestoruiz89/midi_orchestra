@@ -980,6 +980,18 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.midi-code {
+  display: inline-block;
+  min-width: 2.25rem;
+  padding: 3px 7px;
+  border: 1px solid rgba(0, 240, 255, 0.24);
+  border-radius: 5px;
+  background: rgba(0, 240, 255, 0.09);
+  color: var(--accent-cyan);
+  text-align: center;
+  font-family: monospace;
+}
+
 .inst-select {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);

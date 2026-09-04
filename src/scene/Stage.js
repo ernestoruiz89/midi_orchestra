@@ -73,13 +73,13 @@ export class Stage {
     neonLine.position.set(0, 0.02, stageDepth / 2);
     this.group.add(neonLine);
 
-    // Drum Riser Platform (Elevated platform for drum kit)
-    const riserWidth = 4.6;
+    // Drum Riser Platform (Elevated platform for drum kit & percussion section)
+    const riserWidth = 4.8;
     const riserHeight = 0.20;
-    const riserDepth = 3.6;
+    const riserDepth = 3.8;
     const riserGeom = new THREE.BoxGeometry(riserWidth, riserHeight, riserDepth);
     const riser = new THREE.Mesh(riserGeom, this.stageTrimMaterial);
-    riser.position.set(0, riserHeight / 2, -0.60);
+    riser.position.set(0, riserHeight / 2, -0.45);
     riser.receiveShadow = true;
     this.group.add(riser);
 
@@ -91,7 +91,7 @@ export class Stage {
       metalness: 0.8
     });
     const frontTrim = new THREE.Mesh(frontTrimGeom, frontTrimMat);
-    frontTrim.position.set(0, riserHeight + 0.01, -0.60 + riserDepth / 2);
+    frontTrim.position.set(0, riserHeight + 0.01, -0.45 + riserDepth / 2);
     this.group.add(frontTrim);
   }
 
@@ -159,7 +159,7 @@ export class Stage {
     const spotConfigs = [
       { x: -5.5, z: 3.2, target: [-3.6, 0.70, 0.35], color: 0xffe6d0, intensity: 22, penumbra: 0.85, name: 'piano_spot' },
       { x: -2.0, z: 3.2, target: [-2.4, 1.4, -0.4], color: 0xff007f, name: 'bass_spot' },
-      { x: 0.0, z: 3.2, target: [0, 1.2, -1.2], color: 0xffaa00, name: 'drum_spot' },
+      { x: 0.0, z: 3.2, target: [0, 1.2, 0.20], color: 0xffaa00, name: 'drum_spot' },
       { x: 2.2, z: 3.2, target: [2.8, 1.4, 0.6], color: 0xffeedd, name: 'guitar_spot' },
       { x: 5.5, z: 3.2, target: [4.2, 1.5, 0.4], color: 0xffea00, name: 'trumpet_spot' },
       { x: -3.8, z: 2.2, target: [-4.2, 1.25, -1.8], color: 0xffbe76, name: 'violin_spot' },

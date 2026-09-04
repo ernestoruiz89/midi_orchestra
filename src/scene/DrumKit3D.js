@@ -42,8 +42,8 @@ export class DrumKit3D {
     this.scene = scene;
     this.group = new THREE.Group();
 
-    // Centered on the elevated drum riser platform (y = 0.20, z = -0.60)
-    this.group.position.set(0, 0.20, -0.60);
+    // Moved forward on the elevated drum riser platform (y = 0.20, z = 0.20)
+    this.group.position.set(0, 0.20, 0.20);
 
     this.cymbals = {};
     this.drumHeads = {};
@@ -60,6 +60,10 @@ export class DrumKit3D {
     this.hihatCloseTimer = null;
     this.hihatTopPivot = null;
     this.hihatPedalFootboard = null;
+
+    // Reverse Cymbal swell state (midis2jam2 exponential wobble & crescendo roll on crash2)
+    this.activeReverseCymbals = [];
+    this.reverseCymbalPiece = 'crash2';
 
     this._buildMaterials();
     this._buildBassDrum();
@@ -1553,8 +1557,9 @@ export class DrumKit3D {
   /**
    * Note-On Event Trigger: executes snappy strike, elastic rebound,
    * settles into hovering ready position, and maintains persistent visibility like midis2jam2.
+   * Also supports reverse cymbal exponential swell wobble on crash2!
    */
-  onNoteOn(pitchOrPiece, velocity = 0.8, eventTime = null, trackIndex = null) {
+  onNoteOn(pitchOrPiece, velocity = 0.8, eventTime = null, trackIndex = null, duration = 1.5) {
     let piece = pitchOrPiece;
     if (typeof pitchOrPiece === 'number') {
       piece = this._mapPitchToPiece(pitchOrPiece);
@@ -1563,6 +1568,11 @@ export class DrumKit3D {
     }
 
     const vel = Math.max(0.35, Math.min(1.0, velocity));
+
+    if (piece === 'reverseCymbal') {
+      this._triggerReverseCymbal(this.reverseCymbalPiece, vel, duration);
+      return;
+    }
 
     if (piece === 'kick') {
       this._animateKick(vel);
@@ -1923,6 +1933,7 @@ export class DrumKit3D {
    * 46 -> Open Hi-Hat (stick strike on separated cymbals with loose sizzle)
    */
   _mapPitchToPiece(pitch) {
+    if (pitch === 'reverseCymbal' || pitch === 'reverse_cymbal' || pitch === 119) return 'reverseCymbal';
     if (pitch === 35 || pitch === 36) return 'kick';
     if (pitch === 38 || pitch === 40 || pitch === 37) return 'snare';
     if (pitch === 42) return 'hihatClosed';
@@ -1941,6 +1952,43 @@ export class DrumKit3D {
     if (pitch === 51 || pitch === 59 || pitch === 53) return 'ride';
 
     return 'snare';
+  }
+
+  /**
+   * Reverse Cymbal Swell: Continuous physical crescendo roll & wobble
+   * executed on crash2 using midis2jam2's reverse crescendo equation.
+   * Completely mechanical WITHOUT glowing rings or shockwaves.
+   */
+  _triggerReverseCymbal(cymbalPiece = 'crash2', velocity = 0.8, duration = 1.5) {
+    const vel = Math.max(0.35, Math.min(1.0, velocity));
+    const noteDuration = Math.max(0.4, Math.min(8.0, duration || 1.5));
+    const targetCymbal = this.cymbals[cymbalPiece] || this.cymbals.crash2;
+    const stickData = this.pieceSticks[cymbalPiece] || this.pieceSticks.crash2;
+
+    if (!targetCymbal || !stickData) return;
+
+    // Reset current tweens on target cymbal and stick
+    gsap.killTweensOf(targetCymbal.rotation);
+    gsap.killTweensOf(stickData.stickArm.rotation);
+    gsap.killTweensOf(stickData.pivot.position);
+
+    if (stickData.idleTimeout) {
+      clearTimeout(stickData.idleTimeout);
+      stickData.idleTimeout = null;
+    }
+    stickData.pivot.visible = true;
+
+    // Remove any existing active swell for this cymbal
+    this.activeReverseCymbals = this.activeReverseCymbals.filter(s => s.piece !== cymbalPiece);
+
+    this.activeReverseCymbals.push({
+      piece: cymbalPiece,
+      cymbal: targetCymbal,
+      stickData: stickData,
+      startTime: performance.now(),
+      duration: noteDuration,
+      velocity: vel
+    });
   }
 
   _animateKick(vel) {
@@ -1969,43 +2017,108 @@ export class DrumKit3D {
   }
 
   onNoteOff(pitchOrPiece, force = false) {
-    if (!force) return;
+    if (force) {
+      // Force cancel all active reverse cymbal swells
+      this.activeReverseCymbals.forEach(swell => {
+        gsap.killTweensOf(swell.cymbal.rotation);
+        swell.cymbal.rotation.set(0, 0, 0);
+      });
+      this.activeReverseCymbals = [];
 
-    if (this.hihatCloseTimer) {
-      clearTimeout(this.hihatCloseTimer);
-      this.hihatCloseTimer = null;
-    }
-    this.hihatState = 'closed';
-    if (this.hihatTopPivot) {
-      gsap.killTweensOf(this.hihatTopPivot.position);
-      gsap.killTweensOf(this.hihatTopPivot.rotation);
-      this.hihatTopPivot.position.y = HIHAT_CLOSED_Y;
-      this.hihatTopPivot.rotation.set(0, 0, 0);
-    }
-    if (this.hihatPedalFootboard) {
-      gsap.killTweensOf(this.hihatPedalFootboard.rotation);
-      this.hihatPedalFootboard.rotation.x = HIHAT_PEDAL_DOWN_ANGLE;
-    }
-
-    this.preparedStrikes.clear();
-    this.stickSelectionState.clear();
-    Object.values(this.drumRecoilNodes).forEach(({ node, baseY }) => {
-      gsap.killTweensOf(node.position);
-      node.position.y = baseY;
-    });
-    Object.values(this.pieceSticks).forEach(stickData => {
-      if (stickData.idleTimeout) {
-        clearTimeout(stickData.idleTimeout);
-        stickData.idleTimeout = null;
+      if (this.hihatCloseTimer) {
+        clearTimeout(this.hihatCloseTimer);
+        this.hihatCloseTimer = null;
       }
-      gsap.killTweensOf(stickData.stickArm.rotation);
-      gsap.killTweensOf(stickData.pivot.position);
-      stickData.stickArm.rotation.x = 0;
-      stickData.stickArm.position.set(0, 0, 0);
-      stickData.pivot.position.y = stickData.basePivotY;
-      stickData.pivot.visible = false;
-    });
+      this.hihatState = 'closed';
+      if (this.hihatTopPivot) {
+        gsap.killTweensOf(this.hihatTopPivot.position);
+        gsap.killTweensOf(this.hihatTopPivot.rotation);
+        this.hihatTopPivot.position.y = HIHAT_CLOSED_Y;
+        this.hihatTopPivot.rotation.set(0, 0, 0);
+      }
+      if (this.hihatPedalFootboard) {
+        gsap.killTweensOf(this.hihatPedalFootboard.rotation);
+        this.hihatPedalFootboard.rotation.x = HIHAT_PEDAL_DOWN_ANGLE;
+      }
+
+      this.preparedStrikes.clear();
+      this.stickSelectionState.clear();
+      Object.values(this.drumRecoilNodes).forEach(({ node, baseY }) => {
+        gsap.killTweensOf(node.position);
+        node.position.y = baseY;
+      });
+      Object.values(this.pieceSticks).forEach(stickData => {
+        if (stickData.idleTimeout) {
+          clearTimeout(stickData.idleTimeout);
+          stickData.idleTimeout = null;
+        }
+        gsap.killTweensOf(stickData.stickArm.rotation);
+        gsap.killTweensOf(stickData.pivot.position);
+        stickData.stickArm.rotation.x = 0;
+        stickData.stickArm.position.set(0, 0, 0);
+        stickData.pivot.position.y = stickData.basePivotY;
+        stickData.pivot.visible = false;
+      });
+      return;
+    }
+
+    // Natural note-off event: if a reverse cymbal was swelling, trigger its climax hit cleanly
+    let piece = pitchOrPiece;
+    if (typeof pitchOrPiece === 'number') piece = this._mapPitchToPiece(pitchOrPiece);
+    if (piece === 'reverseCymbal') {
+      const idx = this.activeReverseCymbals.findIndex(s => s.piece === this.reverseCymbalPiece);
+      if (idx !== -1) {
+        const swell = this.activeReverseCymbals.splice(idx, 1)[0];
+        this._executeStickStrike(swell.piece, swell.velocity);
+        this._animateCymbal(swell.cymbal, swell.velocity);
+      }
+    }
   }
 
-  update() {}
+  /**
+   * Real-time frame loop: updates active reverse cymbal swell wobbles and drumstick rolls
+   */
+  update(delta) {
+    if (this.activeReverseCymbals.length === 0) return;
+
+    const now = performance.now();
+    for (let i = this.activeReverseCymbals.length - 1; i >= 0; i--) {
+      const swell = this.activeReverseCymbals[i];
+      const elapsed = (now - swell.startTime) / 1000;
+      const remaining = Math.max(0, swell.duration - elapsed);
+
+      // Check if swell reached climax (at the end of duration)
+      if (elapsed >= swell.duration) {
+        this.activeReverseCymbals.splice(i, 1);
+        this._executeStickStrike(swell.piece, swell.velocity);
+        this._animateCymbal(swell.cymbal, swell.velocity);
+        continue;
+      }
+
+      // Normalized progress (0.0 to 1.0)
+      const progress = Math.min(1.0, elapsed / swell.duration);
+
+      // --- Reverse Cymbal Physical Wobble Formula (midis2jam2 ReverseCymbal.kt) ---
+      // Pure mechanical wobble WITHOUT glowing rings
+      const AMPLITUDE = 0.28 * swell.velocity;
+      const WOBBLE_SPEED = 4.5;
+      const DAMPENING = 1.5;
+      const s = remaining;
+      const denom = 3.0 + Math.pow(s, 3.0) * WOBBLE_SPEED * DAMPENING * Math.PI;
+      const wobbleAngle = AMPLITUDE * (Math.cos(s * WOBBLE_SPEED * Math.PI) / denom);
+
+      // Precession tilt on the drumkit's crash cymbal
+      swell.cymbal.rotation.x = wobbleAngle;
+      swell.cymbal.rotation.z = wobbleAngle * 0.40 * Math.sin(elapsed * 9.0);
+
+      // --- Accelerating Drumstick Roll / Scrape Swell ---
+      const rollFreq = 16 + progress * 24;
+      const rollAmp = 0.012 + 0.018 * Math.pow(progress, 2.0);
+      const stickVibe = Math.sin(elapsed * rollFreq * Math.PI * 2) * rollAmp;
+
+      swell.stickData.pivot.visible = true;
+      swell.stickData.stickArm.rotation.x = (progress * 0.08 * swell.stickData.arcSign) + stickVibe;
+      swell.stickData.pivot.position.y = swell.stickData.basePivotY - (progress * 0.012);
+    }
+  }
 }
