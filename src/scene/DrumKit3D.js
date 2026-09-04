@@ -1100,20 +1100,10 @@ export class DrumKit3D {
       const target = this.pieceTargets[piece];
       if (!target) return;
 
-      const tangent = this.pieceTargetTangents[piece] || new THREE.Vector3(1, 0, 0);
-      [-1, 1].forEach(handSide => {
-        const handIndex = handSide > 0 ? 1 : 0;
-        const stickKey = handIndex === 0 ? piece : `${piece}_2`;
-        const handTarget = target.clone()
-          .addScaledVector(tangent, DRUMSTICK_HAND_CONTACT_OFFSET * handSide);
-        const handOrigin = drummerOrigin.clone()
-          .addScaledVector(tangent, DRUMSTICK_HAND_WRIST_OFFSET * handSide);
-        const stickData = this._createDedicatedStickMesh(handTarget, handOrigin);
-        stickData.piece = piece;
-        stickData.handIndex = handIndex;
-        this.pieceSticks[stickKey] = stickData;
-        this.group.add(stickData.pivot);
-      });
+      const stickData = this._createDedicatedStickMesh(target, drummerOrigin);
+      stickData.piece = piece;
+      this.pieceSticks[piece] = stickData;
+      this.group.add(stickData.pivot);
     });
   }
 
@@ -1205,27 +1195,8 @@ export class DrumKit3D {
     };
   }
 
-  _selectStickKey(piece, eventTime = null, trackIndex = null) {
-    const alternateKey = `${piece}_2`;
-    if (!this.pieceSticks[alternateKey]) return piece;
-
-    const currentTime = Number.isFinite(eventTime) ? eventTime : performance.now() / 1000;
-    const sourceTrack = trackIndex ?? 'manual';
-    const previous = this.stickSelectionState.get(piece);
-
-    // In midis2jam2: simultaneous notes OR rapid successive notes (< 0.38s, rolls/grooves)
-    // alternate naturally between left and right hands!
-    let handIndex = 0;
-    if (previous) {
-      const dt = Math.abs(currentTime - previous.time);
-      if (dt <= 0.38 || (previous.track !== sourceTrack && dt <= DRUMSTICK_SIMULTANEOUS_WINDOW)) {
-        handIndex = 1 - previous.handIndex;
-      } else {
-        handIndex = 0;
-      }
-    }
-    this.stickSelectionState.set(piece, { time: currentTime, track: sourceTrack, handIndex });
-    return handIndex === 1 ? alternateKey : piece;
+  _selectStickKey(piece) {
+    return piece;
   }
 
   _queuePreparedStrike(piece, preparedStrike) {
