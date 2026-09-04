@@ -1,4 +1,5 @@
-import { Midi } from '@tonejs/midi';
+import * as toneMidi from '@tonejs/midi';
+const Midi = toneMidi.Midi || toneMidi.default?.Midi || toneMidi.default || toneMidi;
 
 // Kept separate from audio scheduling: drumstick motion should prepare the
 // visual hit before the note, but the sound must remain sample-accurate.
@@ -17,6 +18,54 @@ const DEFAULT_GM_PROGRAMS = {
   xylophone: 13,
   synth: 80
 };
+
+/**
+ * Authoritative General MIDI Level 1 (GM1) Program Map (0-127).
+ * Replicates MIDIsJam's instrument visualizer routing for standard GM sound banks.
+ */
+export const GM_PROGRAM_TO_INSTRUMENT = {
+  // 0-7: Piano
+  0: 'piano', 1: 'piano', 2: 'piano', 3: 'piano', 4: 'piano', 5: 'piano', 6: 'piano', 7: 'piano',
+  // 8-15: Chromatic Percussion / Mallets
+  8: 'xylophone', 9: 'xylophone', 10: 'xylophone', 11: 'xylophone', 12: 'xylophone', 13: 'xylophone', 14: 'xylophone', 15: 'xylophone',
+  // 16-23: Organ & Accordion
+  16: 'piano', 17: 'piano', 18: 'piano', 19: 'piano', 20: 'piano', 21: 'piano', 22: 'flute', 23: 'piano',
+  // 24-25: Acoustic Guitar
+  24: 'acousticGuitar', 25: 'acousticGuitar',
+  // 26-31: Electric Guitar
+  26: 'guitar', 27: 'guitar', 28: 'guitar', 29: 'guitar', 30: 'guitar', 31: 'guitar',
+  // 32-39: Bass
+  32: 'bass', 33: 'bass', 34: 'bass', 35: 'bass', 36: 'bass', 37: 'bass', 38: 'bass', 39: 'bass',
+  // 40-47: Solo Strings & Timpani
+  40: 'violin', 41: 'violin', 42: 'violin', 43: 'violin', 44: 'violin', 45: 'violin', 46: 'violin', 47: 'xylophone',
+  // 48-55: Ensemble & Choir & Orchestra Hit
+  48: 'violin', 49: 'violin', 50: 'violin', 51: 'violin', 52: 'synth', 53: 'synth', 54: 'synth', 55: 'synth',
+  // 56-63: Brass
+  56: 'trumpet', 57: 'trumpet', 58: 'trumpet', 59: 'trumpet', 60: 'trumpet', 61: 'trumpet', 62: 'trumpet', 63: 'trumpet',
+  // 64-67: Saxophone
+  64: 'sax', 65: 'sax', 66: 'sax', 67: 'sax',
+  // 68-71: Woodwind Reeds
+  68: 'flute', 69: 'flute', 70: 'flute', 71: 'flute',
+  // 72-79: Pipes / Woodwinds
+  72: 'flute', 73: 'flute', 74: 'flute', 75: 'flute', 76: 'flute', 77: 'flute', 78: 'flute', 79: 'flute',
+  // 80-87: Synth Lead
+  80: 'synth', 81: 'synth', 82: 'synth', 83: 'synth', 84: 'synth', 85: 'synth', 86: 'synth', 87: 'synth',
+  // 88-95: Synth Pad
+  88: 'synth', 89: 'synth', 90: 'synth', 91: 'synth', 92: 'synth', 93: 'synth', 94: 'synth', 95: 'synth',
+  // 96-103: Synth Effects
+  96: 'synth', 97: 'synth', 98: 'synth', 99: 'synth', 100: 'synth', 101: 'synth', 102: 'synth', 103: 'synth',
+  // 104-111: Ethnic
+  104: 'guitar', 105: 'guitar', 106: 'guitar', 107: 'guitar', 108: 'xylophone', 109: 'flute', 110: 'violin', 111: 'flute',
+  // 112-119: Percussive & Drums
+  112: 'xylophone', 113: 'xylophone', 114: 'xylophone', 115: 'xylophone', 116: 'drums', 117: 'drums', 118: 'drums', 119: 'drums',
+  // 120-127: Sound Effects
+  120: 'guitar', 121: 'flute', 122: 'synth', 123: 'synth', 124: 'synth', 125: 'synth', 126: 'synth', 127: 'drums'
+};
+
+const VALID_3D_INSTRUMENTS = new Set([
+  'piano', 'drums', 'bass', 'guitar', 'acousticGuitar',
+  'trumpet', 'sax', 'violin', 'flute', 'xylophone', 'synth'
+]);
 
 /**
  * MidiPlayer parses and schedules MIDI events, coordinates sound synthesis
@@ -243,115 +292,122 @@ export class MidiPlayer {
   }
 
   _classifyTrackInstrument(track, index) {
-    const trackName = (track.name || '').toLowerCase();
-    const instFamily = (track.instrument?.family || '').toLowerCase();
-    const instName = (track.instrument?.name || '').toLowerCase();
-    const prog = track.instrument ? track.instrument.number : -1;
-    const channel = track.channel;
-
-    // 1. Drums / Percussion (GM channel 10 is zero-based index 9)
-    if (
-      channel === 9 ||
-      trackName.includes('drum') || trackName.includes('bater') || trackName.includes('perc') ||
-      trackName.includes('kit') || trackName.includes('beat') || instFamily.includes('percussive') ||
-      instFamily.includes('drums')
-    ) {
+    // 1. Dedicated GM Percussion / Drum Kit: Channel 10 (zero-indexed 9)
+    if (track.channel === 9) {
       return 'drums';
     }
 
-    // 2. Bass (Prog 32-39)
-    if (
-      trackName.includes('bass') || trackName.includes('bajo') ||
-      (prog >= 32 && prog <= 39) || instFamily.includes('bass')
-    ) {
+    // 2. Direct valid string instrument (e.g. from studio DemoSongs)
+    if (typeof track.instrument === 'string' && VALID_3D_INSTRUMENTS.has(track.instrument)) {
+      return track.instrument;
+    }
+
+    const trackName = (track.name || '').toLowerCase();
+
+    // 3. High-Precision Track Name Inspection (Arranger Intent)
+    // A. Piano / Keyboard / Organ:
+    if (/\b(piano|pno|grand\s*piano|keyboard|teclado|rhodes|wurlitzer|clavinet|clavi|harpsichord|organ[oó]?|hammond|accordion|acorde[oó]n)\b/i.test(trackName)) {
+      return 'piano';
+    }
+
+    // B. Drums / Percussion:
+    if (/\b(drums?|drumkit|bater[ií]a|percussion|perc|timbales|caja|bombo|hi-?hat)\b/i.test(trackName) && !/steel\s*drum/i.test(trackName)) {
+      return 'drums';
+    }
+
+    // C. Bass:
+    if (/\b(bass|bajo|contrabajo|fretless)\b/i.test(trackName) && !/\b(brass|bassoon)\b/i.test(trackName)) {
       return 'bass';
     }
 
-    // 3. Saxophone (Prog 64-67)
+    // D. Acoustic Guitar (requires explicit acoustic indicator alongside guitar, never standalone 'acoustic'):
     if (
-      trackName.includes('sax') || trackName.includes('saxo') ||
-      (prog >= 64 && prog <= 67)
-    ) {
-      return 'sax';
-    }
-
-    // 4. Trumpet / Brass / Horns (Prog 56-63)
-    if (
-      trackName.includes('trumpet') || trackName.includes('tromp') || trackName.includes('brass') ||
-      trackName.includes('horn') || trackName.includes('tuba') || trackName.includes('trombone') ||
-      (prog >= 56 && prog <= 63) || instFamily.includes('brass')
-    ) {
-      return 'trumpet';
-    }
-
-    // 5. Violin / Strings Section (Prog 40-51, 110)
-    if (
-      trackName.includes('viol') || trackName.includes('cello') || trackName.includes('string') ||
-      trackName.includes('cuerda') || trackName.includes('fiddle') || trackName.includes('harp') ||
-      trackName.includes('arpa') || (prog >= 40 && prog <= 51) || prog === 110 ||
-      instFamily.includes('strings')
-    ) {
-      return 'violin';
-    }
-
-    // 6. Flute / Woodwinds (Prog 68-79)
-    if (
-      trackName.includes('flut') || trackName.includes('flaut') || trackName.includes('recorder') ||
-      trackName.includes('whistle') || trackName.includes('clarin') || trackName.includes('oboe') ||
-      trackName.includes('bassoon') || trackName.includes('ocarina') || trackName.includes('wind') ||
-      (prog >= 68 && prog <= 79) || instFamily.includes('woodwind')
-    ) {
-      return 'flute';
-    }
-
-    // 7. Xylophone / Chromatic Mallets (Prog 8-15)
-    if (
-      trackName.includes('xylo') || trackName.includes('marimb') || trackName.includes('vibra') ||
-      trackName.includes('glock') || trackName.includes('bell') || trackName.includes('campan') ||
-      trackName.includes('celesta') || trackName.includes('dulcimer') ||
-      (prog >= 8 && prog <= 15)
-    ) {
-      return 'xylophone';
-    }
-
-    // 8. Acoustic Guitar (GM 24-25). Keep it distinct so the stage can show
-    // the steel/nylon body instead of the electric instrument.
-    if (
-      trackName.includes('acoustic') || trackName.includes('nylon') || trackName.includes('steel') ||
-      trackName.includes('classical') || trackName.includes('folk') || trackName.includes('española') ||
-      trackName.includes('spanish') || prog === 24 || prog === 25 ||
-      instName.includes('acoustic') || instName.includes('nylon') || instName.includes('steel')
+      /\b(acoustic\s*guitar|guitarra\s*ac[uú]stica|nylon\s*guitar|steel\s*guitar|spanish\s*guitar|classical\s*guitar|ac[uú]stic[ao]\s*gtr|ac\.?\s*gtr|guitarra\s*espa[ñn]ola)\b/i.test(trackName) ||
+      (/\b(guitar|guitarra|gtr)\b/i.test(trackName) && /\b(acoustic|ac[uú]stic[ao]|nylon|steel|cl[aá]sic[ao]|folk|spanish|espa[ñn]ol[ao]?)\b/i.test(trackName))
     ) {
       return 'acousticGuitar';
     }
 
-    // 9. Electric Guitar (Prog 26-31)
-    if (
-      trackName.includes('guitar') || trackName.includes('gtr') || trackName.includes('pluk') ||
-      (prog >= 24 && prog <= 31) || instFamily.includes('guitar')
-    ) {
+    // E. Electric Guitar:
+    if (/\b(guitar|guitarra|gtr|strat|les\s*paul|telecaster|overdrive|distortion|riff)\b/i.test(trackName)) {
       return 'guitar';
     }
 
-    // 10. Synthesizer / Electro Leads & Pads (Prog 80-103)
-    if (
-      trackName.includes('synth') || trackName.includes('lead') || trackName.includes('pad') ||
-      trackName.includes('saw') || trackName.includes('square') || trackName.includes('techno') ||
-      trackName.includes('electro') || (prog >= 80 && prog <= 103) || instFamily.includes('synth')
-    ) {
+    // F. Saxophone:
+    if (/\b(sax|saxo|saxophone|saxof[oó]n|alto\s*sax|tenor\s*sax|soprano\s*sax|baritone\s*sax)\b/i.test(trackName)) {
+      return 'sax';
+    }
+
+    // G. Trumpet / Brass:
+    if (/\b(trumpet|trompeta|brass|horns?|tuba|trombone|tromb[oó]n|cornet|metales)\b/i.test(trackName)) {
+      return 'trumpet';
+    }
+
+    // H. Violin / Strings Section:
+    if (/\b(violin|viol[ií]n|viola|cello|violoncello|violonchelo|strings?|cuerdas?|fiddle|harp|arpa|orchestra|orquesta)\b/i.test(trackName)) {
+      return 'violin';
+    }
+
+    // I. Flute / Woodwinds:
+    if (/\b(flute|flauta|piccolo|recorder|pan\s*flute|clarinet|clarinete|oboe|bassoon|fagot|whistle|ocarina|woodwinds?)\b/i.test(trackName)) {
+      return 'flute';
+    }
+
+    // J. Xylophone / Chromatic Mallets:
+    if (/\b(xylo(phone)?|xil[oó]fono|marimba|vibra(phone)?|glockenspiel|glock|bells?|campanas?|celesta|dulcimer|chimes?|steel\s*drums?)\b/i.test(trackName)) {
+      return 'xylophone';
+    }
+
+    // K. Synthesizer:
+    if (/\b(synth|sintetizador|synthesizer|lead|pad|saw|square|techno|moog|sequencer)\b/i.test(trackName)) {
       return 'synth';
     }
 
-    // 11. Piano / Keyboards / Organs (Prog 0-7, 16-23)
-    if (
-      trackName.includes('piano') || trackName.includes('key') || trackName.includes('organ') ||
-      trackName.includes('clav') || (prog >= 0 && prog <= 7) || (prog >= 16 && prog <= 23) ||
-      instFamily.includes('piano') || instFamily.includes('organ')
-    ) {
-      return 'piano';
+    // 4. Authoritative General MIDI Level 1 Program Map (0-127)
+    const prog = track.instrument && typeof track.instrument.number === 'number' ? track.instrument.number : -1;
+    if (prog >= 0 && prog <= 127 && GM_PROGRAM_TO_INSTRUMENT[prog]) {
+      return GM_PROGRAM_TO_INSTRUMENT[prog];
     }
 
-    // Fallback default: In General MIDI standard, unassigned tracks default to acoustic piano
+    // 5. Tone.js Instrument Family & Name Fallback
+    const instFamily = (track.instrument?.family || '').toLowerCase();
+    const instName = (track.instrument?.name || '').toLowerCase();
+
+    if (instFamily.includes('piano') || instFamily.includes('organ')) {
+      return 'piano';
+    }
+    if (instFamily.includes('guitar')) {
+      if (instName.includes('nylon') || instName.includes('steel') || (instName.includes('acoustic') && instName.includes('guitar'))) {
+        return 'acousticGuitar';
+      }
+      return 'guitar';
+    }
+    if (instFamily.includes('bass')) {
+      return 'bass';
+    }
+    if (instFamily.includes('strings') || instFamily.includes('orchestral')) {
+      return 'violin';
+    }
+    if (instFamily.includes('brass')) {
+      return 'trumpet';
+    }
+    if (instFamily.includes('reed')) {
+      return instName.includes('sax') ? 'sax' : 'flute';
+    }
+    if (instFamily.includes('pipe') || instFamily.includes('woodwind')) {
+      return 'flute';
+    }
+    if (instFamily.includes('synth')) {
+      return 'synth';
+    }
+    if (instFamily.includes('chromatic') || instFamily.includes('mallet')) {
+      return 'xylophone';
+    }
+    if (instFamily.includes('percuss') || instFamily.includes('drum')) {
+      return 'drums';
+    }
+
+    // 6. Default Fallback: General MIDI specification defaults unassigned tracks to Program 0 (Acoustic Grand Piano)
     return 'piano';
   }
 

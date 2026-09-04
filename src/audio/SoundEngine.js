@@ -125,7 +125,47 @@ export const GM_PROGRAM_MAP = {
   92: { sf: 'pad_5_bowed', bus: 'synth' },
   93: { sf: 'pad_6_metallic', bus: 'synth' },
   94: { sf: 'pad_7_halo', bus: 'synth' },
-  95: { sf: 'pad_8_sweep', bus: 'synth' }
+  95: { sf: 'pad_8_sweep', bus: 'synth' },
+
+  // Synth Effects (96-103)
+  96: { sf: 'fx_1_rain', bus: 'synth' },
+  97: { sf: 'fx_2_soundtrack', bus: 'synth' },
+  98: { sf: 'fx_3_crystal', bus: 'synth' },
+  99: { sf: 'fx_4_atmosphere', bus: 'synth' },
+  100: { sf: 'fx_5_brightness', bus: 'synth' },
+  101: { sf: 'fx_6_goblins', bus: 'synth' },
+  102: { sf: 'fx_7_echoes', bus: 'synth' },
+  103: { sf: 'fx_8_sci_fi', bus: 'synth' },
+
+  // Ethnic Instruments (104-111)
+  104: { sf: 'sitar', bus: 'guitar' },
+  105: { sf: 'banjo', bus: 'guitar' },
+  106: { sf: 'shamisen', bus: 'guitar' },
+  107: { sf: 'koto', bus: 'guitar' },
+  108: { sf: 'kalimba', bus: 'xylophone' },
+  109: { sf: 'bagpipe', bus: 'flute' },
+  110: { sf: 'fiddle', bus: 'violin' },
+  111: { sf: 'shanai', bus: 'flute' },
+
+  // Percussive (112-119)
+  112: { sf: 'tinkle_bell', bus: 'xylophone' },
+  113: { sf: 'agogo', bus: 'xylophone' },
+  114: { sf: 'steel_drums', bus: 'xylophone' },
+  115: { sf: 'woodblock', bus: 'xylophone' },
+  116: { sf: 'taiko_drum', bus: 'drums' },
+  117: { sf: 'melodic_tom', bus: 'drums' },
+  118: { sf: 'synth_drum', bus: 'drums' },
+  119: { sf: 'reverse_cymbal', bus: 'drums' },
+
+  // Sound Effects (120-127)
+  120: { sf: 'guitar_fret_noise', bus: 'guitar' },
+  121: { sf: 'breath_noise', bus: 'flute' },
+  122: { sf: 'seashore', bus: 'synth' },
+  123: { sf: 'bird_tweet', bus: 'synth' },
+  124: { sf: 'telephone_ring', bus: 'synth' },
+  125: { sf: 'helicopter', bus: 'synth' },
+  126: { sf: 'applause', bus: 'synth' },
+  127: { sf: 'gunshot', bus: 'drums' }
 };
 
 /**
