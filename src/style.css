@@ -999,8 +999,12 @@ body {
 /* Help Modal Grid */
 .help-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 20px;
+}
+
+#modal-help .modal-card {
+  width: min(94vw, 1000px);
 }
 
 .help-section h3 {
@@ -1018,7 +1022,8 @@ body {
   color: var(--text-secondary);
   margin-bottom: 8px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -1030,6 +1035,7 @@ kbd {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: #fff;
+  white-space: nowrap;
 }
 
 /* Dropzone Overlay */

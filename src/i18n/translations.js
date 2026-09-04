@@ -106,7 +106,7 @@ export const translations = {
       colInst: 'Assigned 3D Instrument'
     },
     helpModal: {
-      title: '⌨️ Controls & Shortcuts Guide',
+      title: '⌨️ Controls & Keyboard Shortcuts',
       camTitle: '🎮 Free Camera Navigation',
       leftClickDrag: 'Left Click + Drag',
       leftClickDragDesc: 'Orbit / Rotate camera',
@@ -115,7 +115,7 @@ export const translations = {
       mouseWheel: 'Mouse Wheel',
       mouseWheelDesc: 'Zoom in / Zoom out',
       wasdKeys: 'W A S D',
-      wasdDesc: 'Fly freely in space',
+      wasdDesc: 'Move freely around the stage',
       qeKeys: 'Q / E',
       qeDesc: 'Lower / Raise camera height',
       clickInst: 'Click on Instrument',
@@ -128,9 +128,15 @@ export const translations = {
       lKey: 'L',
       lDesc: 'Toggle continuous loop',
       numKeys: '1 - 7',
-      numDesc: 'Quick camera presets',
+      numDesc: 'Focus the visible or assigned MIDI instruments in their current order',
       mKey: 'M',
-      mDesc: 'Mute / Unmute master sound'
+      mDesc: 'Mute / Unmute master sound',
+      interfaceTitle: '✨ Views & Interface',
+      cDesc: 'Toggle Auto Director',
+      oDesc: 'Toggle cinematic orbit',
+      vDesc: 'Switch between dynamic visibility and showing all instruments',
+      hDesc: 'Open or close this guide',
+      escDesc: 'Close open panels and dialogs'
     },
     toasts: {
       welcome: '✨ Welcome to MIDI Orchestra. Press Play or drop a MIDI file!',
@@ -158,6 +164,8 @@ export const translations = {
       fileError: '❌ Error processing MIDI file',
       trackAssigned: (track, inst) => `Track "${track}" assigned to ${inst}`,
       songRestarted: '⏮️ Restarted to beginning',
+      cameraShortcut: (slot, instrument) => `📷 Camera ${slot}: ${instrument}`,
+      cameraSlotEmpty: (slot) => `Camera ${slot} has no MIDI instrument assigned`,
       webStudioAudio: '🔊 Audio: Web Studio (GeneralUser GS)',
       loadingGmSoundfont: '🎼 Loading GeneralUser GS sound bank for the first playback…',
       midijamMode: (name) => `🎛️ MIDIJam Mode: ${name} active (zero latency)`
@@ -301,7 +309,7 @@ export const translations = {
       colInst: 'Instrumento 3D Asignado'
     },
     helpModal: {
-      title: '⌨️ Guía de Controles & Atajos',
+      title: '⌨️ Controles y Atajos de Teclado',
       camTitle: '🎮 Navegación de Cámara Libre',
       leftClickDrag: 'Clic Izquierdo + Arrastrar',
       leftClickDragDesc: 'Orbitar / Rotar cámara',
@@ -310,7 +318,7 @@ export const translations = {
       mouseWheel: 'Rueda del Ratón',
       mouseWheelDesc: 'Zoom in / Zoom out',
       wasdKeys: 'W A S D',
-      wasdDesc: 'Volar en el espacio libre',
+      wasdDesc: 'Moverse libremente alrededor del escenario',
       qeKeys: 'Q / E',
       qeDesc: 'Bajar / Subir altura de cámara',
       clickInst: 'Clic en Instrumento',
@@ -323,9 +331,15 @@ export const translations = {
       lKey: 'L',
       lDesc: 'Activar / Desactivar bucle continuo',
       numKeys: '1 - 7',
-      numDesc: 'Vistas rápidas de cámara',
+      numDesc: 'Enfocar los instrumentos MIDI visibles o asignados, según su orden actual',
       mKey: 'M',
-      mDesc: 'Silenciar / Reactivar sonido general'
+      mDesc: 'Silenciar / Reactivar sonido general',
+      interfaceTitle: '✨ Vistas e Interfaz',
+      cDesc: 'Activar o desactivar el Director automático',
+      oDesc: 'Activar o desactivar el giro cinematográfico',
+      vDesc: 'Alternar entre visibilidad dinámica y mostrar todos los instrumentos',
+      hDesc: 'Abrir o cerrar esta guía',
+      escDesc: 'Cerrar paneles y ventanas abiertas'
     },
     toasts: {
       welcome: '✨ Bienvenido a MIDI Orchestra. ¡Presiona Reproducir o suelta un archivo MIDI!',
@@ -353,6 +367,8 @@ export const translations = {
       fileError: '❌ Error al procesar el archivo MIDI',
       trackAssigned: (track, inst) => `Pista "${track}" asignada a ${inst}`,
       songRestarted: '⏮️ Reiniciada al inicio',
+      cameraShortcut: (slot, instrument) => `📷 Cámara ${slot}: ${instrument}`,
+      cameraSlotEmpty: (slot) => `La cámara ${slot} no tiene un instrumento MIDI asignado`,
       webStudioAudio: '🔊 Audio: Web Studio (GeneralUser GS)',
       loadingGmSoundfont: '🎼 Cargando el banco GeneralUser GS para la primera reproducción…',
       midijamMode: (name) => `🎛️ Modo MIDIJam: ${name} activo (latencia cero)`

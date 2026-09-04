@@ -192,6 +192,9 @@ export class CameraController {
     window.addEventListener('keydown', (e) => {
       // Don't capture keys if typing in an input
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+      }
       this.keysPressed[e.key.toLowerCase()] = true;
     });
 

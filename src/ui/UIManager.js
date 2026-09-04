@@ -665,6 +665,14 @@ export class UIManager {
   _bindGlobalKeyboardShortcuts() {
     window.addEventListener('keydown', (e) => {
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+
+      const cameraNumber = e.code.match(/^(?:Digit|Numpad)([1-7])$/);
+      if (cameraNumber) {
+        e.preventDefault();
+        this._selectNumberedInstrument(Number(cameraNumber[1]) - 1);
+        return;
+      }
 
       switch (e.code) {
         case 'Space':
@@ -682,26 +690,17 @@ export class UIManager {
         case 'KeyM':
           this.dom.btnMasterMute.click();
           break;
-        case 'Digit1':
-          this._selectCameraPreset('overview');
+        case 'KeyC':
+          this.dom.btnDirectorMode?.click();
           break;
-        case 'Digit2':
-          this._selectCameraPreset('piano');
+        case 'KeyO':
+          this.dom.btnAutoRotate?.click();
           break;
-        case 'Digit3':
-          this._selectCameraPreset('drums');
+        case 'KeyV':
+          this.dom.btnInstrumentVisibility?.click();
           break;
-        case 'Digit4':
-          this._selectCameraPreset('guitar');
-          break;
-        case 'Digit5':
-          this._selectCameraPreset('bass');
-          break;
-        case 'Digit6':
-          this._selectCameraPreset('trumpet');
-          break;
-        case 'Digit7':
-          this._selectCameraPreset('conductor');
+        case 'KeyH':
+          this.dom.modalHelp.classList.toggle('hidden');
           break;
         case 'Escape':
           this.dom.modalSongs.classList.add('hidden');
@@ -713,12 +712,41 @@ export class UIManager {
     });
   }
 
+  _selectNumberedInstrument(slotIndex) {
+    const visible = this.midiPlayer.getVisibleInstruments();
+    const assigned = this.midiPlayer.getActiveInstruments();
+    const ordered = [...new Set([...visible, ...assigned])];
+    const instrument = ordered[slotIndex];
+
+    if (!instrument) {
+      this.showToast(i18n.t('toasts.cameraSlotEmpty', slotIndex + 1));
+      return;
+    }
+
+    this._selectCameraPreset(instrument);
+    const translationKey = `instruments.${instrument}`;
+    const translatedLabel = i18n.t(translationKey);
+    const label = translatedLabel === translationKey ? instrument : translatedLabel;
+    this.showToast(i18n.t('toasts.cameraShortcut', slotIndex + 1, label));
+  }
+
   _selectCameraPreset(preset) {
-    this.dom.camButtons.forEach(btn => {
-      if (btn.dataset.preset === preset) {
-        btn.click();
-      }
-    });
+    const button = [...this.dom.camButtons].find(btn => btn.dataset.preset === preset);
+    if (button) {
+      button.click();
+      return;
+    }
+
+    const basePreset = preset.split('_')[0];
+    const resolvedPreset = this.sceneManager.cameraController.presets[preset]
+      ? preset
+      : basePreset;
+    if (!this.sceneManager.cameraController.presets[resolvedPreset]) return;
+
+    this.sceneManager.cameraController.toggleDirectorMode(false);
+    this.dom.btnDirectorMode?.classList.remove('active');
+    this.dom.camButtons.forEach(btn => btn.classList.remove('active'));
+    this.sceneManager.cameraController.setPreset(resolvedPreset);
   }
 
   _bindMidiPlayerCallbacks() {
