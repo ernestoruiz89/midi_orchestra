@@ -100,47 +100,49 @@ export class Saxophone3D {
     const stand = new THREE.Group();
     stand.position.set(0, -1.25, 0);
 
-    // Central mast centered at x = 0
-    const pole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.014, 0.014, 1.20, 12),
-      this.standMaterial
+    // Weighted cast base in the same family as the flute and violin stands.
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.20, 0.23, 0.034, 24),
+      this.chromeMaterial
     );
-    pole.position.set(0, 0.60, -0.04);
-    stand.add(pole);
+    base.position.z = -0.04;
+    stand.add(base);
 
-    // Tripod Base with 3 legs
     for (let i = 0; i < 3; i++) {
       const angle = (i * Math.PI * 2) / 3;
-      const legGroup = new THREE.Group();
-      legGroup.position.set(0, 0, -0.04);
-      legGroup.rotation.y = angle;
-
-      const leg = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.009, 0.009, 0.40, 8),
-        this.standMaterial
-      );
-      leg.position.set(0.18, 0.09, 0);
-      leg.rotation.z = -Math.PI * 0.35;
-      legGroup.add(leg);
-
       const foot = new THREE.Mesh(
-        new THREE.SphereGeometry(0.016, 8, 8),
-        this.standMaterial
+        new THREE.CylinderGeometry(0.016, 0.016, 0.008, 12),
+        this.eboniteMaterial
       );
-      foot.position.set(0.33, 0.015, 0);
-      legGroup.add(foot);
-
-      stand.add(legGroup);
+      foot.position.set(
+        Math.cos(angle) * 0.185,
+        -0.018,
+        Math.sin(angle) * 0.185 - 0.04
+      );
+      stand.add(foot);
     }
 
-    // Lower Padded Bow Cradle centered at x = 0
-    const lowerCradle = new THREE.Mesh(
-      new THREE.TorusGeometry(0.075, 0.014, 8, 16, Math.PI),
-      this.standMaterial
+    // Telescopic column placed just behind the hanging instrument.
+    const lowerPole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.013, 0.013, 0.64, 12),
+      this.chromeMaterial
     );
-    lowerCradle.position.set(0, 0.38, 0.06);
-    lowerCradle.rotation.x = Math.PI / 2;
-    stand.add(lowerCradle);
+    lowerPole.position.set(0, 0.32, -0.04);
+    stand.add(lowerPole);
+
+    const collar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.020, 0.020, 0.04, 16),
+      this.chromeMaterial
+    );
+    collar.position.set(0, 0.64, -0.04);
+    stand.add(collar);
+
+    const upperPole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.009, 0.009, 0.55, 12),
+      this.chromeMaterial
+    );
+    upperPole.position.set(0, 0.91, -0.04);
+    stand.add(upperPole);
 
     // Upper Padded Body Yoke Cradle centered at x = 0
     const upperYoke = new THREE.Mesh(

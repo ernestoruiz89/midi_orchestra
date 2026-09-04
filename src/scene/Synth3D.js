@@ -21,7 +21,7 @@ export class Synth3D {
     this.group = new THREE.Group();
     // Positioned front-left stage
     this.group.position.set(-4.0, 0.95, 2.0);
-    this.group.rotation.set(0.04, Math.PI * 0.18, 0);
+    this.group.rotation.set(0, Math.PI * 0.14, 0);
 
     this.keys = {};
     this.rgbPads = [];

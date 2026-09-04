@@ -21,8 +21,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Expose global app for interaction and debugging
   window.app = { soundEngine, midiPlayer, sceneManager, uiManager, i18n };
 
-  // 4. Load Default Demo Song ("Funk & Jazz Band Jam")
-  await uiManager.loadDemoSong('funk_fusion');
+  // 4. Preload the default demo without starting audio. Playback must always
+  // follow an explicit Play click or demo-song selection.
+  await uiManager.loadDemoSong('funk_fusion', { autoplay: false });
 
   // Show welcome toast
   uiManager.showToast(i18n.t('toasts.welcome'));

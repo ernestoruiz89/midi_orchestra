@@ -94,7 +94,7 @@ export class Bass3D {
 
   _buildBassStand() {
     const standGroup = new THREE.Group();
-    standGroup.position.set(0, -0.72, 0);
+    standGroup.position.set(0, -0.97, 0);
 
     const base = new THREE.Mesh(
       new THREE.CylinderGeometry(0.012, 0.012, 0.54, 12),

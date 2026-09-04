@@ -42,6 +42,7 @@ export class Guitar3D {
     // Front face tilted upwards towards the camera
     this.guitarModel.rotation.set(-0.28, 0.10, -1.35);
     this.group.add(this.guitarModel);
+    this._buildGuitarStand();
 
     this.scene.add(this.group);
   }
@@ -114,6 +115,87 @@ export class Guitar3D {
       roughness: 0.25,
       metalness: 0.1
     });
+
+    this.standPaddingMaterial = new THREE.MeshStandardMaterial({
+      color: 0x0c0d0f,
+      roughness: 0.82,
+      metalness: 0.02
+    });
+  }
+
+  _buildGuitarStand() {
+    const stand = new THREE.Group();
+
+    // A compact weighted disc avoids the visual tangle produced by several
+    // overlapping tripod legs when electric guitars share the same section.
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.14, 0.16, 0.04, 32),
+      this.standPaddingMaterial
+    );
+    base.position.y = 0.02;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    stand.add(base);
+
+    const mast = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.014, 0.017, 1, 12),
+      this.chromeMaterial
+    );
+    mast.castShadow = true;
+    stand.add(mast);
+
+    const cradle = new THREE.Group();
+    // The lower bout rises toward the neck in the guitar's playing pose.
+    // Tilting the whole yoke keeps both padded ends immediately below that
+    // contour instead of letting one pierce the body while the other floats.
+    cradle.rotation.z = 0.30;
+    const cradleBar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.012, 0.012, 0.32, 10),
+      this.chromeMaterial
+    );
+    cradleBar.rotation.z = Math.PI / 2;
+    cradleBar.position.z = -0.055;
+    cradle.add(cradleBar);
+
+    [-0.15, 0.15].forEach((x) => {
+      const paddedArm = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.019, 0.019, 0.16, 12),
+        this.standPaddingMaterial
+      );
+      paddedArm.rotation.x = Math.PI / 2;
+      paddedArm.position.set(x, 0.025, 0.015);
+      cradle.add(paddedArm);
+
+      const stop = new THREE.Mesh(
+        new THREE.SphereGeometry(0.025, 12, 8),
+        this.standPaddingMaterial
+      );
+      stop.scale.set(0.8, 1.15, 0.8);
+      stop.position.set(x, 0.025, 0.09);
+      cradle.add(stop);
+    });
+
+    stand.add(cradle);
+    this.standGroup = stand;
+    this.standMast = mast;
+    this.standCradle = cradle;
+    this.group.add(stand);
+    this._syncGuitarStand();
+  }
+
+  _syncGuitarStand() {
+    if (!this.standGroup) return;
+
+    const floorY = 0.04;
+    const cradleY = Math.max(0.42, this.group.position.y - 0.19);
+    const mastHeight = cradleY - floorY;
+
+    // Cancel the instrument's changing vertical placement so the feet remain
+    // at world y=0 while the cradle follows the lower edge of the guitar.
+    this.standGroup.position.y = -this.group.position.y;
+    this.standMast.scale.y = mastHeight;
+    this.standMast.position.set(0, floorY + mastHeight * 0.5, -0.055);
+    this.standCradle.position.y = cradleY;
   }
 
   _buildGuitarBody() {
@@ -735,6 +817,8 @@ export class Guitar3D {
   onNoteOff(midiPitch) {}
 
   update(delta) {
+    this._syncGuitarStand();
+
     // Physical harmonic oscillation of vibrating strings
     this.strings.forEach(str => {
       if (str.vibrationAmp > 0.0001) {

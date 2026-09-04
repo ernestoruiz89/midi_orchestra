@@ -372,7 +372,7 @@ export class UIManager {
     });
   }
 
-  async loadDemoSong(songId) {
+  async loadDemoSong(songId, { autoplay = true } = {}) {
     const songData = DemoSongs.getSongData(songId);
     this.midiPlayer.stop();
 
@@ -394,7 +394,7 @@ export class UIManager {
     if (this.dom.btnDirectorMode) this.dom.btnDirectorMode.classList.remove('active');
 
     this.showToast(i18n.t('toasts.songLoaded', songData.name));
-    await this.midiPlayer.play();
+    if (autoplay) await this.midiPlayer.play();
   }
 
   _bindFileUploadAndDropzone() {
@@ -834,20 +834,32 @@ export class UIManager {
     const activeList = activeInstrumentsList || this.midiPlayer.getActiveInstruments();
     const activeSet = new Set(activeList);
 
-    // 1. Update the 3D stage using the current musical time. Assigned
+    // 1. Arrange assigned instruments once per song/assignment. Dynamic
+    // visibility during rests must not cause the stage to keep reshuffling.
+    if (this.sceneManager && typeof this.sceneManager.layoutInstruments === 'function') {
+      const prominenceByInstrument = this.midiPlayer.trackInfos.reduce((scores, track) => {
+        if (track.instanceId) {
+          scores[track.instanceId] = (scores[track.instanceId] || 0) + (track.noteCount || 0);
+        }
+        return scores;
+      }, {});
+      this.sceneManager.layoutInstruments(activeList, prominenceByInstrument);
+    }
+
+    // 2. Update the 3D stage using the current musical time. Assigned
     // instruments remain available in the UI even while resting off-stage.
     if (this.sceneManager && typeof this.sceneManager.setVisibleInstruments === 'function') {
       this.sceneManager.setVisibleInstruments(this.midiPlayer.getVisibleInstruments());
     }
 
-    // 2. Update JAM BAND dock: hide cards for instruments not in this song
+    // 3. Update JAM BAND dock: hide cards for instruments not in this song
     this.dom.bandCards.forEach(card => {
       const inst = card.dataset.inst;
       const isPresent = activeSet.has(inst);
       card.style.display = isPresent ? 'flex' : 'none';
     });
 
-    // 3. Update Camera toolbar: hide buttons for instruments not on stage
+    // 4. Update Camera toolbar: hide buttons for instruments not on stage
     this.dom.camButtons.forEach(btn => {
       const preset = btn.dataset.preset;
       if (preset === 'overview' || preset === 'conductor') {
@@ -858,7 +870,7 @@ export class UIManager {
       }
     });
 
-    // 4. Update Mixer Drawer: show only channels that are actually assigned
+    // 5. Update Mixer Drawer: show only channels that are actually assigned
     // to a MIDI track, including any duplicate instrument instances.
     if (this.dom.drawerMixer) {
       const strips = this.dom.drawerMixer.querySelectorAll('.mixer-strip');

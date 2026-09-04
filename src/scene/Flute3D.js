@@ -18,7 +18,9 @@ export class Flute3D {
     this.group = new THREE.Group();
     // Positioned front-right inner stage
     this.group.position.set(1.6, 1.30, 1.8);
-    this.group.rotation.set(-0.04, -Math.PI * 0.12, -0.04);
+    // A transverse flute is presented horizontally across the stage, with its
+    // body pointing to audience-right rather than projecting like a trumpet.
+    this.group.rotation.set(-0.04, 0, -0.04);
 
     this.keys = [];
     this.breathParticles = [];

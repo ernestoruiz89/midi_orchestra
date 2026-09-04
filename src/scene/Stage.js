@@ -157,7 +157,7 @@ export class Stage {
   _buildMovingHeadSpotlights() {
     // 6 Moving-head spotlights targeting different instruments
     const spotConfigs = [
-      { x: -5.5, z: 3.2, target: [-4.2, 1.4, 0.8], color: 0x00d2ff, name: 'piano_spot' },
+      { x: -5.5, z: 3.2, target: [-3.6, 0.70, 0.35], color: 0xffe6d0, intensity: 22, penumbra: 0.85, name: 'piano_spot' },
       { x: -2.0, z: 3.2, target: [-2.4, 1.4, -0.4], color: 0xff007f, name: 'bass_spot' },
       { x: 0.0, z: 3.2, target: [0, 1.2, -1.2], color: 0xffaa00, name: 'drum_spot' },
       { x: 2.2, z: 3.2, target: [2.8, 1.4, 0.6], color: 0xffeedd, name: 'guitar_spot' },
@@ -179,8 +179,10 @@ export class Stage {
       head.position.y = -0.22;
       spotGroup.add(head);
 
-      // Three.js SpotLight
-      const spotLight = new THREE.SpotLight(cfg.color, 45, 18, Math.PI / 6, 0.4, 1.2);
+      // Three.js SpotLight with customizable intensity and penumbra
+      const intensity = cfg.intensity !== undefined ? cfg.intensity : 45;
+      const penumbra = cfg.penumbra !== undefined ? cfg.penumbra : 0.4;
+      const spotLight = new THREE.SpotLight(cfg.color, intensity, 18, Math.PI / 5, penumbra, 1.2);
       spotLight.position.set(0, -0.25, 0);
       spotLight.castShadow = true;
       spotLight.shadow.mapSize.width = 1024;
@@ -222,7 +224,7 @@ export class Stage {
         beam: beamMesh,
         target: targetObj,
         baseColor: cfg.color,
-        baseIntensity: 45,
+        baseIntensity: intensity,
         name: cfg.name
       });
     });
@@ -282,23 +284,63 @@ export class Stage {
 
   updateSpotlightsForActiveInstruments(activeSet) {
     const spotMap = {
-      piano_spot: 'piano',
+      piano_spot: ['piano', 'synth'],
       bass_spot: ['bass', 'doubleBass'],
-      drum_spot: 'drums',
+      drum_spot: ['drums', 'xylophone'],
       guitar_spot: ['guitar', 'acousticGuitar'],
-      trumpet_spot: 'trumpet',
+      trumpet_spot: ['trumpet', 'sax'],
       violin_spot: 'violin',
       cello_spot: 'cello',
       flute_spot: 'flute'
     };
 
+    const activeFamilies = new Set(
+      [...activeSet].map(key => key.replace(/_\d+$/, ''))
+    );
+
     this.spotlights.forEach(spot => {
       const inst = spotMap[spot.name];
       if (inst) {
-        const isVisible = Array.isArray(inst) ? inst.some(name => activeSet.has(name)) : activeSet.has(inst);
+        const isVisible = Array.isArray(inst)
+          ? inst.some(name => activeFamilies.has(name))
+          : activeFamilies.has(inst);
         spot.light.intensity = isVisible ? spot.baseIntensity : 0;
         // Beam cones only visible when Light Show is enabled AND instrument is active
         spot.beam.visible = this.lightShowEnabled && isVisible;
+      }
+    });
+  }
+
+  updateInstrumentLayout(positionMap) {
+    const spotFamilies = {
+      piano_spot: ['piano', 'synth'],
+      bass_spot: ['bass', 'doubleBass'],
+      drum_spot: ['drums', 'xylophone'],
+      guitar_spot: ['guitar', 'acousticGuitar'],
+      trumpet_spot: ['trumpet', 'sax'],
+      violin_spot: ['violin'],
+      cello_spot: ['cello'],
+      flute_spot: ['flute']
+    };
+
+    this.spotlights.forEach((spot) => {
+      const families = spotFamilies[spot.name] || [];
+      const match = [...positionMap.entries()].find(([key]) =>
+        families.includes(key.replace(/_\d+$/, ''))
+      );
+      if (!match) return;
+
+      const target = match[1];
+      spot.target.position.copy(target);
+
+      // The decorative cone is local to the overhead fixture. Reorient its
+      // -Y axis to the new world-space instrument target.
+      const localTarget = spot.group.worldToLocal(target.clone());
+      if (localTarget.lengthSq() > 0.0001) {
+        spot.beam.quaternion.setFromUnitVectors(
+          new THREE.Vector3(0, -1, 0),
+          localTarget.normalize()
+        );
       }
     });
   }

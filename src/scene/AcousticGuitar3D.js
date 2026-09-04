@@ -30,7 +30,9 @@ export class AcousticGuitar3D {
     // Held-across-the-body posture: the guitar faces the audience while the
     // neck rises naturally instead of sitting perfectly horizontal.
     this.guitarModel.rotation.set(-0.20, -0.08, -1.20);
+    this.guitarModel.position.y = -0.045;
     this.group.add(this.guitarModel);
+    this._buildGuitarStand();
     this.scene.add(this.group);
   }
 
@@ -111,6 +113,78 @@ export class AcousticGuitar3D {
       roughness: 0.34,
       metalness: 0.08
     });
+  }
+
+  _buildGuitarStand() {
+    const stand = new THREE.Group();
+
+    // Use the same clean weighted-base language as the electric guitars.
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.14, 0.16, 0.04, 32),
+      this.blackMaterial
+    );
+    base.position.y = 0.02;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    stand.add(base);
+
+    const mast = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.014, 0.017, 1, 12),
+      this.chromeMaterial
+    );
+    mast.castShadow = true;
+    stand.add(mast);
+
+    const cradle = new THREE.Group();
+    // Follow the neck's rise while keeping both contacts on the asymmetric
+    // lower bout; the waist-side contact must sit much closer to the mast.
+    cradle.rotation.z = 0.36;
+
+    const cradleBar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.012, 0.012, 0.30, 10),
+      this.chromeMaterial
+    );
+    cradleBar.rotation.z = Math.PI / 2;
+    cradleBar.position.set(-0.10, 0, -0.08);
+    cradle.add(cradleBar);
+
+    [-0.23, 0.03].forEach((x) => {
+      const paddedArm = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.021, 0.021, 0.19, 12),
+        this.blackMaterial
+      );
+      paddedArm.rotation.x = Math.PI / 2;
+      paddedArm.position.set(x, 0.03, 0.015);
+      cradle.add(paddedArm);
+
+      const stop = new THREE.Mesh(
+        new THREE.SphereGeometry(0.028, 12, 8),
+        this.blackMaterial
+      );
+      stop.scale.set(0.82, 1.2, 0.82);
+      stop.position.set(x, 0.03, 0.11);
+      cradle.add(stop);
+    });
+
+    stand.add(cradle);
+    this.standGroup = stand;
+    this.standMast = mast;
+    this.standCradle = cradle;
+    this.group.add(stand);
+    this._syncGuitarStand();
+  }
+
+  _syncGuitarStand() {
+    if (!this.standGroup) return;
+
+    const floorY = 0.04;
+    const cradleY = Math.max(0.44, this.group.position.y - 0.355);
+    const mastHeight = cradleY - floorY;
+
+    this.standGroup.position.y = -this.group.position.y;
+    this.standMast.scale.y = mastHeight;
+    this.standMast.position.set(0, floorY + mastHeight * 0.5, -0.08);
+    this.standCradle.position.y = cradleY;
   }
 
   _createSpruceTexture(color) {
@@ -551,6 +625,8 @@ export class AcousticGuitar3D {
   onNoteOff() {}
 
   update(delta) {
+    this._syncGuitarStand();
+
     this.strings.forEach(string => {
       if (string.vibrationAmp > 0.0001) {
         string.phase += string.vibrationSpeed * delta;

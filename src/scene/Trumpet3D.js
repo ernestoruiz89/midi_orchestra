@@ -97,52 +97,68 @@ export class Trumpet3D {
     const stand = new THREE.Group();
     stand.position.set(0, -1.40, 0);
 
-    // Central mast
-    const pole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.014, 0.014, 1.35, 12),
-      this.standMaterial
-    );
-    pole.position.y = 0.675;
-    stand.add(pole);
-
-    // Collar fitting
-    const collar = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.022, 0.022, 0.04, 12),
+    // Heavy cast base matching the flute and violin studio stands.
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.18, 0.21, 0.032, 24),
       this.chromeMaterial
     );
-    collar.position.y = 0.22;
-    stand.add(collar);
+    stand.add(base);
 
-    // 3 Folding Tripod Legs
     for (let i = 0; i < 3; i++) {
       const angle = (i * Math.PI * 2) / 3;
-      const legGroup = new THREE.Group();
-      legGroup.rotation.y = angle;
-
-      const leg = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.009, 0.009, 0.42, 8),
-        this.standMaterial
-      );
-      leg.position.set(0.18, 0.10, 0);
-      leg.rotation.z = -Math.PI * 0.35;
-      legGroup.add(leg);
-
       const foot = new THREE.Mesh(
-        new THREE.SphereGeometry(0.016, 8, 8),
+        new THREE.CylinderGeometry(0.016, 0.016, 0.008, 12),
         this.standMaterial
       );
-      foot.position.set(0.34, 0.015, 0);
-      legGroup.add(foot);
-
-      stand.add(legGroup);
+      foot.position.set(Math.cos(angle) * 0.17, -0.018, Math.sin(angle) * 0.17);
+      stand.add(foot);
     }
 
-    // Top Rubber Velvet Cradle Cone supporting the trumpet securely
+    // Two-piece telescopic chrome mast with a visible locking collar.
+    const lowerPole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.013, 0.013, 0.70, 12),
+      this.chromeMaterial
+    );
+    lowerPole.position.y = 0.35;
+    stand.add(lowerPole);
+
+    const collar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.020, 0.020, 0.04, 16),
+      this.chromeMaterial
+    );
+    collar.position.y = 0.70;
+    stand.add(collar);
+
+    const upperPole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.009, 0.009, 0.62, 12),
+      this.chromeMaterial
+    );
+    upperPole.position.y = 1.01;
+    stand.add(upperPole);
+
+    // Compact padded bell cone and shoulder cradle.
+    const crossbar = new THREE.Mesh(
+      new THREE.BoxGeometry(0.20, 0.012, 0.016),
+      this.chromeMaterial
+    );
+    crossbar.position.y = 1.31;
+    stand.add(crossbar);
+
+    [-0.075, 0.075].forEach((x) => {
+      const pad = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.007, 0.007, 0.055, 10),
+        this.standMaterial
+      );
+      pad.position.set(x, 1.335, 0.018);
+      pad.rotation.x = Math.PI * 0.18;
+      stand.add(pad);
+    });
+
     const cradleCone = new THREE.Mesh(
       new THREE.ConeGeometry(0.035, 0.12, 16),
       this.standMaterial
     );
-    cradleCone.position.y = 1.34;
+    cradleCone.position.y = 1.37;
     stand.add(cradleCone);
 
     this.group.add(stand);
