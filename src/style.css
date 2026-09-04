@@ -27,6 +27,7 @@
 body {
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background-color: var(--bg-dark);
   font-family: var(--font-main);
@@ -1117,11 +1118,52 @@ kbd {
 
 /* Responsive adjustments */
 @media (max-width: 900px) {
+  .app-header {
+    left: 12px;
+    right: 12px;
+    padding: 0 12px;
+  }
+  .header-left {
+    min-width: 0;
+    gap: 12px;
+  }
+  .current-track-badge,
+  .track-meta {
+    min-width: 0;
+  }
+  .track-title {
+    max-width: 170px;
+  }
+  .header-right {
+    gap: 5px;
+  }
+  .header-right .btn:not(.btn-icon-only) {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+  .header-right .btn:not(.btn-icon-only) > span:not(.btn-icon) {
+    display: none;
+  }
   .camera-toolbar {
     top: 84px;
     right: 12px;
     left: 12px;
     overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    border-radius: var(--radius-md);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .camera-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+  .cam-btn,
+  .toolbar-label {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
   .free-cam-hint {
     display: none;
@@ -1132,5 +1174,191 @@ kbd {
   }
   .speed-selector {
     display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-header {
+    top: max(6px, env(safe-area-inset-top));
+    left: 8px;
+    right: 8px;
+    height: auto;
+    min-height: 96px;
+    padding: 8px 10px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 6px;
+  }
+  .header-left,
+  .header-right {
+    width: 100%;
+  }
+  .header-left {
+    gap: 9px;
+  }
+  .logo {
+    flex: 0 0 auto;
+    gap: 6px;
+    font-size: 0.88rem;
+    line-height: 1.05;
+  }
+  .logo-icon {
+    font-size: 1.05rem;
+  }
+  .logo-text {
+    max-width: 88px;
+  }
+  .current-track-badge {
+    flex: 1 1 auto;
+    padding: 5px 9px;
+    gap: 8px;
+  }
+  .track-title {
+    max-width: none;
+    width: 100%;
+    font-size: 0.78rem;
+  }
+  .track-bpm {
+    display: none;
+  }
+  .header-right {
+    justify-content: space-between;
+    gap: 5px;
+  }
+  .header-right .btn,
+  .header-right .btn:not(.btn-icon-only) {
+    width: 40px;
+    height: 34px;
+    min-width: 40px;
+    padding: 0;
+    border-radius: 9px;
+    justify-content: center;
+  }
+  .camera-toolbar {
+    top: calc(max(6px, env(safe-area-inset-top)) + 104px);
+    left: 8px;
+    right: 8px;
+    min-height: 44px;
+    padding: 4px 6px;
+    gap: 2px;
+  }
+  .toolbar-label {
+    display: none;
+  }
+  .cam-btn {
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 0.76rem;
+    scroll-snap-align: center;
+  }
+  .cam-btn.cam-action {
+    margin-left: 0;
+    padding-left: 10px;
+  }
+  .playback-bar {
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: calc(100vw - 16px);
+    height: auto;
+    min-height: 92px;
+    padding: 9px 12px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "timeline timeline"
+      "controls volume";
+    gap: 7px 10px;
+  }
+  .playback-controls {
+    grid-area: controls;
+    gap: 8px;
+  }
+  .timeline-container {
+    grid-area: timeline;
+    width: 100%;
+    min-width: 0;
+    gap: 7px;
+  }
+  .volume-container {
+    grid-area: volume;
+  }
+  .control-btn {
+    width: 38px;
+    height: 38px;
+  }
+  .play-btn {
+    width: 46px;
+    height: 46px;
+  }
+  .time-display {
+    min-width: 36px;
+    font-size: 0.72rem;
+  }
+  #master-volume {
+    width: 58px;
+  }
+  .toast {
+    bottom: calc(max(8px, env(safe-area-inset-bottom)) + 104px);
+    width: min(88vw, 330px);
+    padding: 9px 16px;
+    border-radius: var(--radius-md);
+    text-align: center;
+  }
+  .modal-overlay {
+    padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
+  }
+  .modal-card,
+  #modal-help .modal-card {
+    width: 100%;
+    max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+  .modal-header {
+    padding: 14px 16px;
+  }
+  .modal-body {
+    padding: 16px;
+  }
+  .side-drawer {
+    top: calc(max(6px, env(safe-area-inset-top)) + 104px);
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: calc(100dvh - 220px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .app-header {
+    top: 6px;
+    height: 48px;
+    min-height: 48px;
+    flex-direction: row;
+    padding: 0 10px;
+  }
+  .logo-text,
+  .track-bpm {
+    display: none;
+  }
+  .camera-toolbar {
+    top: 60px;
+    min-height: 40px;
+  }
+  .playback-bar {
+    bottom: 6px;
+    width: min(96vw, 760px);
+    min-height: 58px;
+    height: 58px;
+    display: flex;
+    padding: 0 12px;
+  }
+  .timeline-container {
+    width: auto;
+  }
+  .volume-container {
+    display: none;
+  }
+  .toast {
+    bottom: 72px;
   }
 }

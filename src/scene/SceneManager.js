@@ -260,6 +260,8 @@ export class SceneManager {
       this.renderer.domElement,
       this.scene
     );
+    this.visibleInstrumentNames = new Set();
+    this.cameraController.onPresetChange = () => this._applyInstrumentVisibility();
 
     // Immediately initialize exact camera presets for every instrument at home position
     Object.entries(this.allInstruments).forEach(([key, instrument]) => {
@@ -858,13 +860,9 @@ export class SceneManager {
   // Dynamically show or hide 3D instruments based on MIDI song assignment
   setVisibleInstruments(activeInstrumentNames) {
     const activeSet = new Set(activeInstrumentNames);
+    this.visibleInstrumentNames = activeSet;
 
-    for (const key in this.allInstruments) {
-      const instObj = this.allInstruments[key];
-      if (instObj && instObj.group) {
-        instObj.group.visible = activeSet.has(key);
-      }
-    }
+    this._applyInstrumentVisibility();
 
     // Update Camera Controller with current visible instruments
     if (this.cameraController) {
@@ -874,6 +872,28 @@ export class SceneManager {
     // Update Stage spotlights
     if (this.stage && typeof this.stage.updateSpotlightsForActiveInstruments === 'function') {
       this.stage.updateSpotlightsForActiveInstruments(activeSet);
+    }
+  }
+
+  _applyInstrumentVisibility() {
+    const activeSet = this.visibleInstrumentNames || new Set();
+    const presetName = this.cameraController?.currentPreset || 'overview';
+    const widePresets = new Set(['overview', 'conductor', 'stage_wing_left', 'stage_wing_right']);
+    let focusedInstrument = null;
+
+    if (!widePresets.has(presetName)) {
+      // Match longer instance IDs first, e.g. guitar_2 before guitar, then
+      // accept its derived views such as guitar_2_closeup.
+      focusedInstrument = Object.keys(this.allInstruments)
+        .sort((a, b) => b.length - a.length)
+        .find(key => presetName === key || presetName.startsWith(`${key}_`)) || null;
+    }
+
+    for (const key in this.allInstruments) {
+      const instObj = this.allInstruments[key];
+      if (instObj && instObj.group) {
+        instObj.group.visible = activeSet.has(key) || key === focusedInstrument;
+      }
     }
   }
 
@@ -942,6 +962,9 @@ export class SceneManager {
 
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    if (this.cameraController) {
+      this.cameraController.setViewportAspect(this.camera.aspect);
+    }
 
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));

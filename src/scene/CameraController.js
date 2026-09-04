@@ -11,6 +11,9 @@ export class CameraController {
     this.camera = camera;
     this.domElement = domElement;
     this.scene = scene;
+    this.baseVerticalFov = 48;
+    this.viewportAspect = this.camera.aspect;
+    this.onPresetChange = null;
 
     this.controls = new OrbitControls(this.camera, this.domElement);
     this.controls.enableDamping = true;
@@ -106,13 +109,16 @@ export class CameraController {
 
     this._setupRaycasting();
     this._setupKeyboard();
+    this.setViewportAspect(this.camera.aspect, { reapplyPreset: false });
   }
 
   setPreset(name, duration = 1.2) {
-    const preset = this.presets[name];
-    if (!preset) return;
+    const sourcePreset = this.presets[name];
+    if (!sourcePreset) return;
+    const preset = this._framePresetForViewport(name, sourcePreset);
 
     this.currentPreset = name;
+    if (this.onPresetChange) this.onPresetChange(name);
 
     gsap.killTweensOf(this.camera.position);
     gsap.killTweensOf(this.controls.target);
@@ -149,6 +155,39 @@ export class CameraController {
         this.isTransitioning = false;
       }
     });
+  }
+
+  setViewportAspect(aspect, { reapplyPreset = true } = {}) {
+    this.viewportAspect = Math.max(0.3, Number(aspect) || 1);
+
+    // Portrait screens have a very narrow horizontal field of view. Widening
+    // the vertical FOV keeps the stage useful without pushing the camera so
+    // far back that every instrument becomes a dot.
+    const portraitAmount = THREE.MathUtils.clamp((0.9 - this.viewportAspect) / 0.48, 0, 1);
+    this.camera.fov = THREE.MathUtils.lerp(this.baseVerticalFov, 72, portraitAmount);
+    this.camera.updateProjectionMatrix();
+
+    if (reapplyPreset && this.currentPreset && this.presets[this.currentPreset]) {
+      this.setPreset(this.currentPreset, 0);
+    }
+  }
+
+  _framePresetForViewport(name, preset) {
+    const pos = preset.pos.clone();
+    const target = preset.target.clone();
+    if (this.viewportAspect >= 0.9) return { pos, target };
+
+    const wideShots = new Set(['overview', 'conductor', 'stage_wing_left', 'stage_wing_right']);
+    if (wideShots.has(name)) return { pos, target };
+
+    // Instrument presets were authored on a 16:9 canvas. Pull portrait
+    // close-ups back along the same sight line so wide keyboards, guitars and
+    // drum kits remain fully visible instead of being cropped off-screen.
+    const portraitAmount = THREE.MathUtils.clamp((0.9 - this.viewportAspect) / 0.48, 0, 1);
+    const distanceScale = THREE.MathUtils.lerp(1, 1.62, portraitAmount);
+    const sightLine = pos.clone().sub(target).multiplyScalar(distanceScale);
+    pos.copy(target).add(sightLine);
+    return { pos, target };
   }
 
   updateInstrumentPreset(name, target, size = new THREE.Vector3(1, 1, 1), instrumentGroup = null, origin = null) {
@@ -600,20 +639,9 @@ export class CameraController {
 
   setActiveInstruments(activeSet) {
     this.activeInstruments = activeSet;
-    // If the currently viewed instrument is no longer on stage, smoothly return to overview
-    const widePresets = new Set(['overview', 'conductor', 'stage_wing_left', 'stage_wing_right']);
-    if (this.currentPreset && !widePresets.has(this.currentPreset)) {
-      const basePreset = this.currentPreset.split('_')[0];
-      const isVisible = this.activeInstruments && (
-        this.activeInstruments.has(this.currentPreset) ||
-        this.activeInstruments.has(basePreset) ||
-        (this.currentPreset.startsWith('guitar') && this.activeInstruments.has('guitar')) ||
-        (this.currentPreset.startsWith('piano') && this.activeInstruments.has('piano'))
-      );
-      if (this.activeInstruments && !isVisible) {
-        this.setPreset('overview', 1.2);
-      }
-    }
+    // Do not eject a manually selected close-up during a musical rest. The
+    // focused model is kept visible by SceneManager; new songs explicitly
+    // reset the camera to the overview preset after loading.
   }
 
   directorCut() {
