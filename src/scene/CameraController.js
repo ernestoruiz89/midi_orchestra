@@ -46,8 +46,12 @@ export class CameraController {
       doubleBass_2: { pos: new THREE.Vector3(-3.10, 1.45, 2.85), target: new THREE.Vector3(-3.10, 1.20, -0.35) },
       trumpet: { pos: new THREE.Vector3(4.10, 1.52, 1.55), target: new THREE.Vector3(4.45, 1.45, 0.40) },
       trumpet_closeup: { pos: new THREE.Vector3(3.95, 1.48, 1.25), target: new THREE.Vector3(4.40, 1.45, 0.40) },
+      frenchHorn: { pos: new THREE.Vector3(4.35, 1.51, 2.45), target: new THREE.Vector3(4.16, 1.29, 1.22) },
+      frenchHorn_closeup: { pos: new THREE.Vector3(4.30, 1.45, 2.05), target: new THREE.Vector3(4.16, 1.29, 1.22) },
       sax: { pos: new THREE.Vector3(3.15, 1.45, 3.35), target: new THREE.Vector3(3.40, 1.35, 1.80) },
       sax_closeup: { pos: new THREE.Vector3(3.05, 1.40, 2.85), target: new THREE.Vector3(3.40, 1.35, 1.80) },
+      clarinet: { pos: new THREE.Vector3(3.55, 1.47, 3.19), target: new THREE.Vector3(2.35, 1.30, 2.20) },
+      clarinet_closeup: { pos: new THREE.Vector3(3.18, 1.41, 2.85), target: new THREE.Vector3(2.38, 1.31, 2.22) },
       violin: { pos: new THREE.Vector3(-4.12, 1.45, 0.05), target: new THREE.Vector3(-4.15, 1.38, -1.80) },
       violin_closeup: { pos: new THREE.Vector3(-4.15, 1.40, -0.55), target: new THREE.Vector3(-4.15, 1.38, -1.80) },
       cello: { pos: new THREE.Vector3(-3.10, 1.45, 1.15), target: new THREE.Vector3(-3.30, 1.25, -1.20) },
@@ -57,6 +61,8 @@ export class CameraController {
       xylophone: { pos: new THREE.Vector3(-3.00, 1.78, 2.10), target: new THREE.Vector3(-3.54, 0.96, 0.38) },
       xylophone_topdown: { pos: new THREE.Vector3(-3.37, 2.45, 0.70), target: new THREE.Vector3(-3.54, 0.96, 0.38) },
       xylophone_closeup: { pos: new THREE.Vector3(-3.23, 1.30, 1.15), target: new THREE.Vector3(-3.54, 0.96, 0.38) },
+      cabasa: { pos: new THREE.Vector3(-1.20, 1.25, 2.75), target: new THREE.Vector3(-1.20, 1.05, 1.80) },
+      cabasa_closeup: { pos: new THREE.Vector3(-1.20, 1.18, 2.45), target: new THREE.Vector3(-1.20, 1.05, 1.80) },
       synth: { pos: new THREE.Vector3(-3.00, 1.75, 3.15), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
       synth_topdown: { pos: new THREE.Vector3(-3.37, 2.40, 2.38), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
       synth_closeup: { pos: new THREE.Vector3(-3.23, 1.35, 2.75), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
@@ -101,6 +107,7 @@ export class CameraController {
       this.camera.position.copy(preset.pos);
       this.controls.target.copy(preset.target);
       this.camera.lookAt(preset.target);
+      this.controls.update();
       this.controls.enabled = true;
       this.isTransitioning = false;
       return;
@@ -360,6 +367,45 @@ export class CameraController {
       this.presets[`${name}_closeup`] = {
         pos: localToWorld(0.0, 0.06, 0.75),
         target: localToWorld(0.0, 0.0, 0.0)
+      };
+      return;
+    }
+
+    if (name.startsWith('frenchHorn')) {
+      // 3/4 golden perspective: wide flared bell, circular hoop, 4-rotor valve cluster & double-S loop
+      this.presets[name] = {
+        pos: localToWorld(0.25, 0.16, 1.25),
+        target: localToWorld(0.06, -0.06, 0.02)
+      };
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(0.20, 0.10, 0.85),
+        target: localToWorld(0.06, -0.06, 0.02)
+      };
+      return;
+    }
+
+    if (name.startsWith('clarinet')) {
+      // 3/4 concert framing showcasing both the Boehm keywork and the ~37° forward playing angle
+      this.presets[name] = {
+        pos: localToWorld(0.70, 0.22, 1.35),
+        target: localToWorld(-0.05, 0.05, 0.0)
+      };
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(0.48, 0.16, 0.95),
+        target: localToWorld(-0.02, 0.06, 0.02)
+      };
+      return;
+    }
+
+    if (name.startsWith('cabasa')) {
+      // Corrugated steel cylinder, metal ball loops, mahogany caps and handle
+      this.presets[name] = {
+        pos: localToWorld(0.0, 0.12, 0.95),
+        target: localToWorld(0.0, 0.0, 0.0)
+      };
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(0.0, 0.06, 0.65),
+        target: localToWorld(0.0, 0.02, 0.0)
       };
       return;
     }

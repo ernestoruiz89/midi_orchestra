@@ -82,7 +82,7 @@ export const GM_PROGRAM_MAP = {
   57: { sf: 'trombone', bus: 'trumpet' },
   58: { sf: 'tuba', bus: 'trumpet' },
   59: { sf: 'muted_trumpet', bus: 'trumpet' },
-  60: { sf: 'french_horn', bus: 'trumpet' },
+  60: { sf: 'french_horn', bus: 'frenchHorn' },
   61: { sf: 'brass_section', bus: 'trumpet' },
   62: { sf: 'synth_brass_1', bus: 'trumpet' },
   63: { sf: 'synth_brass_2', bus: 'trumpet' },
@@ -95,7 +95,7 @@ export const GM_PROGRAM_MAP = {
   68: { sf: 'oboe', bus: 'flute' },
   69: { sf: 'english_horn', bus: 'flute' },
   70: { sf: 'bassoon', bus: 'flute' },
-  71: { sf: 'clarinet', bus: 'sax' },
+  71: { sf: 'clarinet', bus: 'clarinet' },
 
   // Pipes / Woodwinds (72-79)
   72: { sf: 'piccolo', bus: 'flute' },
@@ -215,7 +215,10 @@ export class SoundEngine {
       synth: 0.62,
       synth_2: 0.62,
       synth_3: 0.62,
-      synth_4: 0.62
+      synth_4: 0.62,
+      frenchHorn: 0.65,
+      clarinet: 0.62,
+      cabasa: 0.55
     };
 
     this.muted = {};
@@ -578,7 +581,8 @@ export class SoundEngine {
 
   _buildInstrumentChannels(ctx) {
     const instrumentNames = [
-      'piano', 'drums', 'bass', 'doubleBass', 'guitar', 'acousticGuitar', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth'
+      'piano', 'drums', 'bass', 'doubleBass', 'guitar', 'acousticGuitar', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth',
+      'frenchHorn', 'clarinet', 'cabasa'
     ];
     this.nativeInputs = {};
 
@@ -586,7 +590,7 @@ export class SoundEngine {
       const channel = new Tone.Channel({
         volume: Tone.gainToDb(this.volumes[inst] ?? 0.85),
         pan: this._getStereoPan(inst)
-      }).connect(inst === 'drums' || inst === 'bass' || inst === 'doubleBass' ? this.compressor : this.chorus);
+      }).connect(inst === 'drums' || inst === 'bass' || inst === 'doubleBass' || inst === 'cabasa' ? this.compressor : this.chorus);
 
       this.channels[inst] = channel;
 
@@ -612,6 +616,9 @@ export class SoundEngine {
       case 'acousticGuitar': return 0.12;
       case 'sax': return 0.35;
       case 'trumpet': return 0.45;
+      case 'frenchHorn': return 0.40;
+      case 'clarinet': return 0.22;
+      case 'cabasa': return -0.10;
       default: return 0;
     }
   }
@@ -1232,6 +1239,18 @@ export class SoundEngine {
       oscillator: { type: 'sine' },
       envelope: { attack: 0.001, decay: 1.2, sustain: 0.02, release: 0.8 }
     }).connect(this.channels.xylophone);
+
+    // French Horn: Warm brass model
+    this.synths.frenchHorn = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'sawtooth' },
+      envelope: { attack: 0.08, decay: 0.4, sustain: 0.7, release: 0.6 }
+    }).connect(this.channels.frenchHorn);
+
+    // Clarinet: Warm hollow reed model
+    this.synths.clarinet = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'square' },
+      envelope: { attack: 0.04, decay: 0.3, sustain: 0.8, release: 0.35 }
+    }).connect(this.channels.clarinet);
   }
 
   // Trigger Note-On with full General MIDI Program & Channel routing
@@ -1615,6 +1634,8 @@ export class SoundEngine {
       if (this.synths.doubleBass) this.synths.doubleBass.releaseAll();
       if (this.synths.flute) this.synths.flute.releaseAll();
       if (this.synths.xylophone) this.synths.xylophone.releaseAll();
+      if (this.synths.frenchHorn) this.synths.frenchHorn.releaseAll();
+      if (this.synths.clarinet) this.synths.clarinet.releaseAll();
       if (this.synths.bass) this.synths.bass.triggerRelease();
 
       Object.values(this.activeSoundfontNodes).forEach(node => {

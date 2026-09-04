@@ -8,6 +8,9 @@ import { AcousticGuitar3D } from './AcousticGuitar3D.js';
 import { Bass3D } from './Bass3D.js';
 import { Trumpet3D } from './Trumpet3D.js';
 import { Saxophone3D } from './Saxophone3D.js';
+import { FrenchHorn3D } from './FrenchHorn3D.js';
+import { Clarinet3D } from './Clarinet3D.js';
+import { Cabasa3D } from './Cabasa3D.js';
 import { Violin3D } from './Violin3D.js';
 import { Cello3D } from './Cello3D.js';
 import { DoubleBass3D } from './DoubleBass3D.js';
@@ -66,12 +69,15 @@ export class SceneManager {
     this.bass = new Bass3D(this.scene);
     this.doubleBass = new DoubleBass3D(this.scene);
     this.trumpet = new Trumpet3D(this.scene);
+    this.frenchHorn = new FrenchHorn3D(this.scene);
     this.sax = new Saxophone3D(this.scene);
+    this.clarinet = new Clarinet3D(this.scene);
     this.violin = new Violin3D(this.scene);
     this.cello = new Cello3D(this.scene);
     this.flute = new Flute3D(this.scene);
     this.xylophone = new Xylophone3D(this.scene);
     this.xylophone.group.rotation.copy(this.piano.group.rotation);
+    this.cabasa = new Cabasa3D(this.scene);
     this.synth = new Synth3D(this.scene, { tier: 1, hasStand: true });
     this.synth.group.rotation.copy(this.piano.group.rotation);
 
@@ -188,12 +194,15 @@ export class SceneManager {
       bass: this.bass,
       doubleBass: this.doubleBass,
       trumpet: this.trumpet,
+      frenchHorn: this.frenchHorn,
       sax: this.sax,
+      clarinet: this.clarinet,
       violin: this.violin,
       cello: this.cello,
       flute: this.flute,
       xylophone: this.xylophone,
       synth: this.synth,
+      cabasa: this.cabasa,
       piano_2: this.piano_2,
       piano_3: this.piano_3,
       piano_4: this.piano_4,
@@ -281,7 +290,10 @@ export class SceneManager {
       flute: { width: 1.85, depth: 1.05, priority: 56 },
       violin: { width: 1.7, depth: 1.1, priority: 62 },
       trumpet: { width: 1.65, depth: 1.05, priority: 54 },
-      sax: { width: 1.55, depth: 1.1, priority: 58 }
+      frenchHorn: { width: 1.6, depth: 1.2, priority: 55 },
+      sax: { width: 1.55, depth: 1.1, priority: 58 },
+      clarinet: { width: 1.4, depth: 1.1, priority: 57 },
+      cabasa: { width: 1.2, depth: 1.0, priority: 50 }
     };
     return footprints[family] || { width: 1.8, depth: 1.2, priority: 50 };
   }
@@ -472,7 +484,7 @@ export class SceneManager {
     const acousticGuitars = remaining.filter(unit => unit.family === 'acousticGuitar');
     const basses = remaining.filter(unit => unit.family === 'bass');
     const guitars = [...electricGuitars, ...acousticGuitars];
-    const winds = remaining.filter(unit => ['trumpet', 'sax', 'flute'].includes(unit.family));
+    const winds = remaining.filter(unit => ['trumpet', 'sax', 'flute', 'frenchHorn', 'clarinet'].includes(unit.family));
     const auxiliaries = remaining.filter(unit =>
       !keyboards.includes(unit) && !strings.includes(unit) &&
       !guitars.includes(unit) && !basses.includes(unit) && !winds.includes(unit)
@@ -775,12 +787,15 @@ export class SceneManager {
       bass: 'bass',
       doubleBass: 'bass',
       trumpet: 'trumpet',
+      frenchHorn: 'trumpet',
       sax: 'trumpet',
+      clarinet: 'flute',
       violin: 'violin',
       cello: 'cello',
       flute: 'flute',
       xylophone: 'drum',
-      synth: 'piano'
+      synth: 'piano',
+      cabasa: 'drum'
     };
     const spotName = spotMap[baseInst] || 'piano';
     this.stage.pulseInstrumentSpotlight(spotName, velocity);

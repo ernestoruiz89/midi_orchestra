@@ -286,12 +286,12 @@ export class Stage {
     const spotMap = {
       piano_spot: ['piano', 'synth'],
       bass_spot: ['bass', 'doubleBass'],
-      drum_spot: ['drums', 'xylophone'],
+      drum_spot: ['drums', 'xylophone', 'cabasa'],
       guitar_spot: ['guitar', 'acousticGuitar'],
-      trumpet_spot: ['trumpet', 'sax'],
+      trumpet_spot: ['trumpet', 'sax', 'frenchHorn'],
       violin_spot: 'violin',
       cello_spot: 'cello',
-      flute_spot: 'flute'
+      flute_spot: ['flute', 'clarinet']
     };
 
     const activeFamilies = new Set(
@@ -315,12 +315,12 @@ export class Stage {
     const spotFamilies = {
       piano_spot: ['piano', 'synth'],
       bass_spot: ['bass', 'doubleBass'],
-      drum_spot: ['drums', 'xylophone'],
+      drum_spot: ['drums', 'xylophone', 'cabasa'],
       guitar_spot: ['guitar', 'acousticGuitar'],
-      trumpet_spot: ['trumpet', 'sax'],
+      trumpet_spot: ['trumpet', 'sax', 'frenchHorn'],
       violin_spot: ['violin'],
       cello_spot: ['cello'],
-      flute_spot: ['flute']
+      flute_spot: ['flute', 'clarinet']
     };
 
     this.spotlights.forEach((spot) => {

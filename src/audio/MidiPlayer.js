@@ -20,12 +20,15 @@ const DEFAULT_GM_PROGRAMS = {
   bass: 33,
   doubleBass: 32,
   trumpet: 56,
+  frenchHorn: 60,
   sax: 66,
+  clarinet: 71,
   violin: 40,
   cello: 42,
   flute: 73,
   xylophone: 13,
-  synth: 80
+  synth: 80,
+  cabasa: 69
 };
 
 /**
@@ -50,11 +53,11 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
   // 48-55: Ensemble & Choir & Orchestra Hit
   48: 'violin', 49: 'violin', 50: 'violin', 51: 'violin', 52: 'synth', 53: 'synth', 54: 'synth', 55: 'synth',
   // 56-63: Brass
-  56: 'trumpet', 57: 'trumpet', 58: 'trumpet', 59: 'trumpet', 60: 'trumpet', 61: 'trumpet', 62: 'trumpet', 63: 'trumpet',
+  56: 'trumpet', 57: 'trumpet', 58: 'trumpet', 59: 'trumpet', 60: 'frenchHorn', 61: 'trumpet', 62: 'trumpet', 63: 'trumpet',
   // 64-67: Saxophone
   64: 'sax', 65: 'sax', 66: 'sax', 67: 'sax',
   // 68-71: Woodwind Reeds
-  68: 'flute', 69: 'flute', 70: 'flute', 71: 'flute',
+  68: 'flute', 69: 'flute', 70: 'flute', 71: 'clarinet',
   // 72-79: Pipes / Woodwinds
   72: 'flute', 73: 'flute', 74: 'flute', 75: 'flute', 76: 'flute', 77: 'flute', 78: 'flute', 79: 'flute',
   // 80-87: Synth Lead
@@ -73,7 +76,7 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
 
 const VALID_3D_INSTRUMENTS = new Set([
   'piano', 'drums', 'bass', 'doubleBass', 'guitar', 'acousticGuitar',
-  'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth'
+  'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'synth', 'cabasa'
 ]);
 
 /**
@@ -134,7 +137,10 @@ export class MidiPlayer {
       cello: 0,
       flute: 0,
       xylophone: 0,
-      synth: 0
+      synth: 0,
+      frenchHorn: 0,
+      clarinet: 0,
+      cabasa: 0
     };
   }
 
@@ -346,6 +352,9 @@ export class MidiPlayer {
     }
 
     // D. Drums / Percussion:
+    if (/\b(cabasa|afuche)\b/i.test(trackName)) {
+      return 'cabasa';
+    }
     if (/\b(drums?|drumkit|bater[ií]a|percussion|perc|timbales|caja|bombo|hi-?hat)\b/i.test(trackName) && !/steel\s*drum/i.test(trackName)) {
       return 'drums';
     }
@@ -373,6 +382,11 @@ export class MidiPlayer {
       return 'sax';
     }
 
+    // French Horn / Corno:
+    if (/\b(french\s*horn|corno|cor\s*fran[cç]ais|cor\s*d['\s]harmonie|waldhorn)\b/i.test(trackName)) {
+      return 'frenchHorn';
+    }
+
     // I. Trumpet / Brass:
     if (/\b(trumpet|trompeta|brass|horns?|tuba|trombone|tromb[oó]n|cornet|metales)\b/i.test(trackName)) {
       return 'trumpet';
@@ -383,8 +397,13 @@ export class MidiPlayer {
       return 'violin';
     }
 
+    // Clarinet / Clarinete:
+    if (/\b(clarinet|clarinete|clarinette|klarinette)\b/i.test(trackName)) {
+      return 'clarinet';
+    }
+
     // K. Flute / Woodwinds:
-    if (/\b(flute|flauta|piccolo|recorder|pan\s*flute|clarinet|clarinete|oboe|bassoon|fagot|whistle|ocarina|woodwinds?)\b/i.test(trackName)) {
+    if (/\b(flute|flauta|piccolo|recorder|pan\s*flute|oboe|bassoon|fagot|whistle|ocarina|woodwinds?)\b/i.test(trackName)) {
       return 'flute';
     }
 
@@ -428,10 +447,13 @@ export class MidiPlayer {
       return 'violin';
     }
     if (instFamily.includes('brass')) {
+      if (instName.includes('horn') || instName.includes('french')) return 'frenchHorn';
       return 'trumpet';
     }
     if (instFamily.includes('reed')) {
-      return instName.includes('sax') ? 'sax' : 'flute';
+      if (instName.includes('sax')) return 'sax';
+      if (instName.includes('clarinet')) return 'clarinet';
+      return 'flute';
     }
     if (instFamily.includes('pipe') || instFamily.includes('woodwind')) {
       return 'flute';
@@ -451,7 +473,12 @@ export class MidiPlayer {
   }
 
   getActiveInstruments() {
-    return Array.from(new Set(this.trackInfos.map(t => t.instanceId).filter(Boolean)));
+    const list = new Set(this.trackInfos.map(t => t.instanceId).filter(Boolean));
+    const hasCabasaNote = this.events.some(e => e.instrument === 'drums' && e.midi === 69);
+    if (hasCabasaNote) {
+      list.add('cabasa');
+    }
+    return Array.from(list);
   }
 
   /**
@@ -471,6 +498,13 @@ export class MidiPlayer {
         start: event.time,
         end: event.time + Math.max(0, event.duration || 0)
       });
+      if (event.instrument === 'drums' && event.midi === 69) {
+        if (!notesByInstance.has('cabasa')) notesByInstance.set('cabasa', []);
+        notesByInstance.get('cabasa').push({
+          start: event.time,
+          end: event.time + Math.max(0, event.duration || 0.1)
+        });
+      }
     });
 
     this.instrumentVisibilityWindows = new Map();
@@ -792,6 +826,12 @@ export class MidiPlayer {
             ev.time,
             ev.trackIndex
           );
+          if (ev.instrument === 'drums' && ev.midi === 69) {
+            if (this.instrumentActivity['cabasa'] !== undefined) {
+              this.instrumentActivity['cabasa'] = Math.max(this.instrumentActivity['cabasa'], ev.velocity);
+            }
+            this.onNoteOn('cabasa', 69, 'Cabasa', ev.velocity, ev.duration, 'cabasa', 0, ev.time, ev.trackIndex);
+          }
         }
       } else if (ev.type === 'off') {
         // Release Audio
@@ -807,6 +847,9 @@ export class MidiPlayer {
         // Release 3D Visuals
         if (this.onNoteOff) {
           this.onNoteOff(ev.instrument, ev.midi, ev.name, false, ev.instanceId, ev.instanceIndex);
+          if (ev.instrument === 'drums' && ev.midi === 69) {
+            this.onNoteOff('cabasa', 69, 'Cabasa', false, 'cabasa', 0);
+          }
         }
       }
     }
@@ -834,11 +877,11 @@ export class MidiPlayer {
   _releaseAllVisuals() {
     if (this.onNoteOff) {
       const allInsts = [
-        'piano', 'drums', 'guitar', 'bass', 'doubleBass', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth',
+        'piano', 'drums', 'guitar', 'bass', 'doubleBass', 'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'synth', 'cabasa',
         'acousticGuitar', 'piano_2', 'piano_3', 'piano_4', 'guitar_2', 'guitar_3', 'guitar_4',
         'acousticGuitar_2', 'acousticGuitar_3', 'acousticGuitar_4',
-        'bass_2', 'doubleBass_2', 'trumpet_2', 'sax_2', 'violin_2', 'cello_2', 'flute_2', 'xylophone_2',
-        'synth_2', 'synth_3', 'synth_4'
+        'bass_2', 'doubleBass_2', 'trumpet_2', 'frenchHorn_2', 'sax_2', 'clarinet_2', 'violin_2', 'cello_2', 'flute_2', 'xylophone_2',
+        'synth_2', 'synth_3', 'synth_4', 'cabasa_2'
       ];
       for (let note = 21; note <= 108; note++) {
         allInsts.forEach(inst => this.onNoteOff(inst, note, '', true, inst, 0));

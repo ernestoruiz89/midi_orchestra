@@ -89,12 +89,15 @@
     <button class="cam-btn" data-preset="acousticGuitar" title="Acoustic Guitar Close-up" data-i18n="camera.acousticGuitar" data-i18n-title="camera.acousticGuitarTitle">🎼 Acoustic</button>
     <button class="cam-btn" data-preset="bass" title="Electric Bass Close-up" data-i18n="camera.bass" data-i18n-title="camera.bassTitle">🎸 Bass</button>
     <button class="cam-btn" data-preset="trumpet" title="Trumpet Close-up" data-i18n="camera.trumpet" data-i18n-title="camera.trumpetTitle">🎺 Trumpet</button>
+    <button class="cam-btn" data-preset="frenchHorn" title="French Horn Close-up" data-i18n="camera.frenchHorn" data-i18n-title="camera.frenchHornTitle">📯 French Horn</button>
     <button class="cam-btn" data-preset="sax" title="Alto Saxophone Close-up" data-i18n="camera.sax" data-i18n-title="camera.saxTitle">🎷 Sax</button>
+    <button class="cam-btn" data-preset="clarinet" title="Clarinet Close-up" data-i18n="camera.clarinet" data-i18n-title="camera.clarinetTitle">🪵 Clarinet</button>
     <button class="cam-btn" data-preset="violin" title="Violin Close-up" data-i18n="camera.violin" data-i18n-title="camera.violinTitle">🎻 Violin</button>
     <button class="cam-btn" data-preset="cello" title="Cello Close-up" data-i18n="camera.cello" data-i18n-title="camera.celloTitle">🎻 Cello</button>
     <button class="cam-btn" data-preset="doubleBass" title="Double Bass Close-up" data-i18n="camera.doubleBass" data-i18n-title="camera.doubleBassTitle">🎻 Contrabajo</button>
     <button class="cam-btn" data-preset="flute" title="Concert Flute Close-up" data-i18n="camera.flute" data-i18n-title="camera.fluteTitle">🪈 Flute</button>
     <button class="cam-btn" data-preset="xylophone" title="Xylophone Close-up" data-i18n="camera.xylophone" data-i18n-title="camera.xylophoneTitle">🪵 Xylophone</button>
+    <button class="cam-btn" data-preset="cabasa" title="Cabasa Close-up" data-i18n="camera.cabasa" data-i18n-title="camera.cabasaTitle">🪇 Cabasa</button>
     <button class="cam-btn" data-preset="synth" title="Synthesizer Close-up" data-i18n="camera.synth" data-i18n-title="camera.synthTitle">🎹 Synth</button>
     <button class="cam-btn" data-preset="guitar_2" title="Guitar 2 Close-up" data-i18n="camera.guitar_2" style="display: none;">🎸 Guitar 2</button>
     <button class="cam-btn" data-preset="guitar_3" title="Guitar 3 Close-up" data-i18n="camera.guitar_3" style="display: none;">🎸 Guitar 3</button>
@@ -342,6 +345,20 @@
           </div>
         </div>
 
+        <!-- French Horn Channel -->
+        <div class="mixer-strip" data-inst="frenchHorn">
+          <div class="strip-header">
+            <span class="strip-icon">📯</span>
+            <span class="strip-name" data-i18n="instruments.frenchHorn">French Horn</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-frenchHorn"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
         <!-- Saxophone Channel -->
         <div class="mixer-strip" data-inst="sax">
           <div class="strip-header">
@@ -350,6 +367,20 @@
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-sax"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.9" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Clarinet Channel -->
+        <div class="mixer-strip" data-inst="clarinet">
+          <div class="strip-header">
+            <span class="strip-icon">🪵</span>
+            <span class="strip-name" data-i18n="instruments.clarinet">Clarinet</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-clarinet"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
             <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
@@ -433,6 +464,20 @@
             <span class="strip-name" data-i18n="instruments.xylophone">Xylophone</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-xylophone"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Cabasa Channel -->
+        <div class="mixer-strip" data-inst="cabasa">
+          <div class="strip-header">
+            <span class="strip-icon">🪇</span>
+            <span class="strip-name" data-i18n="instruments.cabasa">Cabasa</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-cabasa"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
