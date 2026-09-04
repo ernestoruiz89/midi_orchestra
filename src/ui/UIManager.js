@@ -379,27 +379,45 @@ export class UIManager {
   }
 
   async loadDemoSong(songId, { autoplay = true } = {}) {
-    const songData = DemoSongs.getSongData(songId);
+    const song = DemoSongs.getSongsList().find(item => item.id === songId);
     this.midiPlayer.stop();
 
-    this.midiPlayer.midiData = songData;
-    this.midiPlayer.songName = songData.name;
-    this.midiPlayer.duration = songData.duration;
-    this.midiPlayer.bpm = songData.header.tempos[0].bpm;
+    try {
+      if (song?.file) {
+        this.showToast(i18n.t('toasts.processingFile', song.name));
+        const response = await fetch(song.file);
+        if (!response.ok) {
+          throw new Error(`Unable to load demo MIDI (${response.status})`);
+        }
+        await this.midiPlayer.loadMidiData(await response.arrayBuffer(), song.name);
+        this.midiPlayer.songName = song.name;
+      } else {
+        const songData = DemoSongs.getSongData(songId);
+        this.midiPlayer.midiData = songData;
+        this.midiPlayer.songName = songData.name;
+        this.midiPlayer.duration = songData.duration;
+        this.midiPlayer.bpm = songData.header.tempos[0].bpm;
 
-    this.midiPlayer._processTracks(songData);
+        this.midiPlayer._processTracks(songData);
+      }
+    } catch (err) {
+      console.error('Failed to load demo MIDI:', err);
+      this.showToast(i18n.t('toasts.fileError'));
+      return;
+    }
+
     this._applyActiveInstruments(this.midiPlayer.getActiveInstruments());
 
-    this.dom.songTitle.textContent = songData.name;
-    this.dom.songBpm.textContent = `${songData.bpm} BPM`;
-    this.dom.timeTotal.textContent = this._formatTime(songData.duration);
+    this.dom.songTitle.textContent = this.midiPlayer.songName;
+    this.dom.songBpm.textContent = `${this.midiPlayer.bpm} BPM`;
+    this.dom.timeTotal.textContent = this._formatTime(this.midiPlayer.duration);
 
     // Always reset to Stage Overview by default
     this.sceneManager.cameraController.setPreset('overview', 0.8);
     this.dom.camButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === 'overview'));
     if (this.dom.btnDirectorMode) this.dom.btnDirectorMode.classList.remove('active');
 
-    this.showToast(i18n.t('toasts.songLoaded', songData.name));
+    this.showToast(i18n.t('toasts.songLoaded', this.midiPlayer.songName));
     if (autoplay) await this.midiPlayer.play();
   }
 

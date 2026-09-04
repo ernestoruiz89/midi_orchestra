@@ -23,6 +23,41 @@ function midiToNote(midi) {
 export class DemoSongs {
   static getSongsList() {
     return [
+      {
+        id: 'abba_winner_takes_it_all',
+        name: 'ABBA - The Winner Takes It All',
+        genre: 'Pop',
+        bpm: 123,
+        file: '/midi/abba-the-winner-takes-it-all.mid'
+      },
+      {
+        id: 'roxette_it_must_have_been_love',
+        name: 'Roxette - It Must Have Been Love',
+        genre: 'Pop Rock',
+        bpm: 86,
+        file: '/midi/roxette-it-must-have-been-love.mid'
+      },
+      {
+        id: 'rhcp_californication',
+        name: 'Red Hot Chili Peppers - Californication',
+        genre: 'Alternative Rock',
+        bpm: 96,
+        file: '/midi/red-hot-chili-peppers-californication.mid'
+      },
+      {
+        id: 'al_stewart_year_of_the_cat',
+        name: 'Al Stewart - Year of the Cat',
+        genre: 'Soft Rock',
+        bpm: 113,
+        file: '/midi/al-stewart-year-of-the-cat.mid'
+      },
+      {
+        id: 'cordelia_juan_arenosa',
+        name: 'Cordelia - Juan Arenosa (Piano)',
+        genre: 'Piano',
+        bpm: 170,
+        file: '/midi/cordelia-juan-arenosa-piano.mid'
+      },
       { id: 'funk_fusion', name: '🎺 Funk & Soul Groove Jam', genre: 'Funk / Jazz', bpm: 114 },
       { id: 'rock_anthem', name: '🎸 Hard Rock Stadium Power', genre: 'Classic Rock', bpm: 128 },
       { id: 'mozart_turca', name: '🎹 Mozart - Rondo Alla Turca (Rock Orquesta)', genre: 'Clásica Fusión', bpm: 125 },
