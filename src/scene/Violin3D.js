@@ -19,19 +19,14 @@ export class Violin3D {
 
     this.strings = [];
     this.stringTuningMidi = [55, 62, 69, 76]; // G3, D4, A4, E5
-    // String tilt angles (roll in radians) to clear adjacent strings:
-    // G: -21 deg, D: -7 deg, A: +7 deg, E: +21 deg
-    this.stringTilts = [-0.36, -0.12, 0.12, 0.36];
 
     // Bow physical state & continuous bowing engine
-    this.bowStrokeDir = 1;      // +1 = down-bow (hacia punta), -1 = up-bow (hacia talón)
+    this.bowStrokeDir = 1;      // +1 = down-bow (towards tip), -1 = up-bow (towards frog)
     this.bowStrokePos = 0;      // -0.85 (frog) to +0.85 (tip)
     this.bowCurrentX = 0;
     this.bowTargetX = 0;
-    this.bowCurrentZ = 0.068;
-    this.bowTargetZ = 0.068;
-    this.bowCurrentTilt = 0;
-    this.bowTargetTilt = 0;
+    this.bowCurrentZ = 0.065;
+    this.bowTargetZ = 0.065;
     this.bowSpeed = 0.85;       // Normalized units/sec
     this.bowWristTurn = 0;
 
@@ -500,7 +495,6 @@ export class Violin3D {
         material: mat,
         defaultX: sd.xBridge,
         defaultZ: sd.z,
-        tilt: this.stringTilts[i],
         vibrationAmp: 0
       });
     });
@@ -521,61 +515,72 @@ export class Violin3D {
   _buildFlyingBow() {
     const bowGroup = new THREE.Group();
 
-    // 1. Pernambuco Bow Stick (72 cm) with natural reverse camber (concave curve towards hair)
-    const stickGeom = new THREE.CylinderGeometry(0.0035, 0.0055, 0.72, 10);
+    // 1. Bleached White Mongolian Horsehair Ribbon (touches strings at local z = 0)
+    // Ribbon is 66 cm long, 6 mm wide across Y, and 1.2 mm thick in Z
+    const hairGeom = new THREE.BoxGeometry(0.66, 0.006, 0.0012);
+    const hair = new THREE.Mesh(hairGeom, this.bowHairMaterial);
+    hair.position.set(0.015, 0, 0.0006); // bottom face rests precisely at z = 0
+    bowGroup.add(hair);
+
+    // 2. Pernambuco Bow Stick (72 cm) - lifted out in front at local z = +0.014
+    // Natural reverse camber: stick tapers slightly from frog (radius 0.0042) to tip (0.0028)
+    const stickGeom = new THREE.CylinderGeometry(0.0028, 0.0042, 0.72, 12);
     stickGeom.rotateZ(Math.PI / 2);
     const stick = new THREE.Mesh(stickGeom, this.bowWoodMaterial);
+    stick.position.set(0.015, 0.003, 0.014); // sits safely 14mm in front of hair
     stick.castShadow = true;
     bowGroup.add(stick);
 
-    // 2. Bleached White Mongolian Horsehair Ribbon
-    const hairGeom = new THREE.BoxGeometry(0.70, 0.0025, 0.0065);
-    const hair = new THREE.Mesh(hairGeom, this.bowHairMaterial);
-    hair.position.y = -0.015;
-    bowGroup.add(hair);
-
-    // 3. Pointed Ivory / Bone Tip (Head) at bow point
-    const tipHead = new THREE.Mesh(new THREE.ConeGeometry(0.006, 0.020, 8), this.pearlMaterial);
-    tipHead.rotation.z = Math.PI * 0.75;
-    tipHead.position.set(0.355, -0.008, 0);
+    // 3. Pointed Ivory / Bone Tip (Head) at bow point (x = +0.345)
+    // Connects hair (z=0) up to stick (z=0.014)
+    const tipHeadGeom = new THREE.BoxGeometry(0.022, 0.006, 0.015);
+    const tipHead = new THREE.Mesh(tipHeadGeom, this.pearlMaterial);
+    tipHead.position.set(0.345, 0.0015, 0.0075);
     bowGroup.add(tipHead);
 
-    // 4. Carved Ebony Frog with Nickel Ferrule & Parisian Eye (Nuez del Arco)
-    const frogGroup = new THREE.Group();
-    frogGroup.position.set(-0.315, -0.008, 0);
+    const tipNoseGeom = new THREE.ConeGeometry(0.004, 0.015, 8);
+    tipNoseGeom.rotateZ(-Math.PI / 2);
+    const tipNose = new THREE.Mesh(tipNoseGeom, this.pearlMaterial);
+    tipNose.position.set(0.362, 0.002, 0.012);
+    bowGroup.add(tipNose);
 
-    const frogBody = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.016, 0.012), this.ebonyMaterial);
+    // 4. Carved Ebony Frog with Nickel Ferrule & Parisian Eye (Nuez del Arco) at x = -0.315
+    const frogGroup = new THREE.Group();
+    frogGroup.position.set(-0.315, 0.001, 0.007);
+
+    // Main frog block connecting hair to stick
+    const frogBody = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.012, 0.014), this.ebonyMaterial);
     frogGroup.add(frogBody);
 
-    // Nickel-silver ferrule wrapping hair at the frog
-    const ferrule = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.006, 0.013), this.chromeMaterial);
-    ferrule.position.set(0.018, -0.006, 0);
+    // Nickel-silver ferrule wrapping hair at the frog exit
+    const ferrule = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.008, 0.006), this.chromeMaterial);
+    ferrule.position.set(0.020, -0.001, -0.004);
     frogGroup.add(ferrule);
 
-    // Parisian eye (Mother-of-pearl center dot with brass ring) on both sides
-    [-0.0065, 0.0065].forEach(pz => {
+    // Parisian eye (Mother-of-pearl center dot with brass ring) on both lateral sides
+    [-0.0065, 0.0065].forEach(py => {
       const eyeRing = new THREE.Mesh(new THREE.RingGeometry(0.0016, 0.0028, 12), this.goldMaterial);
-      eyeRing.position.set(-0.002, 0.001, pz);
-      eyeRing.rotation.y = pz > 0 ? 0 : Math.PI;
+      eyeRing.position.set(-0.003, py, 0.001);
+      eyeRing.rotation.x = py > 0 ? -Math.PI / 2 : Math.PI / 2;
       frogGroup.add(eyeRing);
 
       const eyeDot = new THREE.Mesh(new THREE.CircleGeometry(0.0015, 12), this.pearlMaterial);
-      eyeDot.position.set(-0.002, 0.001, pz);
-      eyeDot.rotation.y = pz > 0 ? 0 : Math.PI;
+      eyeDot.position.set(-0.003, py, 0.001);
+      eyeDot.rotation.x = py > 0 ? -Math.PI / 2 : Math.PI / 2;
       frogGroup.add(eyeDot);
     });
 
     // Silver/Ebony Adjuster Button at the heel
     const adjuster = new THREE.Mesh(new THREE.CylinderGeometry(0.0045, 0.0045, 0.018, 10), this.chromeMaterial);
     adjuster.rotation.z = Math.PI / 2;
-    adjuster.position.set(-0.028, 0.008, 0);
+    adjuster.position.set(-0.030, 0.002, 0.007);
     frogGroup.add(adjuster);
 
     bowGroup.add(frogGroup);
 
-    // Place bow initially hovering horizontally in ready position over the strings
-    // Contact zone is between bridge (y = -0.010) and fingerboard end (y = +0.090) -> y = +0.022
-    bowGroup.position.set(0, 0.022, 0.068);
+    // Initial hovering position: contact zone at y = 0.025, resting height at z = 0.065
+    bowGroup.position.set(0, 0.025, 0.065);
+    bowGroup.rotation.x = 0.08; // slight 4.5 deg natural tilt towards fingerboard
     this.group.add(bowGroup);
     this.bowGroup = bowGroup;
   }
@@ -632,9 +637,8 @@ export class Violin3D {
     // Target bow alignment for the active string
     const str = this.strings[bestString];
     this.bowTargetX = str.defaultX;
-    // Contact depth: hair presses down onto string crown (bridge crown is ~0.046 to 0.049)
-    this.bowTargetZ = str.defaultZ + 0.001;
-    this.bowTargetTilt = str.tilt;
+    // Contact depth: hair rests directly on string crown (z = 0.046 to 0.049)
+    this.bowTargetZ = str.defaultZ + 0.0006;
 
     // 4. Initial String Excitation Glow
     if (str) {
@@ -676,7 +680,7 @@ export class Violin3D {
     if (this.activeNote && (this.activeNote.midiPitch === midiPitch || force)) {
       this.activeNote.active = false;
       // Lift bow slightly into ready rest position above strings
-      this.bowTargetZ = 0.068;
+      this.bowTargetZ = 0.065;
 
       if (this.fingerMarker) {
         gsap.killTweensOf(this.fingerMarker.material);
@@ -713,29 +717,33 @@ export class Violin3D {
       // When sustained note exceeds stroke length, smoothly reverse direction!
       if (this.bowStrokePos >= 0.82 && this.bowStrokeDir > 0) {
         this.bowStrokeDir = -1;
-        this.bowWristTurn = 0.04; // subtle wrist flex on up-bow start
+        this.bowWristTurn = 0.035; // subtle wrist flex on up-bow start
       } else if (this.bowStrokePos <= -0.82 && this.bowStrokeDir < 0) {
         this.bowStrokeDir = 1;
-        this.bowWristTurn = -0.04; // subtle wrist flex on down-bow start
+        this.bowWristTurn = -0.035; // subtle wrist flex on down-bow start
       }
 
       // Smooth wrist flex decay
       this.bowWristTurn = THREE.MathUtils.lerp(this.bowWristTurn, 0, dt * 6.0);
 
       // Micro-vibrato on bow contact point while sustaining
-      const strokeHalfSpan = 0.24;
+      const strokeHalfSpan = 0.22;
       const bowVibrato = Math.sin(this.vibratoPhase) * 0.0015;
       const targetLocalX = this.bowTargetX + (this.bowStrokePos * strokeHalfSpan) + bowVibrato;
 
       // Smoothly track string position and contact depth
       this.bowCurrentX = THREE.MathUtils.lerp(this.bowCurrentX, targetLocalX, dt * 18.0);
       this.bowCurrentZ = THREE.MathUtils.lerp(this.bowCurrentZ, this.bowTargetZ, dt * 20.0);
-      this.bowCurrentTilt = THREE.MathUtils.lerp(this.bowCurrentTilt, this.bowTargetTilt, dt * 14.0);
 
+      // RIGID SAFETY FLOOR: Bow can NEVER penetrate below string clearance level
       this.bowGroup.position.x = this.bowCurrentX;
-      this.bowGroup.position.z = this.bowCurrentZ;
-      this.bowGroup.rotation.y = this.bowCurrentTilt;
-      this.bowGroup.rotation.z = this.bowWristTurn;
+      this.bowGroup.position.y = 0.025;
+      this.bowGroup.position.z = Math.max(0.046, this.bowCurrentZ);
+
+      // Bow orientations:
+      this.bowGroup.rotation.x = 0.08; // subtle 4.5 deg natural tilt towards fingerboard
+      this.bowGroup.rotation.y = 0.0;  // STRICTLY 0! Stays parallel to bridge, zero skewing, zero clipping
+      this.bowGroup.rotation.z = this.bowWristTurn; // subtle wrist flex on direction change
 
       // --- 2. LEFT-HAND FINGER VIBRATO ---
       if (this.fingerMarker && this.fingerMarker.visible && this.fingerBaseY !== undefined) {
@@ -756,8 +764,12 @@ export class Violin3D {
       }
     } else {
       // Note released: gracefully return bow towards rest height
-      this.bowCurrentZ = THREE.MathUtils.lerp(this.bowCurrentZ, 0.068, dt * 8.0);
-      this.bowGroup.position.z = this.bowCurrentZ;
+      this.bowCurrentZ = THREE.MathUtils.lerp(this.bowCurrentZ, 0.065, dt * 8.0);
+      this.bowGroup.position.x = this.bowCurrentX;
+      this.bowGroup.position.y = 0.025;
+      this.bowGroup.position.z = Math.max(0.046, this.bowCurrentZ);
+      this.bowGroup.rotation.x = 0.08;
+      this.bowGroup.rotation.y = 0.0;
       this.bowWristTurn = THREE.MathUtils.lerp(this.bowWristTurn, 0, dt * 6.0);
       this.bowGroup.rotation.z = this.bowWristTurn;
 
