@@ -23,7 +23,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // 4. Preload the default demo without starting audio. Playback must always
   // follow an explicit Play click or demo-song selection.
-  await uiManager.loadDemoSong('funk_fusion', { autoplay: false });
+  await uiManager.loadDemoSong('abba_winner_takes_it_all', { autoplay: false });
 
   // Show welcome toast
   uiManager.showToast(i18n.t('toasts.welcome'));

@@ -488,10 +488,11 @@ export class CameraController {
     const widthDistance = size.x / (2 * Math.tan(horizontalFov / 2));
     const depthAllowance = Math.max(0, size.z * 0.42);
     const distance = THREE.MathUtils.clamp(widthDistance + depthAllowance + 2.2, 8.5, 15.5);
+    const focusY = THREE.MathUtils.clamp(center.y, 1.05, 1.55);
 
     this.presets.overview = {
       pos: new THREE.Vector3(center.x, 4.7 + Math.min(1.4, size.z * 0.16), center.z + distance),
-      target: new THREE.Vector3(center.x, 1.35, center.z - Math.min(0.5, size.z * 0.08))
+      target: new THREE.Vector3(center.x, focusY, center.z)
     };
     this.presets.conductor = {
       pos: new THREE.Vector3(center.x, 1.9, center.z + Math.min(7.2, distance * 0.58)),
