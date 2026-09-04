@@ -2,35 +2,21 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 
 const DRUMSTICK_LENGTH = 0.38;
-// Keep the wrist above the head, but close enough to the kit to match the
-// compact circular stroke used by midis2jam2.
-const DRUMSTICK_WRIST_HEIGHT = 0.24;
-// These offsets are in the kit's world-up axis, matching midis2jam2's
-// translation of the node that holds the stick model.
-const DRUMSTICK_GRIP_LIFT = 0.10;
-const DRUMSTICK_GRIP_READY = 0.055;
-const DRUMSTICK_GRIP_REBOUND = 0.075;
-const DRUMSTICK_CONTACT_CLEARANCE = 0.018;
-// Two hands use nearby contact points and separated wrist positions so a
-// repeated hit on one piece reads as a real alternating double-stroke.
+const DRUMSTICK_WRIST_HEIGHT = 0.22;
+const DRUMSTICK_GRIP_LIFT = 0.085;
+const DRUMSTICK_GRIP_READY = 0.045;
+const DRUMSTICK_GRIP_REBOUND = 0.070;
+const DRUMSTICK_CONTACT_CLEARANCE = 0.016;
 const DRUMSTICK_HAND_CONTACT_OFFSET = 0.045;
 const DRUMSTICK_HAND_WRIST_OFFSET = 0.10;
-// Notes at the same MIDI instant share the two-hand hit only when they come
-// from different drum tracks; one track always keeps one physical hand.
 const DRUMSTICK_SIMULTANEOUS_WINDOW = 0.025;
-// Small downward recoil distances, scaled to this kit's world units. The
-// return is handled with an elastic ease, like the springy response in
-// midis2jam2's recoilDrum helper.
-const DRUM_RECOIL_DISTANCE = 0.017;
+const DRUM_RECOIL_DISTANCE = 0.016;
 const BASS_DRUM_RECOIL_DISTANCE = 0.024;
-// With the wrist quaternion aimed at the head, the signed local-X stroke
-// controls the lift and rebound arc for each target orientation.
-const DRUMSTICK_LIFT_ANGLE = 0.46;
+const DRUMSTICK_LIFT_ANGLE = 0.42;
 const DRUMSTICK_READY_ANGLE = 0.14;
-// The downward stroke is provided by the grip drop; keep the contact angle at
-// the calibrated surface point so the shaft never dives through a head/plato.
-const DRUMSTICK_IMPACT_ANGLE = 0;
-const DRUMSTICK_REBOUND_ANGLE = 0.10;
+const DRUMSTICK_IMPACT_ANGLE = 0.0;
+const DRUMSTICK_REBOUND_ANGLE = 0.22;
+const DRUMSTICK_IDLE_TIMEOUT_MS = 1600;
 
 /**
  * DrumKit3D: 100% Authentic MIDIJam Concert Drum Kit
@@ -106,11 +92,11 @@ export class DrumKit3D {
       side: THREE.DoubleSide
     });
 
-    // Hickory Wood Drumsticks
+    // Hickory / Rock Maple Wood Drumsticks (Authentic Natural Studio Finish)
     this.stickMaterial = new THREE.MeshStandardMaterial({
-      color: 0xd8b584,
-      roughness: 0.45,
-      metalness: 0.0
+      color: 0xecd5ad,
+      roughness: 0.30,
+      metalness: 0.02
     });
 
     // Black Hardware & Beater Accent
@@ -859,19 +845,40 @@ export class DrumKit3D {
 
     const stickArm = new THREE.Group();
 
-    // Hickory shaft, extending forward from the wrist to the contact point.
-    const shaftGeom = new THREE.CylinderGeometry(0.005, 0.012, DRUMSTICK_LENGTH, 10);
-    shaftGeom.rotateX(Math.PI / 2);
-    const shaft = new THREE.Mesh(shaftGeom, this.stickMaterial);
-    shaft.position.z = DRUMSTICK_LENGTH / 2;
-    shaft.castShadow = true;
-    stickArm.add(shaft);
+    // 1. Smooth rounded butt cap at the wrist grip
+    const buttGeom = new THREE.SphereGeometry(0.0075, 12, 12);
+    const butt = new THREE.Mesh(buttGeom, this.stickMaterial);
+    butt.position.z = 0.004;
+    stickArm.add(butt);
 
-    // Acorn tip lands on the drumhead when the arm is at its neutral angle.
-    const tipGeom = new THREE.SphereGeometry(0.009, 8, 8);
-    const tip = new THREE.Mesh(tipGeom, this.stickMaterial);
-    tip.position.z = DRUMSTICK_LENGTH;
-    stickArm.add(tip);
+    // 2. Main cylindrical handle & grip section (length 0.21m, radius ~7.2mm)
+    const handleGeom = new THREE.CylinderGeometry(0.0070, 0.0075, 0.21, 14);
+    handleGeom.rotateX(Math.PI / 2);
+    const handle = new THREE.Mesh(handleGeom, this.stickMaterial);
+    handle.position.z = 0.11;
+    handle.castShadow = true;
+    stickArm.add(handle);
+
+    // 3. Gracefully tapered shoulder down to the slim neck (0.13m, radius 7.0mm -> 3.6mm)
+    const taperGeom = new THREE.CylinderGeometry(0.0036, 0.0070, 0.13, 14);
+    taperGeom.rotateX(Math.PI / 2);
+    const taper = new THREE.Mesh(taperGeom, this.stickMaterial);
+    taper.position.z = 0.28;
+    taper.castShadow = true;
+    stickArm.add(taper);
+
+    // 4. Authentic oval acorn drumstick tip bead (at z = DRUMSTICK_LENGTH)
+    const tipNeckGeom = new THREE.CylinderGeometry(0.0055, 0.0036, 0.016, 14);
+    tipNeckGeom.rotateX(Math.PI / 2);
+    const tipNeck = new THREE.Mesh(tipNeckGeom, this.stickMaterial);
+    tipNeck.position.z = 0.355;
+    stickArm.add(tipNeck);
+
+    const tipHeadGeom = new THREE.SphereGeometry(0.0055, 12, 12);
+    tipHeadGeom.scale(1, 1, 1.4);
+    const tipHead = new THREE.Mesh(tipHeadGeom, this.stickMaterial);
+    tipHead.position.z = DRUMSTICK_LENGTH;
+    stickArm.add(tipHead);
 
     pivot.add(stickArm);
 
@@ -881,12 +888,9 @@ export class DrumKit3D {
     return {
       pivot,
       stickArm,
-      initialPitch: 0,
-      visibilityToken: 0,
-      // The local +X stroke direction is consistent after the forward-axis
-      // quaternion only after accounting for the target's 3D direction.
       arcSign,
-      basePivotY: pivot.position.y
+      basePivotY: pivot.position.y,
+      idleTimeout: null
     };
   }
 
@@ -894,16 +898,21 @@ export class DrumKit3D {
     const alternateKey = `${piece}_2`;
     if (!this.pieceSticks[alternateKey]) return piece;
 
-    // Use the event's original MIDI time when available. Preparation events
-    // happen 220 ms early, so wall-clock proximity alone would mistake two
-    // nearby but distinct notes for a simultaneous two-hand hit.
     const currentTime = Number.isFinite(eventTime) ? eventTime : performance.now() / 1000;
     const sourceTrack = trackIndex ?? 'manual';
     const previous = this.stickSelectionState.get(piece);
-    const simultaneous = previous &&
-      previous.track !== sourceTrack &&
-      Math.abs(currentTime - previous.time) <= DRUMSTICK_SIMULTANEOUS_WINDOW;
-    const handIndex = simultaneous ? 1 - previous.handIndex : 0;
+
+    // In midis2jam2: simultaneous notes OR rapid successive notes (< 0.38s, rolls/grooves)
+    // alternate naturally between left and right hands!
+    let handIndex = 0;
+    if (previous) {
+      const dt = Math.abs(currentTime - previous.time);
+      if (dt <= 0.38 || (previous.track !== sourceTrack && dt <= DRUMSTICK_SIMULTANEOUS_WINDOW)) {
+        handIndex = 1 - previous.handIndex;
+      } else {
+        handIndex = 0;
+      }
+    }
     this.stickSelectionState.set(piece, { time: currentTime, track: sourceTrack, handIndex });
     return handIndex === 1 ? alternateKey : piece;
   }
@@ -923,18 +932,13 @@ export class DrumKit3D {
     return prepared;
   }
 
-  _keepStickVisible(stickData) {
-    stickData.visibilityToken = (stickData.visibilityToken || 0) + 1;
-    return stickData.visibilityToken;
-  }
-
-  _arcAngle(stickData, baseAngle, velocity) {
+  _arcAngle(stickData, baseAngle, velocity = 1.0) {
     return baseAngle * stickData.arcSign * velocity;
   }
 
   /**
-   * Starts the physical lift before the MIDI note. The sound is intentionally
-   * not triggered from here; this only makes the drummer readable on screen.
+   * Starts the physical lift before the MIDI note.
+   * Matches midis2jam2's Striker anticipation curve.
    */
   onNotePrepare(pitchOrPiece, velocity = 0.8, duration = 0.5, eventTime = null, trackIndex = null) {
     let piece = pitchOrPiece;
@@ -943,38 +947,42 @@ export class DrumKit3D {
     }
     if (piece === 'kick') return;
 
-    const vel = Math.max(0.4, Math.min(1.0, velocity));
+    const vel = Math.max(0.35, Math.min(1.0, velocity));
     const stickKey = this._selectStickKey(piece, eventTime, trackIndex);
     const stickData = this.pieceSticks[stickKey];
     if (!stickData) return;
 
     this._queuePreparedStrike(piece, { stickKey, velocity: vel });
-    this._keepStickVisible(stickData);
 
-    // Closely spaced hits keep the stick on screen instead of blinking it off
-    // between notes, as a real drummer would.
-    if (stickData.pivot.visible) return;
+    // Cancel pending idle hide timeout for this stick
+    if (stickData.idleTimeout) {
+      clearTimeout(stickData.idleTimeout);
+      stickData.idleTimeout = null;
+    }
 
     stickData.pivot.visible = true;
     gsap.killTweensOf(stickData.stickArm.rotation);
     gsap.killTweensOf(stickData.pivot.position);
-    stickData.stickArm.rotation.x = this._arcAngle(stickData, DRUMSTICK_LIFT_ANGLE, vel);
-    stickData.pivot.position.y = stickData.basePivotY + DRUMSTICK_GRIP_LIFT * vel;
+
+    // Anticipation: dynamic wind-up backswing (higher lift for forte)
+    const liftAngle = DRUMSTICK_READY_ANGLE + DRUMSTICK_LIFT_ANGLE * vel;
+    const liftY = stickData.basePivotY + DRUMSTICK_GRIP_LIFT * vel;
+
     gsap.to(stickData.stickArm.rotation, {
-      x: this._arcAngle(stickData, DRUMSTICK_READY_ANGLE, vel),
-      duration: 0.22,
+      x: this._arcAngle(stickData, liftAngle, 1.0),
+      duration: 0.18,
       ease: 'power2.out'
     });
     gsap.to(stickData.pivot.position, {
-      y: stickData.basePivotY + DRUMSTICK_GRIP_READY * vel,
-      duration: 0.22,
+      y: liftY,
+      duration: 0.18,
       ease: 'power2.out'
     });
   }
 
   /**
-   * Note-On Event Trigger: completes a prepared stick strike and triggers
-   * dedicated piece feedback.
+   * Note-On Event Trigger: executes the snappy downward strike, instant elastic rebound,
+   * settles into hovering ready position, and maintains persistent visibility like midis2jam2.
    */
   onNoteOn(pitchOrPiece, velocity = 0.8, eventTime = null, trackIndex = null) {
     let piece = pitchOrPiece;
@@ -982,7 +990,7 @@ export class DrumKit3D {
       piece = this._mapPitchToPiece(pitchOrPiece);
     }
 
-    const vel = Math.max(0.4, Math.min(1.0, velocity));
+    const vel = Math.max(0.35, Math.min(1.0, velocity));
 
     if (piece === 'kick') {
       this._animateKick(vel);
@@ -993,72 +1001,74 @@ export class DrumKit3D {
     const stickKey = prepared ? prepared.stickKey : this._selectStickKey(piece, eventTime, trackIndex);
     const stickVelocity = prepared ? prepared.velocity : vel;
 
-    // 1. Strike Down Dedicated Radial Stick
     const stickData = this.pieceSticks[stickKey];
     if (stickData) {
+      if (stickData.idleTimeout) {
+        clearTimeout(stickData.idleTimeout);
+        stickData.idleTimeout = null;
+      }
+
       stickData.pivot.visible = true;
       gsap.killTweensOf(stickData.stickArm.rotation);
       gsap.killTweensOf(stickData.pivot.position);
-      const visibilityToken = this._keepStickVisible(stickData);
+
       const strike = gsap.timeline();
 
-      // A direct/manual note may not have a preceding prepare event. Keep a
-      // compact attack for that case, while MIDI playback arrives at the hit
-      // already lifted by the 220 ms preparation window.
-      if (!prepared) {
-        stickData.stickArm.rotation.x = this._arcAngle(stickData, DRUMSTICK_LIFT_ANGLE, stickVelocity);
-        stickData.pivot.position.y = stickData.basePivotY + DRUMSTICK_GRIP_LIFT * stickVelocity;
-        strike.to(stickData.stickArm.rotation, {
-          x: this._arcAngle(stickData, DRUMSTICK_READY_ANGLE, stickVelocity),
-          duration: 0.055,
-          ease: 'power3.in'
-        }, 0)
-          .to(stickData.pivot.position, {
-            y: stickData.basePivotY + DRUMSTICK_GRIP_READY * stickVelocity,
-            duration: 0.055,
-            ease: 'power3.in'
-          }, 0);
-      } else {
-        stickData.stickArm.rotation.x = this._arcAngle(stickData, DRUMSTICK_READY_ANGLE, stickVelocity);
-        stickData.pivot.position.y = stickData.basePivotY + DRUMSTICK_GRIP_READY * stickVelocity;
-      }
+      // 1. FAST ACCELERATING DOWNSTROKE onto head
+      strike.to(stickData.stickArm.rotation, {
+        x: this._arcAngle(stickData, DRUMSTICK_IMPACT_ANGLE, 1.0),
+        duration: 0.042,
+        ease: 'power4.in'
+      })
+      .to(stickData.pivot.position, {
+        y: stickData.basePivotY,
+        duration: 0.042,
+        ease: 'power4.in'
+      }, '<')
 
-      strike
-        .to(stickData.stickArm.rotation, {
-          x: this._arcAngle(stickData, DRUMSTICK_IMPACT_ANGLE, stickVelocity),
-          duration: 0.045,
-          ease: 'power4.in'
-        })
-        .to(stickData.pivot.position, {
-          y: stickData.basePivotY,
-          duration: 0.045,
-          ease: 'power4.in'
-        }, '<')
-        .to(stickData.stickArm.rotation, {
-          x: this._arcAngle(stickData, DRUMSTICK_REBOUND_ANGLE, stickVelocity),
-          duration: 0.14,
-          ease: 'back.out(1.4)'
-        })
-        .to(stickData.pivot.position, {
-          y: stickData.basePivotY + DRUMSTICK_GRIP_REBOUND * stickVelocity,
-          duration: 0.14,
-          ease: 'back.out(1.4)'
-        }, '<')
-        .to(stickData.stickArm.rotation, {
+      // 2. ELASTIC REBOUND (The signature midis2jam bounce!)
+      .to(stickData.stickArm.rotation, {
+        x: this._arcAngle(stickData, DRUMSTICK_REBOUND_ANGLE * (0.65 + 0.35 * stickVelocity), 1.0),
+        duration: 0.085,
+        ease: 'power3.out'
+      })
+      .to(stickData.pivot.position, {
+        y: stickData.basePivotY + DRUMSTICK_GRIP_REBOUND * stickVelocity,
+        duration: 0.085,
+        ease: 'power3.out'
+      }, '<')
+
+      // 3. SETTLE INTO HOVERING READY POSTURE (ready for next beat!)
+      .to(stickData.stickArm.rotation, {
+        x: this._arcAngle(stickData, DRUMSTICK_READY_ANGLE, 1.0),
+        duration: 0.16,
+        ease: 'power2.out'
+      })
+      .to(stickData.pivot.position, {
+        y: stickData.basePivotY + DRUMSTICK_GRIP_READY,
+        duration: 0.16,
+        ease: 'power2.out'
+      }, '<');
+
+      // 4. PERSISTENT HOVER / STICKINESS:
+      // Stay visible hovering above the piece as long as notes continue playing!
+      // Only if no hits occur for DRUMSTICK_IDLE_TIMEOUT_MS does the stick gently lower and hide.
+      stickData.idleTimeout = setTimeout(() => {
+        if (!stickData.pivot.visible) return;
+        gsap.to(stickData.stickArm.rotation, {
           x: 0,
-          duration: 0.26,
-          ease: 'power1.inOut'
-        })
-        .to(stickData.pivot.position, {
+          duration: 0.35,
+          ease: 'power2.inOut'
+        });
+        gsap.to(stickData.pivot.position, {
           y: stickData.basePivotY,
-          duration: 0.26,
-          ease: 'power1.inOut'
-        }, '<')
-        .call(() => {
-          if (stickData.visibilityToken === visibilityToken) {
+          duration: 0.35,
+          ease: 'power2.inOut',
+          onComplete: () => {
             stickData.pivot.visible = false;
           }
         });
+      }, DRUMSTICK_IDLE_TIMEOUT_MS);
     }
 
     // 2. Animate Drumhead or Cymbal
@@ -1166,7 +1176,10 @@ export class DrumKit3D {
       node.position.y = baseY;
     });
     Object.values(this.pieceSticks).forEach(stickData => {
-      this._keepStickVisible(stickData);
+      if (stickData.idleTimeout) {
+        clearTimeout(stickData.idleTimeout);
+        stickData.idleTimeout = null;
+      }
       gsap.killTweensOf(stickData.stickArm.rotation);
       gsap.killTweensOf(stickData.pivot.position);
       stickData.stickArm.rotation.x = 0;

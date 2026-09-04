@@ -147,7 +147,7 @@ export class SoundEngine {
       piano_2: 0.78,
       piano_3: 0.78,
       piano_4: 0.78,
-      drums: 0.58,
+      drums: 0.46,
       bass: 0.72,
       bass_2: 0.72,
       guitar: 0.68,
@@ -608,10 +608,9 @@ export class SoundEngine {
       await synth.isReady;
       await synth.soundBankManager.addSoundBank(soundBank, 'general-user-gs-2.0.2');
 
-      // Match MIDI2JAM2's bundled FluidSynth defaults: a moderate master gain
-      // and no second layer of synth effects. The app's mixer remains external.
+      // Enable GM SoundFont Reverb & Chorus DSP matching midis2jam2's Gervill/FluidSynth acoustics
       synth.setSystemParameter('gain', 0.8);
-      synth.setSystemParameter('effectsEnabled', false);
+      synth.setSystemParameter('effectsEnabled', true);
       synth.setLogLevel(false, true, false);
 
       // Native Web Audio mixer for the worklet. This avoids crossing the
