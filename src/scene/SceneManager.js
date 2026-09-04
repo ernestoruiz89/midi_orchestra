@@ -266,7 +266,7 @@ export class SceneManager {
     const instObj = this.allInstruments[targetKey];
 
     if (instObj && typeof instObj.onNoteOn === 'function') {
-      instObj.onNoteOn(midiPitch, velocity, eventTime, trackIndex);
+      instObj.onNoteOn(midiPitch, velocity, eventTime, trackIndex, duration);
     }
 
     const baseInst = instrument.split('_')[0];
@@ -278,7 +278,7 @@ export class SceneManager {
       bass: 'bass',
       trumpet: 'trumpet',
       sax: 'trumpet',
-      violin: 'bass',
+      violin: 'violin',
       flute: 'guitar',
       xylophone: 'drum',
       synth: 'piano'
