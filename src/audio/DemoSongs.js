@@ -62,12 +62,15 @@ export class DemoSongs {
       { id: 'rock_anthem', name: '🎸 Hard Rock Stadium Power', genre: 'Classic Rock', bpm: 128 },
       { id: 'mozart_turca', name: '🎹 Mozart - Rondo Alla Turca (Rock Orquesta)', genre: 'Clásica Fusión', bpm: 125 },
       { id: 'synthwave_80s', name: '🕹️ Retro Synthwave 80s Drive', genre: 'Synthwave', bpm: 120 },
-      { id: 'latin_fiesta', name: '💃 Salsa Brava & Mambo Caliente', genre: 'Latino / Salsa', bpm: 118 }
+      { id: 'latin_fiesta', name: '💃 Salsa Brava & Mambo Caliente', genre: 'Latino / Salsa', bpm: 118 },
+      { id: 'tango_fantasy', name: '🪗 Libertango & Celtic Harp Fantasy', genre: 'World / Fusion', bpm: 120 }
     ];
   }
 
   static getSongData(songId) {
     switch (songId) {
+      case 'tango_fantasy':
+        return this.createTangoFantasy();
       case 'rock_anthem':
         return this.createRockAnthem();
       case 'mozart_turca':
@@ -662,6 +665,146 @@ export class DemoSongs {
     }
 
     return this._formatMidiStructure('💃 Salsa Brava & Mambo Caliente', bpm, totalDuration, tracks);
+  }
+
+  /**
+   * 6. LIBERTANGO & CELTIC HARP FANTASY (Showcase for Accordion, Harp & Harmonica)
+   */
+  static createTangoFantasy() {
+    const bpm = 120;
+    const beat = 60 / bpm;
+    const totalBars = 12;
+    const totalDuration = totalBars * 4 * beat;
+
+    const tracks = [
+      { name: 'Acordeón de Concierto', instrument: 'accordion', channel: 0, programNumber: 21, notes: [] },
+      { name: 'Arpa de Concierto Celta', instrument: 'harp', channel: 1, programNumber: 46, notes: [] },
+      { name: 'Armónica Solista', instrument: 'harmonica', channel: 2, programNumber: 22, notes: [] },
+      { name: 'Contrabajo Clásico', instrument: 'doubleBass', channel: 3, programNumber: 43, notes: [] },
+      { name: 'Batería y Percusión', instrument: 'drums', channel: 9, notes: [] }
+    ];
+
+    const [accordion, harp, harmonica, doubleBass, drums] = tracks.map(t => t.notes);
+
+    // Chord progressions in A minor / D minor:
+    // Bars 0-3: Am | Bars 4-5: Dm | Bars 6-7: E7 | Bars 8-11: Am - F - E7 - Am
+    const progressions = [
+      { root: 'A2', chordNotes: ['A3', 'C4', 'E4'], harpArp: ['A2', 'E3', 'A3', 'C4', 'E4', 'A4', 'C5', 'E5'] },
+      { root: 'A2', chordNotes: ['A3', 'C4', 'E4'], harpArp: ['C3', 'E3', 'A3', 'C4', 'E4', 'A4', 'C5', 'A4'] },
+      { root: 'A2', chordNotes: ['A3', 'C4', 'E4'], harpArp: ['E3', 'A3', 'C4', 'E4', 'A4', 'C5', 'E5', 'C5'] },
+      { root: 'A2', chordNotes: ['A3', 'C4', 'E4'], harpArp: ['A3', 'C4', 'E4', 'A4', 'C5', 'E5', 'A5', 'E5'] },
+      { root: 'D2', chordNotes: ['D3', 'F3', 'A3'], harpArp: ['D3', 'F3', 'A3', 'D4', 'F4', 'A4', 'D5', 'A4'] },
+      { root: 'D2', chordNotes: ['D3', 'F3', 'A3'], harpArp: ['F3', 'A3', 'D4', 'F4', 'A4', 'D5', 'F5', 'D5'] },
+      { root: 'E2', chordNotes: ['E3', 'G#3', 'B3'], harpArp: ['E3', 'G#3', 'B3', 'E4', 'G#4', 'B4', 'E5', 'B4'] },
+      { root: 'E2', chordNotes: ['E3', 'G#3', 'D4'], harpArp: ['G#3', 'B3', 'D4', 'E4', 'G#4', 'B4', 'D5', 'B4'] },
+      { root: 'A2', chordNotes: ['A3', 'C4', 'E4'], harpArp: ['A2', 'C3', 'E3', 'A3', 'C4', 'E4', 'A4', 'E4'] },
+      { root: 'F2', chordNotes: ['F3', 'A3', 'C4'], harpArp: ['F2', 'A2', 'C3', 'F3', 'A3', 'C4', 'F4', 'C4'] },
+      { root: 'E2', chordNotes: ['E3', 'G#3', 'B3'], harpArp: ['E2', 'G#2', 'B2', 'E3', 'G#3', 'B3', 'E4', 'B3'] },
+      { root: 'A2', chordNotes: ['A3', 'C4', 'E4'], harpArp: ['A2', 'E3', 'A3', 'C4', 'E4', 'A4', 'C5', 'A5'] }
+    ];
+
+    // Harmonica soulful melody line
+    const harmonicaMelody = [
+      // Bar 0
+      { t: 0.0, d: 1.8, n: 'E5' }, { t: 2.0, d: 1.8, n: 'A5' },
+      // Bar 1
+      { t: 4.0, d: 0.9, n: 'B5' }, { t: 5.0, d: 0.9, n: 'C6' }, { t: 6.0, d: 1.8, n: 'B5' },
+      // Bar 2
+      { t: 8.0, d: 0.9, n: 'A5' }, { t: 9.0, d: 0.9, n: 'G#5' }, { t: 10.0, d: 1.8, n: 'A5' },
+      // Bar 3
+      { t: 12.0, d: 3.5, n: 'E5' },
+      // Bar 4 (Dm)
+      { t: 16.0, d: 1.8, n: 'F5' }, { t: 18.0, d: 1.8, n: 'A5' },
+      // Bar 5
+      { t: 20.0, d: 1.8, n: 'D6' }, { t: 22.0, d: 1.8, n: 'C6' },
+      // Bar 6 (E7)
+      { t: 24.0, d: 1.8, n: 'B5' }, { t: 26.0, d: 1.8, n: 'G#5' },
+      // Bar 7
+      { t: 28.0, d: 3.6, n: 'E5' },
+      // Bar 8-11: Climax
+      { t: 32.0, d: 0.8, n: 'A5' }, { t: 33.0, d: 0.8, n: 'B5' }, { t: 34.0, d: 1.6, n: 'C6' },
+      { t: 36.0, d: 0.8, n: 'D6' }, { t: 37.0, d: 0.8, n: 'C6' }, { t: 38.0, d: 1.6, n: 'B5' },
+      { t: 40.0, d: 1.8, n: 'G#5' }, { t: 42.0, d: 1.8, n: 'B5' },
+      { t: 44.0, d: 3.8, n: 'A5' }
+    ];
+
+    harmonicaMelody.forEach(hm => {
+      harmonica.push({
+        time: hm.t * beat,
+        duration: hm.d * beat,
+        midi: noteToMidi(hm.n),
+        name: hm.n,
+        velocity: 0.88
+      });
+    });
+
+    for (let bar = 0; bar < totalBars; bar++) {
+      const barStart = bar * 4 * beat;
+      const prog = progressions[bar % progressions.length];
+
+      // 1. CONTRABAJO (Tango Habanera Syncopated Bass: 1, and-of-2, 3, 4)
+      const bassRhythm = [0.0, 1.5, 2.0, 3.0];
+      bassRhythm.forEach((bt, bIdx) => {
+        const rootMidi = noteToMidi(prog.root);
+        const pitch = bIdx === 2 ? rootMidi + 7 : rootMidi; // 5th on beat 3
+        doubleBass.push({
+          time: barStart + bt * beat,
+          duration: 0.45 * beat,
+          midi: pitch,
+          name: midiToNote(pitch),
+          velocity: 0.85
+        });
+      });
+
+      // 2. ACORDEÓN (Right hand tango syncopated stabs + left hand chords)
+      // Beats 0.5, 1.5, 2.5, 3.5
+      [0.5, 1.5, 2.5, 3.5].forEach(bt => {
+        prog.chordNotes.forEach(cn => {
+          const m = noteToMidi(cn);
+          accordion.push({
+            time: barStart + bt * beat,
+            duration: 0.35 * beat,
+            midi: m,
+            name: cn,
+            velocity: 0.82
+          });
+        });
+      });
+
+      // 3. ARPA (Fluid 8-note sweeping arpeggio across the entire bar)
+      prog.harpArp.forEach((hn, hIdx) => {
+        const hMidi = noteToMidi(hn);
+        harp.push({
+          time: barStart + (hIdx * 0.5) * beat,
+          duration: 0.85 * beat,
+          midi: hMidi,
+          name: hn,
+          velocity: 0.80 + (hIdx % 2 === 0 ? 0.12 : 0)
+        });
+      });
+
+      // 4. DRUMS & PERCUSSION (Light Tango Rhythm with brushes, rimshot and shaker)
+      // Rimshot / Snare on 2 and 4
+      drums.push({ time: barStart + 1 * beat, duration: 0.2, midi: 37, name: 'C#1', velocity: 0.80 });
+      drums.push({ time: barStart + 3 * beat, duration: 0.2, midi: 37, name: 'C#1', velocity: 0.88 });
+
+      // Kick on 1 and 3.5
+      drums.push({ time: barStart + 0 * beat, duration: 0.2, midi: 36, name: 'C1', velocity: 0.85 });
+      drums.push({ time: barStart + 2.5 * beat, duration: 0.2, midi: 36, name: 'C1', velocity: 0.78 });
+
+      // Hi-Hat / Brushes 8th notes
+      for (let i = 0; i < 8; i++) {
+        drums.push({
+          time: barStart + i * 0.5 * beat,
+          duration: 0.15,
+          midi: 42,
+          name: 'F#1',
+          velocity: i % 2 === 0 ? 0.75 : 0.55
+        });
+      }
+    }
+
+    return this._formatMidiStructure('🪗 Libertango & Celtic Harp Fantasy', bpm, totalDuration, tracks);
   }
 
   static _formatMidiStructure(name, bpm, duration, tracks) {

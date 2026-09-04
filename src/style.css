@@ -1178,6 +1178,11 @@ kbd {
 }
 
 @media (max-width: 600px) {
+  .glass-panel {
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.38);
+  }
   .app-header {
     top: max(6px, env(safe-area-inset-top));
     left: 8px;
@@ -1303,6 +1308,8 @@ kbd {
     padding: 9px 16px;
     border-radius: var(--radius-md);
     text-align: center;
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
   }
   .modal-overlay {
     padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));

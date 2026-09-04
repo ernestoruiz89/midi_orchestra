@@ -54,14 +54,14 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
   0: 'piano', 1: 'piano', 2: 'piano', 3: 'piano', 4: 'piano', 5: 'piano', 6: 'piano', 7: 'piano',
   // 8-15: Chromatic Percussion
   8: 'xylophone', 9: 'xylophone', 10: 'xylophone', 11: 'xylophone', 12: 'xylophone', 13: 'xylophone', 14: 'xylophone', 15: 'xylophone',
-  // 16-23: Organ
-  16: 'piano', 17: 'piano', 18: 'piano', 19: 'piano', 20: 'piano', 21: 'piano', 22: 'piano', 23: 'piano',
+  // 16-23: Organ, Accordion & Harmonica
+  16: 'piano', 17: 'piano', 18: 'piano', 19: 'piano', 20: 'piano', 21: 'accordion', 22: 'harmonica', 23: 'accordion',
   // 24-31: Guitar
   24: 'acousticGuitar', 25: 'acousticGuitar', 26: 'guitar', 27: 'guitar', 28: 'guitar', 29: 'guitar', 30: 'guitar', 31: 'guitar',
   // 32-39: Bass
   32: 'doubleBass', 33: 'bass', 34: 'bass', 35: 'bass', 36: 'bass', 37: 'bass', 38: 'synth', 39: 'synth',
-  // 40-47: Strings
-  40: 'violin', 41: 'violin', 42: 'cello', 43: 'doubleBass', 44: 'violin', 45: 'violin', 46: 'guitar', 47: 'drums',
+  // 40-47: Strings & Orchestral Harp
+  40: 'violin', 41: 'violin', 42: 'cello', 43: 'doubleBass', 44: 'violin', 45: 'violin', 46: 'harp', 47: 'drums',
   // 48-55: Ensemble
   48: 'violin', 49: 'violin', 50: 'synth', 51: 'synth', 52: 'flute', 53: 'flute', 54: 'synth', 55: 'drums',
   // 56-63: Brass
@@ -88,7 +88,7 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
 const VALID_3D_INSTRUMENTS = new Set([
   'piano', 'drums', 'bass', 'doubleBass', 'guitar', 'acousticGuitar',
   'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'synth', 'cabasa', 'congas', 'timbales',
-  'tambourine', 'maracas', 'whistle', 'guiro', 'triangle'
+  'tambourine', 'maracas', 'whistle', 'guiro', 'triangle', 'harp', 'harmonica', 'accordion'
 ]);
 
 /**

@@ -295,7 +295,8 @@ export class UIManager {
           'piano', 'drums', 'guitar', 'acousticGuitar', 'bass', 'doubleBass',
           'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute',
           'xylophone', 'synth', 'cabasa', 'congas', 'timbales',
-          'tambourine', 'maracas', 'whistle', 'guiro', 'triangle'
+          'tambourine', 'maracas', 'whistle', 'guiro', 'triangle',
+          'harp', 'harmonica', 'accordion'
         ];
         const instLabel = i18n.t('instruments.' + inst) || inst;
         if (this.soloedInstrument === inst) {
@@ -626,7 +627,10 @@ export class UIManager {
       { id: 'whistle', label: isEs ? '📯 Silbato de Samba' : '📯 Samba Whistle' },
       { id: 'triangle', label: isEs ? '🔺 Triángulo' : '🔺 Triangle' },
       { id: 'congas', label: isEs ? '🪘 Bongó y Congas' : '🪘 Bongos & Congas' },
-      { id: 'timbales', label: isEs ? '🪘 Timbales y Agogô' : '🪘 Timbales & Agogô' }
+      { id: 'timbales', label: isEs ? '🪘 Timbales y Agogô' : '🪘 Timbales & Agogô' },
+      { id: 'harp', label: isEs ? '🪕 Arpa de Concierto' : '🪕 Concert Grand Harp' },
+      { id: 'harmonica', label: isEs ? '🎷 Armónica' : '🎷 Harmonica' },
+      { id: 'accordion', label: isEs ? '🪗 Acordeón' : '🪗 Accordion' }
     ];
 
     tracks.forEach((track, idx) => {

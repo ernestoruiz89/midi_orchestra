@@ -27,15 +27,15 @@ export const GM_PROGRAM_MAP = {
   14: { sf: 'tubular_bells', bus: 'xylophone' },
   15: { sf: 'dulcimer', bus: 'xylophone' },
 
-  // Organs (16-23)
+  // Organs, Accordion & Harmonica (16-23)
   16: { sf: 'drawbar_organ', bus: 'piano' },
   17: { sf: 'percussive_organ', bus: 'piano' },
   18: { sf: 'rock_organ', bus: 'piano' },
   19: { sf: 'church_organ', bus: 'piano' },
   20: { sf: 'reed_organ', bus: 'piano' },
-  21: { sf: 'accordion', bus: 'piano' },
-  22: { sf: 'harmonica', bus: 'flute' },
-  23: { sf: 'tango_accordion', bus: 'piano' },
+  21: { sf: 'accordion', bus: 'accordion' },
+  22: { sf: 'harmonica', bus: 'harmonica' },
+  23: { sf: 'tango_accordion', bus: 'accordion' },
 
   // Guitars (24-31)
   24: { sf: 'acoustic_guitar_nylon', bus: 'acousticGuitar' },
@@ -64,7 +64,7 @@ export const GM_PROGRAM_MAP = {
   43: { sf: 'contrabass', bus: 'doubleBass' },
   44: { sf: 'tremolo_strings', bus: 'violin' },
   45: { sf: 'pizzicato_strings', bus: 'violin' },
-  46: { sf: 'orchestral_harp', bus: 'violin' },
+  46: { sf: 'orchestral_harp', bus: 'harp' },
   47: { sf: 'timpani', bus: 'xylophone' },
 
   // Ensemble (48-55)
@@ -180,6 +180,9 @@ export class SoundEngine {
     this.isLoadingSoundfonts = false;
     this.soundfontsLoaded = false;
     this.masterVolume = 0.80;
+    const reportedMemory = Number(navigator.deviceMemory) || 8;
+    const saveData = Boolean(navigator.connection?.saveData);
+    this.preferCompressedGmBank = window.matchMedia('(max-width: 900px), (pointer: coarse)').matches || reportedMemory <= 4 || saveData;
 
     // Per-instrument channel volumes
     this.volumes = {
@@ -225,7 +228,10 @@ export class SoundEngine {
       maracas: 0.55,
       whistle: 0.52,
       guiro: 0.58,
-      triangle: 0.52
+      triangle: 0.52,
+      harp: 0.66,
+      harmonica: 0.62,
+      accordion: 0.68
     };
 
     this.muted = {};
@@ -590,7 +596,8 @@ export class SoundEngine {
     const instrumentNames = [
       'piano', 'drums', 'bass', 'doubleBass', 'guitar', 'acousticGuitar', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth',
       'frenchHorn', 'clarinet', 'cabasa', 'congas', 'timbales',
-      'tambourine', 'maracas', 'whistle', 'guiro', 'triangle'
+      'tambourine', 'maracas', 'whistle', 'guiro', 'triangle',
+      'harp', 'harmonica', 'accordion'
     ];
     this.nativeInputs = {};
 
@@ -614,6 +621,9 @@ export class SoundEngine {
   _getStereoPan(inst) {
     switch (inst) {
       case 'piano': return -0.40;
+      case 'harp': return -0.32;
+      case 'accordion': return -0.15;
+      case 'harmonica': return 0.20;
       case 'bass': return -0.20;
       case 'doubleBass': return -0.22;
       case 'violin': return -0.28;
@@ -660,11 +670,22 @@ export class SoundEngine {
       }
 
       this.isLoadingSoundfonts = true;
-      console.log('Loading GeneralUser GS 2.0.2 GM SoundFont...');
+      const soundBankConfig = this.preferCompressedGmBank
+        ? {
+            url: '/soundfonts/general_user-mobile.sf3',
+            id: 'general-user-gs-mobile',
+            label: 'compressed SF3 mobile bank'
+          }
+        : {
+            url: '/soundfonts/general_user-2.0.2.sf2',
+            id: 'general-user-gs-2.0.2',
+            label: 'lossless SF2 desktop bank'
+          };
+      console.log(`Loading GeneralUser GS ${soundBankConfig.label}...`);
 
       await nativeContext.audioWorklet.addModule('/audio/spessasynth_processor.min.js');
 
-      const response = await fetch('/soundfonts/general_user-2.0.2.sf2');
+      const response = await fetch(soundBankConfig.url);
       if (!response.ok) {
         throw new Error(`SoundFont request failed (${response.status})`);
       }
@@ -676,7 +697,7 @@ export class SoundEngine {
       });
 
       await synth.isReady;
-      await synth.soundBankManager.addSoundBank(soundBank, 'general-user-gs-2.0.2');
+      await synth.soundBankManager.addSoundBank(soundBank, soundBankConfig.id);
 
       // Enable GM SoundFont Reverb & Chorus DSP matching midis2jam2's Gervill/FluidSynth acoustics
       synth.setSystemParameter('gain', 0.8);
@@ -1268,6 +1289,24 @@ export class SoundEngine {
       oscillator: { type: 'square' },
       envelope: { attack: 0.04, decay: 0.3, sustain: 0.8, release: 0.35 }
     }).connect(this.channels.clarinet);
+
+    // Harp: Delicate plucked string with warm decay
+    this.synths.harp = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.002, decay: 1.4, sustain: 0.05, release: 0.8 }
+    }).connect(this.channels.harp);
+
+    // Harmonica: Warm reed model
+    this.synths.harmonica = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'sawtooth' },
+      envelope: { attack: 0.05, decay: 0.25, sustain: 0.85, release: 0.3 }
+    }).connect(this.channels.harmonica);
+
+    // Accordion: Dual reed organ model
+    this.synths.accordion = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'sawtooth' },
+      envelope: { attack: 0.04, decay: 0.2, sustain: 0.9, release: 0.25 }
+    }).connect(this.channels.accordion);
   }
 
   // Trigger Note-On with full General MIDI Program & Channel routing
@@ -1654,6 +1693,9 @@ export class SoundEngine {
       if (this.synths.xylophone) this.synths.xylophone.releaseAll();
       if (this.synths.frenchHorn) this.synths.frenchHorn.releaseAll();
       if (this.synths.clarinet) this.synths.clarinet.releaseAll();
+      if (this.synths.harp) this.synths.harp.releaseAll();
+      if (this.synths.harmonica) this.synths.harmonica.releaseAll();
+      if (this.synths.accordion) this.synths.accordion.releaseAll();
       if (this.synths.bass) this.synths.bass.triggerRelease();
 
       Object.values(this.activeSoundfontNodes).forEach(node => {

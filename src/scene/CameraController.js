@@ -83,6 +83,12 @@ export class CameraController {
       synth: { pos: new THREE.Vector3(-3.00, 1.75, 3.15), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
       synth_topdown: { pos: new THREE.Vector3(-3.37, 2.40, 2.38), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
       synth_closeup: { pos: new THREE.Vector3(-3.23, 1.35, 2.75), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
+      harp: { pos: new THREE.Vector3(-3.15, 1.45, 1.55), target: new THREE.Vector3(-4.20, 1.00, -0.40) },
+      harp_closeup: { pos: new THREE.Vector3(-3.65, 1.30, 0.65), target: new THREE.Vector3(-4.20, 1.05, -0.40) },
+      accordion: { pos: new THREE.Vector3(-1.70, 1.25, 3.10), target: new THREE.Vector3(-1.75, 1.15, 1.95) },
+      accordion_closeup: { pos: new THREE.Vector3(-1.70, 1.18, 2.70), target: new THREE.Vector3(-1.75, 1.15, 1.95) },
+      harmonica: { pos: new THREE.Vector3(1.35, 1.35, 2.95), target: new THREE.Vector3(1.15, 1.22, 2.30) },
+      harmonica_closeup: { pos: new THREE.Vector3(1.22, 1.28, 2.65), target: new THREE.Vector3(1.15, 1.22, 2.30) },
       stage_wing_left: { pos: new THREE.Vector3(-6.2, 3.4, 6.2), target: new THREE.Vector3(0.6, 1.25, -0.4) },
       stage_wing_right: { pos: new THREE.Vector3(6.2, 3.4, 6.2), target: new THREE.Vector3(-0.6, 1.25, -0.4) },
       conductor: { pos: new THREE.Vector3(0, 1.8, 5.8), target: new THREE.Vector3(0, 1.8, 0) }
@@ -474,6 +480,45 @@ export class CameraController {
       this.presets[`${name}_closeup`] = {
         pos: localToWorld(xOff * 0.6, 0.06, 0.45),
         target: localToWorld(0.0, 0.0, 0.0)
+      };
+      return;
+    }
+
+    if (name.startsWith('harp')) {
+      // Classical 3/4 front view showcasing the golden pillar, colored strings (red C, blue F) and soundboard
+      this.presets[name] = {
+        pos: localToWorld(0.95, 1.25, 2.10),
+        target: localToWorld(0.0, 0.90, 0.10)
+      };
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(0.55, 1.10, 1.25),
+        target: localToWorld(0.0, 0.95, 0.15)
+      };
+      return;
+    }
+
+    if (name.startsWith('accordion')) {
+      // 3/4 front framing showing keyboard keys, registers, and the arching bellows
+      this.presets[name] = {
+        pos: localToWorld(0.15, 0.22, 1.10),
+        target: localToWorld(-0.02, 0.0, 0.02)
+      };
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(0.18, 0.12, 0.72),
+        target: localToWorld(0.02, 0.0, 0.05)
+      };
+      return;
+    }
+
+    if (name.startsWith('harmonica')) {
+      // Macro concert framing showcasing the 12 air holes and breath wave emission
+      this.presets[name] = {
+        pos: localToWorld(0.14, 0.14, 0.52),
+        target: localToWorld(0.0, 0.0, 0.0)
+      };
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(0.06, 0.07, 0.30),
+        target: localToWorld(0.0, 0.0, 0.01)
       };
       return;
     }

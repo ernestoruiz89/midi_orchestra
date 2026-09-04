@@ -68,6 +68,12 @@ export const translations = {
       timbalesTitle: 'Timbales & Agogô Close-up',
       synth: '🎹 Synth',
       synthTitle: 'Synthesizer Close-up',
+      harp: '🪕 Harp',
+      harpTitle: 'Concert Grand Harp Close-up',
+      accordion: '🪗 Accordion',
+      accordionTitle: 'Accordion Close-up',
+      harmonica: '🎷 Harmonica',
+      harmonicaTitle: 'Harmonica Close-up',
       guitar_2: '🎸 Guitar 2',
       guitar_3: '🎸 Guitar 3',
       guitar_4: '🎸 Guitar 4',
@@ -236,7 +242,10 @@ export const translations = {
       synth: 'Synth',
       synth_2: 'Synth 2',
       synth_3: 'Synth 3',
-      synth_4: 'Synth 4'
+      synth_4: 'Synth 4',
+      harp: 'Concert Harp',
+      accordion: 'Accordion',
+      harmonica: 'Harmonica'
     }
   },
 
@@ -305,6 +314,12 @@ export const translations = {
       timbalesTitle: 'Primer Plano Timbales y Agogô',
       synth: '🎹 Synth',
       synthTitle: 'Primer Plano Sintetizador',
+      harp: '🪕 Arpa',
+      harpTitle: 'Primer Plano Arpa de Concierto',
+      accordion: '🪗 Acordeón',
+      accordionTitle: 'Primer Plano Acordeón',
+      harmonica: '🎷 Armónica',
+      harmonicaTitle: 'Primer Plano Armónica',
       guitar_2: '🎸 Guitarra 2',
       guitar_3: '🎸 Guitarra 3',
       guitar_4: '🎸 Guitarra 4',
@@ -473,7 +488,10 @@ export const translations = {
       synth: 'Sintetizador',
       synth_2: 'Synth 2',
       synth_3: 'Synth 3',
-      synth_4: 'Synth 4'
+      synth_4: 'Synth 4',
+      harp: 'Arpa de Concierto',
+      accordion: 'Acordeón',
+      harmonica: 'Armónica'
     }
   }
 };

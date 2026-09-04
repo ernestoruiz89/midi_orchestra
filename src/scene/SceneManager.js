@@ -24,6 +24,9 @@ import { DoubleBass3D } from './DoubleBass3D.js';
 import { Flute3D } from './Flute3D.js';
 import { Xylophone3D } from './Xylophone3D.js';
 import { Synth3D } from './Synth3D.js';
+import { Harp3D } from './Harp3D.js';
+import { Harmonica3D } from './Harmonica3D.js';
+import { Accordion3D } from './Accordion3D.js';
 import { CameraController } from './CameraController.js';
 
 /**
@@ -34,6 +37,10 @@ export class SceneManager {
   constructor(canvasContainer, soundEngine) {
     this.container = canvasContainer;
     this.soundEngine = soundEngine;
+    const reportedMemory = Number(navigator.deviceMemory) || 8;
+    this.isMobilePerformanceMode = window.matchMedia('(max-width: 900px), (pointer: coarse)').matches || reportedMemory <= 4;
+    this.minimumRenderInterval = this.isMobilePerformanceMode ? 1000 / 40 : 0;
+    this.lastRenderTimestamp = 0;
 
     // Core Three.js components
     this.scene = new THREE.Scene();
@@ -49,17 +56,18 @@ export class SceneManager {
     this.camera.position.set(0, 5.0, 11.5);
 
     this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: !this.isMobilePerformanceMode,
       powerPreference: 'high-performance'
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.setPixelRatio(this.isMobilePerformanceMode ? 1 : Math.min(window.devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = !this.isMobilePerformanceMode;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
 
     this.container.appendChild(this.renderer.domElement);
+    this.renderer.domElement.dataset.performanceProfile = this.isMobilePerformanceMode ? 'mobile' : 'desktop';
 
     // Build scene elements
     this._setupGlobalLighting();
@@ -94,6 +102,9 @@ export class SceneManager {
     this.timbales = new Timbales3D(this.scene);
     this.synth = new Synth3D(this.scene, { tier: 1, hasStand: true });
     this.synth.group.rotation.copy(this.piano.group.rotation);
+    this.harp = new Harp3D(this.scene);
+    this.harmonica = new Harmonica3D(this.scene);
+    this.accordion = new Accordion3D(this.scene);
 
     // Duplicate instruments (MIDIJam multi-track band duplication)
     // 4 Stratocasters stacked diagonally across stage right
@@ -224,6 +235,9 @@ export class SceneManager {
       triangle: this.triangle,
       congas: this.congas,
       timbales: this.timbales,
+      harp: this.harp,
+      harmonica: this.harmonica,
+      accordion: this.accordion,
       piano_2: this.piano_2,
       piano_3: this.piano_3,
       piano_4: this.piano_4,
@@ -323,7 +337,10 @@ export class SceneManager {
       whistle: { width: 1.0, depth: 0.9, priority: 48 },
       triangle: { width: 1.0, depth: 0.9, priority: 48 },
       congas: { width: 1.5, depth: 1.3, priority: 65 },
-      timbales: { width: 1.4, depth: 1.1, priority: 64 }
+      timbales: { width: 1.4, depth: 1.1, priority: 64 },
+      harp: { width: 2.1, depth: 1.8, priority: 85 },
+      accordion: { width: 1.6, depth: 1.4, priority: 70 },
+      harmonica: { width: 1.3, depth: 1.1, priority: 52 }
     };
     return footprints[family] || { width: 1.8, depth: 1.2, priority: 50 };
   }
@@ -593,13 +610,13 @@ export class SceneManager {
     };
 
     const melodicUnits = remaining.filter(unit => !percussionFamilies.includes(unit.family));
-    const keyboards = melodicUnits.filter(unit => ['piano', 'synth', 'xylophone'].includes(unit.family));
-    const strings = melodicUnits.filter(unit => ['violin', 'cello', 'doubleBass'].includes(unit.family));
+    const keyboards = melodicUnits.filter(unit => ['piano', 'synth', 'xylophone', 'accordion'].includes(unit.family));
+    const strings = melodicUnits.filter(unit => ['violin', 'cello', 'doubleBass', 'harp'].includes(unit.family));
     const electricGuitars = melodicUnits.filter(unit => unit.family === 'guitar');
     const acousticGuitars = melodicUnits.filter(unit => unit.family === 'acousticGuitar');
     const basses = melodicUnits.filter(unit => unit.family === 'bass');
     const guitars = [...electricGuitars, ...acousticGuitars];
-    const winds = melodicUnits.filter(unit => ['trumpet', 'sax', 'flute', 'frenchHorn', 'clarinet'].includes(unit.family));
+    const winds = melodicUnits.filter(unit => ['trumpet', 'sax', 'flute', 'frenchHorn', 'clarinet', 'harmonica'].includes(unit.family));
     const auxiliaries = melodicUnits.filter(unit =>
       !keyboards.includes(unit) && !strings.includes(unit) &&
       !guitars.includes(unit) && !basses.includes(unit) && !winds.includes(unit)
@@ -850,9 +867,9 @@ export class SceneManager {
     // Front stage wash light
     const frontWash = new THREE.DirectionalLight(0x7099ff, 1.2);
     frontWash.position.set(0, 8, 12);
-    frontWash.castShadow = true;
-    frontWash.shadow.mapSize.width = 2048;
-    frontWash.shadow.mapSize.height = 2048;
+    frontWash.castShadow = !this.isMobilePerformanceMode;
+    frontWash.shadow.mapSize.width = this.isMobilePerformanceMode ? 512 : 2048;
+    frontWash.shadow.mapSize.height = this.isMobilePerformanceMode ? 512 : 2048;
     frontWash.shadow.bias = -0.0005;
     this.scene.add(frontWash);
   }
@@ -940,7 +957,10 @@ export class SceneManager {
       whistle: 'drum',
       triangle: 'drum',
       congas: 'drum',
-      timbales: 'drum'
+      timbales: 'drum',
+      harp: 'violin',
+      harmonica: 'flute',
+      accordion: 'piano'
     };
     const spotName = spotMap[baseInst] || 'piano';
     this.stage.pulseInstrumentSpotlight(spotName, velocity);
@@ -967,13 +987,21 @@ export class SceneManager {
     }
 
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(this.isMobilePerformanceMode ? 1 : Math.min(window.devicePixelRatio, 2));
   }
 
-  _animate() {
-    requestAnimationFrame(() => this._animate());
+  _animate(timestamp = performance.now()) {
+    requestAnimationFrame((nextTimestamp) => this._animate(nextTimestamp));
 
-    const delta = this.clock.getDelta();
+    if (
+      this.minimumRenderInterval > 0 &&
+      timestamp - this.lastRenderTimestamp < this.minimumRenderInterval
+    ) {
+      return;
+    }
+    this.lastRenderTimestamp = timestamp;
+
+    const delta = Math.min(this.clock.getDelta(), 0.05);
 
     // Get real-time audio visualizer spectrum
     const visData = this.soundEngine ? this.soundEngine.getVisualizerData() : null;

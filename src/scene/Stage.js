@@ -164,7 +164,10 @@ export class Stage {
       { x: 5.5, z: 3.2, target: [4.2, 1.5, 0.4], color: 0xffea00, name: 'trumpet_spot' },
       { x: -3.8, z: 2.2, target: [-4.2, 1.25, -1.8], color: 0xffbe76, name: 'violin_spot' },
       { x: -2.8, z: 2.4, target: [-3.3, 1.15, -1.2], color: 0xff9f43, name: 'cello_spot' },
-      { x: 2.0, z: 2.8, target: [1.6, 1.30, 1.8], color: 0x70f5ff, name: 'flute_spot' }
+      { x: 2.0, z: 2.8, target: [1.6, 1.30, 1.8], color: 0x70f5ff, name: 'flute_spot' },
+      { x: -1.75, z: 3.2, target: [-1.75, 1.15, 1.95], color: 0xfff4d0, intensity: 32, penumbra: 0.6, name: 'accordion_spot' },
+      { x: -3.8, z: 3.2, target: [-3.8, 1.35, 0.4], color: 0xffdf80, intensity: 32, penumbra: 0.6, name: 'harp_spot' },
+      { x: 1.15, z: 3.2, target: [1.15, 1.22, 2.30], color: 0x80e5ff, intensity: 28, penumbra: 0.6, name: 'harmonica_spot' }
     ];
 
     spotConfigs.forEach((cfg) => {
@@ -291,7 +294,10 @@ export class Stage {
       trumpet_spot: ['trumpet', 'sax', 'frenchHorn'],
       violin_spot: 'violin',
       cello_spot: 'cello',
-      flute_spot: ['flute', 'clarinet']
+      flute_spot: ['flute', 'clarinet'],
+      accordion_spot: 'accordion',
+      harp_spot: 'harp',
+      harmonica_spot: 'harmonica'
     };
 
     const activeFamilies = new Set(
@@ -320,7 +326,10 @@ export class Stage {
       trumpet_spot: ['trumpet', 'sax', 'frenchHorn'],
       violin_spot: ['violin'],
       cello_spot: ['cello'],
-      flute_spot: ['flute', 'clarinet']
+      flute_spot: ['flute', 'clarinet'],
+      accordion_spot: ['accordion'],
+      harp_spot: ['harp'],
+      harmonica_spot: ['harmonica']
     };
 
     this.spotlights.forEach((spot) => {
