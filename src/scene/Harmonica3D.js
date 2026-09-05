@@ -109,29 +109,29 @@ export class Harmonica3D {
   }
 
   _buildLighting() {
-    // Local studio key and fill illumination to showcase the gunmetal & chrome finish matching reference
-    const keyLight = new THREE.PointLight(0xffeedd, 2.8, 3.2, 1.6);
-    keyLight.position.set(0.25, 0.40, 0.42);
+    // Local warm studio key and fill illumination to make the gold body and trim gleam brilliantly
+    const keyLight = new THREE.PointLight(0xfff4d6, 3.2, 3.5, 1.4);
+    keyLight.position.set(0.25, 0.40, 0.45);
     this.group.add(keyLight);
 
-    const fillLight = new THREE.PointLight(0xa0c4ff, 1.4, 2.8, 1.6);
-    fillLight.position.set(-0.30, 0.22, 0.38);
+    const fillLight = new THREE.PointLight(0xffeab0, 1.8, 3.0, 1.4);
+    fillLight.position.set(-0.30, 0.25, 0.40);
     this.group.add(fillLight);
   }
 
   _buildMaterials() {
-    // 1. Sleek Gunmetal Grey / Satin Graphite (Cover Plates matching reference image)
+    // 1. Luxurious 24K Brushed/Satin Gold (Cover Plates)
     this.coverPlateMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0x484d56,
-      roughness: 0.28,
-      metalness: 0.85,
-      clearcoat: 0.65,
-      clearcoatRoughness: 0.10
+      color: 0xdfb538,
+      roughness: 0.18,
+      metalness: 0.94,
+      clearcoat: 0.85,
+      clearcoatRoughness: 0.06
     });
 
-    // 2. Mirror Chrome / Polished Nickel (Perimeter Bevel Trim, Mouthpiece Guides & Reed Plates)
+    // 2. Mirror-Polished 18K Gold (Perimeter Bevel Trim, Mouthpiece Guides & Reed Plates)
     this.chromeTrimMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0xf4f7fb,
+      color: 0xf5d05c,
       roughness: 0.08,
       metalness: 0.98,
       clearcoat: 1.0,

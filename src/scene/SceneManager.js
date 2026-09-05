@@ -154,10 +154,9 @@ export class SceneManager {
   }
 
   getStageFloorElevation(x, z) {
-    // Drum Riser Platform Deck boundaries on stage:
-    // Center at (0, -0.45), Width 4.8 (X: -2.40 to +2.40), Depth 3.8 (Z: -2.35 to +1.45)
-    // Top deck elevation = 0.20m above main stage floor
-    const onRiser = x >= -2.45 && x <= 2.45 && z >= -2.40 && z <= 1.50;
+    // Dynamic boundaries provided by stage drum riser platform:
+    const b = (this.stage && this.stage.riserBounds) || { minX: -2.40, maxX: 2.40, minZ: -2.35, maxZ: 1.45 };
+    const onRiser = x >= b.minX - 0.05 && x <= b.maxX + 0.05 && z >= b.minZ - 0.05 && z <= b.maxZ + 0.05;
     return onRiser ? 0.20 : 0.0;
   }
 
@@ -555,13 +554,8 @@ export class SceneManager {
       placePercussion();
       const leftEdge = -(drumUnit.width / 2 + 0.55);
       const rightEdge = drumUnit.width / 2 + 0.55;
-      // Put the electric bass at the front-left corner of the drum riser. A
-      // deliberately forward front edge lets the stage-boundary pass place
-      // the complete model as close to the corner as its real geometry allows.
-      // The bass model leans outward from its group origin, so its packing edge
-      // must overlap the riser footprint slightly for the visible body and
-      // stand to land exactly beside the front corner.
-      const bassCornerEdge = -(drumUnit.width / 2 - 0.4);
+      // Position electric bass beside the drum riser with clean clearance for its tripod stand.
+      const bassCornerEdge = -(drumUnit.width / 2 + 0.35);
       const bassLayout = placeBasses('right', bassCornerEdge, 2.2);
       const keyboardEdge = leftEdge;
       const keyboardFront = basses.length ? bassLayout.backEdge - 0.2 : 1.65;
@@ -581,9 +575,8 @@ export class SceneManager {
         frontEdge: Math.min(keyboardLayout.backEdge, stringLayout.backEdge) - 0.2
       });
 
-      // Mirror the bass's visual corner correction on stage-right so the
-      // guitar stack sits beside the riser instead of floating far away.
-      const guitarCornerEdge = drumUnit.width / 2 - 0.4;
+      // Position guitar stack on stage-right beside the riser with clean clearance.
+      const guitarCornerEdge = drumUnit.width / 2 + 0.35;
       const guitarLayout = placeGuitarSections('left', guitarCornerEdge);
       const windsFront = guitarLayout.hasInstruments ? guitarLayout.backEdge - 0.2 : 1.65;
       const windLayout = placeWinds('left', rightEdge, windsFront);
@@ -649,6 +642,18 @@ export class SceneManager {
     const cameraTargets = new Map();
     const layoutBounds = new THREE.Box3();
 
+    // 1. Pass 1: Compute candidate target positions and identify which instruments sit on the drum riser platform.
+    // Dynamically expand the drum riser platform so that any instrument placed on it has its full stand,
+    // legs, feet, and sustain pedals completely and solidly inside the platform ("totalmente adentro").
+    const riserPercussion = ['drums', 'timbales', 'congas', 'cabasa', 'tambourine', 'maracas', 'guiro', 'whistle', 'triangle'];
+    const riserMargin = 0.42; // Generous safety margin from the deck edges
+    let riserMinX = -2.40;
+    let riserMaxX = 2.40;
+    let riserMinZ = -2.35;
+    let riserMaxZ = 1.45;
+    const riserInstruments = new Set();
+    const computedTargets = new Map();
+
     units.forEach((unit) => {
       const placement = placements.get(unit.id);
       if (!placement) return;
@@ -656,18 +661,64 @@ export class SceneManager {
       unit.keys.forEach((key) => {
         const instrument = this.allInstruments[key];
         const home = this.instrumentHomeTransforms.get(key);
-        // Elevate instruments resting on the drum riser platform so feet, stands,
-        // and sustain pedals sit on top of the deck rather than being buried 0.20m underneath.
-        const riserPercussion = ['drums', 'timbales', 'congas', 'cabasa', 'tambourine', 'maracas', 'guiro', 'whistle', 'triangle'];
-        const riserElevation = riserPercussion.includes(this._getInstrumentFamily(key))
+        const isRiserPercussion = riserPercussion.includes(this._getInstrumentFamily(key));
+        const riserElevation = isRiserPercussion
           ? 0
           : this.getStageFloorElevation(placement.x, placement.z);
         const baseY = (placement.y !== undefined ? placement.y : home.y) + riserElevation;
-        const targetPosition = new THREE.Vector3(
-          placement.x,
-          baseY,
-          placement.z
-        );
+        const targetPos = new THREE.Vector3(placement.x, baseY, placement.z);
+        computedTargets.set(key, targetPos);
+
+        if (baseY >= 0.15 || isRiserPercussion) {
+          riserInstruments.add(key);
+
+          // Calculate world bounding box shifted to targetPos
+          instrument.group.updateWorldMatrix(true, true);
+          const box = new THREE.Box3().setFromObject(instrument.group);
+          const currentPos = instrument.group.position;
+          const shift = targetPos.clone().sub(currentPos);
+          box.translate(shift);
+
+          riserMinX = Math.min(riserMinX, box.min.x - riserMargin);
+          riserMaxX = Math.max(riserMaxX, box.max.x + riserMargin);
+          riserMinZ = Math.min(riserMinZ, box.min.z - riserMargin);
+          riserMaxZ = Math.max(riserMaxZ, box.max.z + riserMargin);
+        }
+      });
+    });
+
+    // Update Stage's drum riser platform dimensions to fully enclose all instruments placed on it
+    if (this.stage && typeof this.stage.updateRiserBounds === 'function') {
+      this.stage.updateRiserBounds(riserMinX, riserMaxX, riserMinZ, riserMaxZ);
+    }
+
+    // 2. Pass 2: Finalize positions, prevent floor instruments from intersecting the riser,
+    // and update cameras and animations.
+    units.forEach((unit) => {
+      const placement = placements.get(unit.id);
+      if (!placement) return;
+
+      unit.keys.forEach((key) => {
+        const instrument = this.allInstruments[key];
+        const targetPosition = computedTargets.get(key) || new THREE.Vector3(placement.x, 0, placement.z);
+
+        // For instruments on the floor, ensure they maintain clean clearance outside the updated riser perimeter
+        if (!riserInstruments.has(key)) {
+          instrument.group.updateWorldMatrix(true, true);
+          const box = new THREE.Box3().setFromObject(instrument.group);
+          const shift = targetPosition.clone().sub(instrument.group.position);
+          box.translate(shift);
+
+          if (box.max.x > riserMinX - 0.15 && box.min.x < riserMaxX + 0.15 &&
+              box.max.z > riserMinZ - 0.15 && box.min.z < riserMaxZ + 0.15) {
+            const halfWidth = (box.max.x - box.min.x) / 2;
+            if (targetPosition.x < 0) {
+              targetPosition.x = riserMinX - halfWidth - 0.28;
+            } else {
+              targetPosition.x = riserMaxX + halfWidth + 0.28;
+            }
+          }
+        }
 
         instrument.group.updateWorldMatrix(true, true);
         const box = new THREE.Box3().setFromObject(instrument.group);

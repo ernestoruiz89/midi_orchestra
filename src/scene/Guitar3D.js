@@ -39,8 +39,9 @@ export class Guitar3D {
     // Rotate into authentic MIDIJam playing angle:
     // Neck points to the right (+X) inclined upwards by ~14°,
     // Upper horn is on TOP, lower horn is on BOTTOM,
-    // Front face tilted upwards towards the camera
-    this.guitarModel.rotation.set(-0.28, 0.10, -1.35);
+    // Front face presents its full voluptuous curves directly to the camera
+    this.guitarModel.position.set(0.24, 0.10, 0);
+    this.guitarModel.rotation.set(-0.08, 0.08, -1.35);
     this.group.add(this.guitarModel);
     this._buildGuitarStand();
 
@@ -145,10 +146,9 @@ export class Guitar3D {
     stand.add(mast);
 
     const cradle = new THREE.Group();
-    // The lower bout rises toward the neck in the guitar's playing pose.
-    // Tilting the whole yoke keeps both padded ends immediately below that
-    // contour instead of letting one pierce the body while the other floats.
-    cradle.rotation.z = 0.30;
+    // Tilting the yoke downward to the right (-0.32 rad) mirrors the lower bout's
+    // descent in playing pose so both padded arms securely support the body.
+    cradle.rotation.z = -0.32;
     const cradleBar = new THREE.Mesh(
       new THREE.CylinderGeometry(0.012, 0.012, 0.32, 10),
       this.chromeMaterial
@@ -157,9 +157,9 @@ export class Guitar3D {
     cradleBar.position.z = -0.055;
     cradle.add(cradleBar);
 
-    [-0.15, 0.15].forEach((x) => {
+    [-0.14, 0.14].forEach((x) => {
       const paddedArm = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.019, 0.019, 0.16, 12),
+        new THREE.CylinderGeometry(0.018, 0.018, 0.16, 12),
         this.standPaddingMaterial
       );
       paddedArm.rotation.x = Math.PI / 2;
@@ -167,11 +167,11 @@ export class Guitar3D {
       cradle.add(paddedArm);
 
       const stop = new THREE.Mesh(
-        new THREE.SphereGeometry(0.025, 12, 8),
+        new THREE.SphereGeometry(0.024, 12, 8),
         this.standPaddingMaterial
       );
       stop.scale.set(0.8, 1.15, 0.8);
-      stop.position.set(x, 0.025, 0.09);
+      stop.position.set(x, 0.025, 0.095);
       cradle.add(stop);
     });
 
@@ -187,7 +187,7 @@ export class Guitar3D {
     if (!this.standGroup) return;
 
     const floorY = 0.04;
-    const cradleY = Math.max(0.42, this.group.position.y - 0.19);
+    const cradleY = Math.max(0.42, this.group.position.y - 0.035);
     const mastHeight = cradleY - floorY;
 
     // Cancel the instrument's changing vertical placement so the feet remain
@@ -200,35 +200,40 @@ export class Guitar3D {
 
   _buildGuitarBody() {
     const shape = new THREE.Shape();
-    // Bottom strap button
-    shape.moveTo(0, -0.34);
-    // Treble lower bout
-    shape.bezierCurveTo(0.13, -0.34, 0.16, -0.25, 0.15, -0.15);
-    // Treble waist
-    shape.bezierCurveTo(0.14, -0.06, 0.11, -0.02, 0.10, 0.05);
-    // Treble horn cutaway (reaches y = 0.25)
-    shape.bezierCurveTo(0.10, 0.12, 0.12, 0.20, 0.11, 0.25);
+    // Start at bottom strap pin
+    shape.moveTo(0, -0.32);
+
+    // 1. Treble lower bout (wide, rounded, voluptuous)
+    shape.bezierCurveTo(0.09, -0.32, 0.165, -0.27, 0.165, -0.19);
+    // 2. Treble waist (graceful inward dip)
+    shape.bezierCurveTo(0.165, -0.12, 0.135, -0.07, 0.118, -0.03);
+    // 3. Treble cutaway horn (reaches y = 0.08, x = 0.125)
+    shape.bezierCurveTo(0.110, 0.01, 0.125, 0.05, 0.125, 0.08);
     // Treble horn tip rounded
-    shape.bezierCurveTo(0.10, 0.27, 0.075, 0.26, 0.06, 0.20);
-    // Cutaway into treble neck pocket
-    shape.bezierCurveTo(0.05, 0.15, 0.04, 0.14, 0.035, 0.14);
-    // Neck pocket
-    shape.lineTo(-0.035, 0.14);
-    // Cutaway from bass neck pocket to upper horn
-    shape.bezierCurveTo(-0.04, 0.14, -0.05, 0.17, -0.065, 0.22);
-    // Upper bass horn (reaches y = 0.31)
-    shape.bezierCurveTo(-0.075, 0.26, -0.095, 0.30, -0.11, 0.31);
+    shape.bezierCurveTo(0.125, 0.095, 0.108, 0.095, 0.095, 0.075);
+    // Deep treble cutaway scoop into neck pocket
+    shape.bezierCurveTo(0.078, 0.045, 0.055, 0.022, 0.028, 0.015);
+
+    // 4. Neck pocket edge
+    shape.lineTo(-0.028, 0.015);
+
+    // 5. Bass cutaway scoop into upper horn
+    shape.bezierCurveTo(-0.055, 0.022, -0.075, 0.060, -0.100, 0.110);
+    // Upper bass horn: graceful flare and tip reaching y = 0.175, x = -0.148
+    shape.bezierCurveTo(-0.118, 0.145, -0.140, 0.178, -0.148, 0.175);
     // Upper horn tip rounded
-    shape.bezierCurveTo(-0.125, 0.31, -0.13, 0.28, -0.12, 0.22);
-    // Outer contour of upper horn
-    shape.bezierCurveTo(-0.115, 0.14, -0.105, 0.06, -0.105, 0.02);
-    // Bass waist
-    shape.bezierCurveTo(-0.115, -0.06, -0.14, -0.10, -0.155, -0.15);
-    // Bass lower bout
-    shape.bezierCurveTo(-0.17, -0.25, -0.13, -0.34, 0, -0.34);
+    shape.bezierCurveTo(-0.155, 0.170, -0.155, 0.145, -0.145, 0.115);
+    // Upper horn outer flank sloping toward waist
+    shape.bezierCurveTo(-0.135, 0.065, -0.125, 0.015, -0.120, -0.03);
+
+    // 6. Bass waist (deep, sensual curve)
+    shape.bezierCurveTo(-0.118, -0.07, -0.135, -0.12, -0.165, -0.19);
+
+    // 7. Bass lower bout (wide, voluptuous curve)
+    shape.bezierCurveTo(-0.175, -0.27, -0.09, -0.32, 0, -0.32);
 
     const extrudeSettings = {
-      depth: 0.032,
+      depth: 0.028,
       bevelEnabled: true,
       bevelSegments: 4,
       steps: 1,
@@ -240,90 +245,114 @@ export class Guitar3D {
     const bodyMesh = new THREE.Mesh(bodyGeom, this.bodyMaterial);
     bodyMesh.castShadow = true;
     bodyMesh.receiveShadow = true;
-    bodyMesh.position.set(0, 0, -0.040);
+    // Front face sits exactly at z = 0.000, back face at z = -0.044
+    bodyMesh.position.set(0, 0, -0.036);
     this.guitarModel.add(bodyMesh);
 
     // Chrome Neck Plate on back
-    const plateGeom = new THREE.BoxGeometry(0.048, 0.060, 0.003);
+    const plateGeom = new THREE.BoxGeometry(0.050, 0.064, 0.003);
     const neckPlate = new THREE.Mesh(plateGeom, this.chromeMaterial);
-    neckPlate.position.set(0, 0.08, -0.042);
+    neckPlate.position.set(0, 0.06, -0.043);
     this.guitarModel.add(neckPlate);
+
+    // Tremolo cavity cover plate on back
+    const tremCoverGeom = new THREE.BoxGeometry(0.085, 0.135, 0.002);
+    const tremCover = new THREE.Mesh(tremCoverGeom, this.pickguardMaterial);
+    tremCover.position.set(0, -0.15, -0.043);
+    this.guitarModel.add(tremCover);
 
     // Strap Buttons
     const strapUpper = new THREE.Mesh(
       new THREE.CylinderGeometry(0.006, 0.005, 0.014, 12),
       this.chromeMaterial
     );
-    strapUpper.position.set(-0.11, 0.30, -0.020);
-    strapUpper.rotation.z = -0.5;
+    strapUpper.position.set(-0.148, 0.170, -0.020);
+    strapUpper.rotation.z = -0.55;
     this.guitarModel.add(strapUpper);
 
     const strapLower = new THREE.Mesh(
       new THREE.CylinderGeometry(0.006, 0.005, 0.014, 12),
       this.chromeMaterial
     );
-    strapLower.position.set(0, -0.35, -0.020);
+    strapLower.position.set(0, -0.328, -0.020);
     this.guitarModel.add(strapLower);
   }
 
   _buildPickguardAndHardware() {
-    // 1. Contoured 3-Ply Stratocaster Pickguard (compact shield matching MIDIJam)
+    // 1. Contoured 3-Ply Fender Stratocaster Pickguard
     const pgShape = new THREE.Shape();
-    pgShape.moveTo(0.04, -0.22);
-    pgShape.bezierCurveTo(0.09, -0.22, 0.095, -0.15, 0.085, -0.08);
-    pgShape.bezierCurveTo(0.08, 0.00, 0.07, 0.08, 0.05, 0.12);
-    pgShape.lineTo(0.035, 0.14);
-    pgShape.lineTo(-0.035, 0.14);
-    pgShape.bezierCurveTo(-0.05, 0.14, -0.065, 0.10, -0.065, 0.05);
-    pgShape.bezierCurveTo(-0.065, -0.02, -0.060, -0.08, -0.055, -0.14);
-    pgShape.bezierCurveTo(-0.05, -0.20, -0.01, -0.22, 0.04, -0.22);
+    // Neck pocket right corner (treble side)
+    pgShape.moveTo(0.028, 0.015);
+    // Treble cutaway scoop base (leaves treble horn in pure body paint)
+    pgShape.bezierCurveTo(0.050, 0.025, 0.070, 0.015, 0.080, -0.02);
+    // Treble waist margin
+    pgShape.bezierCurveTo(0.088, -0.07, 0.100, -0.11, 0.118, -0.15);
+    // Sweep around volume and tone controls
+    pgShape.bezierCurveTo(0.115, -0.19, 0.105, -0.23, 0.075, -0.24);
+    // Bottom under bridge
+    pgShape.lineTo(0.042, -0.185);
+    pgShape.lineTo(-0.042, -0.185);
+    // Bass side below pickups
+    pgShape.lineTo(-0.042, -0.120);
+    // Curve into bass waist and upper horn
+    pgShape.bezierCurveTo(-0.065, -0.08, -0.085, -0.03, -0.095, 0.02);
+    pgShape.bezierCurveTo(-0.102, 0.06, -0.112, 0.09, -0.115, 0.115);
+    // Upper horn beak tip (leaves top 6cm of horn in pure body paint)
+    pgShape.bezierCurveTo(-0.118, 0.125, -0.108, 0.125, -0.100, 0.105);
+    // Scoop back to bass neck pocket
+    pgShape.bezierCurveTo(-0.085, 0.065, -0.060, 0.035, -0.028, 0.015);
+    pgShape.closePath();
 
     const pgGeom = new THREE.ExtrudeGeometry(pgShape, {
-      depth: 0.003,
+      depth: 0.0024,
       bevelEnabled: true,
-      bevelSize: 0.001,
-      bevelThickness: 0.001,
+      bevelSize: 0.0006,
+      bevelThickness: 0.0006,
       bevelSegments: 2
     });
     const pickguard = new THREE.Mesh(pgGeom, this.pickguardMaterial);
-    pickguard.position.set(0, 0, 0.001);
+    // Sits flat on the body surface (z = 0.0006)
+    pickguard.position.set(0, 0, 0.0006);
+    pickguard.castShadow = true;
+    pickguard.receiveShadow = true;
     this.guitarModel.add(pickguard);
 
     // 2. Three Single-Coil Pickups
-    const pickupYs = [0.06, -0.02, -0.10];
+    const pickupYs = [-0.01, -0.06, -0.11];
     pickupYs.forEach((py, idx) => {
       const puGroup = new THREE.Group();
-      puGroup.position.set(0, py, 0.005);
+      puGroup.position.set(0, py, 0.0035);
 
       if (idx === 2) {
-        puGroup.rotation.z = -0.15; // Slanted bridge pickup
+        puGroup.rotation.z = -0.18; // Slanted bridge pickup
       }
 
       const cover = new THREE.Mesh(
-        new THREE.BoxGeometry(0.064, 0.015, 0.009),
+        new THREE.BoxGeometry(0.068, 0.015, 0.006),
         this.creamPlasticMaterial
       );
+      cover.position.z = 0.003;
       cover.castShadow = true;
       puGroup.add(cover);
 
+      const poleSpacing = 0.0105;
       for (let p = 0; p < 6; p++) {
         const pole = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.0022, 0.0022, 0.004, 12),
+          new THREE.CylinderGeometry(0.0024, 0.0024, 0.004, 12),
           this.chromeMaterial
         );
         pole.rotation.x = Math.PI / 2;
-        const poleSpacing = 0.0092;
-        pole.position.set(-0.023 + p * poleSpacing, 0, 0.005);
+        pole.position.set(-0.02625 + p * poleSpacing, 0, 0.006);
         puGroup.add(pole);
       }
 
-      [-0.035, 0.035].forEach(sx => {
+      [-0.038, 0.038].forEach(sx => {
         const screw = new THREE.Mesh(
           new THREE.CylinderGeometry(0.0015, 0.0015, 0.003, 8),
           this.chromeMaterial
         );
         screw.rotation.x = Math.PI / 2;
-        screw.position.set(sx, 0, 0.004);
+        screw.position.set(sx, 0, 0.005);
         puGroup.add(screw);
       });
 
@@ -332,25 +361,26 @@ export class Guitar3D {
 
     // 3. Tremolo Bridge
     const bridgeBase = new THREE.Mesh(
-      new THREE.BoxGeometry(0.070, 0.034, 0.004),
+      new THREE.BoxGeometry(0.076, 0.036, 0.003),
       this.chromeMaterial
     );
-    bridgeBase.position.set(0, -0.18, 0.005);
+    bridgeBase.position.set(0, -0.155, 0.002);
     this.guitarModel.add(bridgeBase);
 
+    const saddleSpacing = 0.0105;
     for (let s = 0; s < 6; s++) {
       const saddle = new THREE.Mesh(
-        new THREE.BoxGeometry(0.009, 0.018, 0.005),
+        new THREE.BoxGeometry(0.010, 0.018, 0.005),
         this.chromeMaterial
       );
       const staggeredOffset = (s === 1 || s === 2 || s === 5) ? -0.003 : 0.0;
-      saddle.position.set(-0.023 + s * 0.0092, -0.18 + staggeredOffset, 0.008);
+      saddle.position.set(-0.02625 + s * saddleSpacing, -0.15 + staggeredOffset, 0.006);
       this.guitarModel.add(saddle);
     }
 
     // Tremolo Arm
     const tremArmGroup = new THREE.Group();
-    tremArmGroup.position.set(0.032, -0.19, 0.008);
+    tremArmGroup.position.set(0.036, -0.165, 0.006);
 
     const tremPivot = new THREE.Mesh(
       new THREE.CylinderGeometry(0.0035, 0.0035, 0.010, 12),
@@ -379,19 +409,19 @@ export class Guitar3D {
     this.tremArm = tremArmGroup;
     this.guitarModel.add(tremArmGroup);
 
-    // 4. Knobs
+    // 4. Knobs (Volume, Tone 1, Tone 2)
     const knobCoords = [
-      { x: 0.055, y: -0.07 },
-      { x: 0.065, y: -0.13 },
-      { x: 0.062, y: -0.19 }
+      { x: 0.055, y: -0.08 },
+      { x: 0.068, y: -0.13 },
+      { x: 0.065, y: -0.18 }
     ];
     knobCoords.forEach(pos => {
       const knob = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.009, 0.011, 0.009, 16),
+        new THREE.CylinderGeometry(0.009, 0.011, 0.008, 16),
         this.creamPlasticMaterial
       );
       knob.rotation.x = Math.PI / 2;
-      knob.position.set(pos.x, pos.y, 0.008);
+      knob.position.set(pos.x, pos.y, 0.007);
       this.guitarModel.add(knob);
     });
 
@@ -400,25 +430,25 @@ export class Guitar3D {
       new THREE.BoxGeometry(0.003, 0.028, 0.002),
       new THREE.MeshBasicMaterial({ color: 0x111111 })
     );
-    switchSlot.position.set(0.038, -0.22, 0.005);
-    switchSlot.rotation.z = -0.38;
+    switchSlot.position.set(0.038, -0.20, 0.004);
+    switchSlot.rotation.z = -0.45;
     this.guitarModel.add(switchSlot);
 
     const switchTip = new THREE.Mesh(
       new THREE.CylinderGeometry(0.0025, 0.0012, 0.012, 10),
       this.creamPlasticMaterial
     );
-    switchTip.position.set(0.038, -0.22, 0.010);
-    switchTip.rotation.z = -0.38;
+    switchTip.position.set(0.038, -0.20, 0.009);
+    switchTip.rotation.z = -0.45;
     this.guitarModel.add(switchTip);
 
-    // 6. Jack Plate
+    // 6. Football Jack Plate
     const jackPlate = new THREE.Mesh(
       new THREE.CylinderGeometry(0.018, 0.018, 0.003, 16),
       this.chromeMaterial
     );
     jackPlate.scale.set(0.65, 1.35, 1.0);
-    jackPlate.position.set(0.085, -0.30, -0.006);
+    jackPlate.position.set(0.090, -0.26, 0.001);
     jackPlate.rotation.z = 0.55;
     jackPlate.rotation.x = 0.35;
     this.guitarModel.add(jackPlate);
@@ -427,53 +457,76 @@ export class Guitar3D {
       new THREE.CylinderGeometry(0.005, 0.005, 0.004, 6),
       this.chromeMaterial
     );
-    jackNut.position.set(0.085, -0.30, -0.004);
+    jackNut.position.set(0.090, -0.26, 0.003);
     jackNut.rotation.z = 0.55;
     jackNut.rotation.x = 0.35;
     this.guitarModel.add(jackNut);
   }
 
   _buildNeckAndHeadstock() {
-    const neckLength = 0.44;
-    const neckStartY = 0.14;
-    const nutY = 0.52;
+    const nutY = 0.48;
+    const heelY = 0.015;
+    const scaleLength = 0.63;
     this.fretYPositions[0] = nutY;
 
-    // 1. Sleek Maple Neck Back (narrower at 0.044 so it never protrudes past fretboard)
-    const neckBackGeom = new THREE.BoxGeometry(0.044, neckLength, 0.016);
+    // 1. Tapered Indian Rosewood Fretboard Slab
+    const fbShape = new THREE.Shape();
+    fbShape.moveTo(-0.028, heelY);
+    fbShape.lineTo(0.028, heelY);
+    fbShape.lineTo(0.0215, nutY);
+    fbShape.lineTo(-0.0215, nutY);
+    fbShape.closePath();
+
+    const fbGeom = new THREE.ExtrudeGeometry(fbShape, { depth: 0.0055, bevelEnabled: false });
+    const fretboard = new THREE.Mesh(fbGeom, this.rosewoodMaterial);
+    fretboard.position.set(0, 0, 0.002);
+    this.guitarModel.add(fretboard);
+
+    // 2. Sleek Maple Neck Back
+    const neckBackShape = new THREE.Shape();
+    neckBackShape.moveTo(-0.027, heelY);
+    neckBackShape.lineTo(0.027, heelY);
+    neckBackShape.lineTo(0.0205, nutY);
+    neckBackShape.lineTo(-0.0205, nutY);
+    neckBackShape.closePath();
+
+    const neckBackGeom = new THREE.ExtrudeGeometry(neckBackShape, {
+      depth: 0.018,
+      bevelEnabled: true,
+      bevelSize: 0.004,
+      bevelThickness: 0.004,
+      bevelSegments: 3
+    });
     const neckBack = new THREE.Mesh(neckBackGeom, this.mapleNeckMaterial);
-    neckBack.position.set(0, (neckStartY + nutY) * 0.5, -0.008);
+    neckBack.position.set(0, 0, -0.016);
     neckBack.castShadow = true;
     this.guitarModel.add(neckBack);
 
-    // 2. Dark Indian Rosewood Fretboard Slab (clean 0.046 width, sitting prominently on front)
-    const fretboardGeom = new THREE.BoxGeometry(0.046, neckLength, 0.004);
-    const fretboard = new THREE.Mesh(fretboardGeom, this.rosewoodMaterial);
-    fretboard.position.set(0, (neckStartY + nutY) * 0.5, 0.002);
-    this.guitarModel.add(fretboard);
-
     // 3. Bone Nut
     const nut = new THREE.Mesh(
-      new THREE.BoxGeometry(0.046, 0.006, 0.006),
+      new THREE.BoxGeometry(0.043, 0.006, 0.006),
       new THREE.MeshStandardMaterial({ color: 0xf4efe4, roughness: 0.4 })
     );
-    nut.position.set(0, nutY, 0.006);
+    nut.position.set(0, nutY, 0.008);
     this.guitarModel.add(nut);
 
-    // 4. 21 Nickel-Silver Frets (sitting clearly above the rosewood fretboard)
+    // 4. 21 Nickel-Silver Frets (proper acoustic spacing with tapered width)
     const fretWireMat = new THREE.MeshStandardMaterial({
       color: 0xd8d8e2,
       roughness: 0.25,
       metalness: 0.85
     });
     for (let f = 1; f <= 21; f++) {
-      const dist = 0.38 * (1 - Math.pow(2, -f / 12));
+      const dist = scaleLength * (1 - Math.pow(2, -f / 12));
       const fretY = nutY - dist;
       this.fretYPositions[f] = fretY;
 
-      const fretGeom = new THREE.BoxGeometry(0.045, 0.002, 0.0018);
+      const t = (fretY - heelY) / (nutY - heelY);
+      const fretW = 0.056 - (0.056 - 0.043) * t;
+
+      const fretGeom = new THREE.BoxGeometry(fretW, 0.0018, 0.0018);
       const fret = new THREE.Mesh(fretGeom, fretWireMat);
-      fret.position.set(0, fretY, 0.0049);
+      fret.position.set(0, fretY, 0.0084);
       this.guitarModel.add(fret);
     }
 
@@ -485,42 +538,41 @@ export class Guitar3D {
       if (f === 12) {
         [-0.010, 0.010].forEach(dx => {
           const dot = new THREE.Mesh(new THREE.CircleGeometry(0.0025, 16), this.pearlMaterial);
-          dot.position.set(dx, dotY, 0.0050);
+          dot.position.set(dx, dotY, 0.0077);
           this.guitarModel.add(dot);
         });
       } else {
         const dot = new THREE.Mesh(new THREE.CircleGeometry(0.003, 16), this.pearlMaterial);
-        dot.position.set(0, dotY, 0.0050);
+        dot.position.set(0, dotY, 0.0077);
         this.guitarModel.add(dot);
       }
     });
 
-    // 6. Stratocaster Headstock (Natural maple wood with 6 inline tuners on top edge at -X)
+    // 6. Stratocaster Headstock (Natural maple wood with 6 inline tuners on bass edge at -X)
     const headShape = new THREE.Shape();
-    headShape.moveTo(-0.023, 0);
-    // Tuner edge (upper edge at -X)
-    headShape.bezierCurveTo(-0.030, 0.06, -0.038, 0.13, -0.036, 0.17);
-    // Ball scroll tip
-    headShape.bezierCurveTo(-0.028, 0.20, -0.006, 0.20, 0.006, 0.17);
-    // Lower curve
-    headShape.bezierCurveTo(0.016, 0.15, 0.020, 0.11, 0.023, 0.07);
-    headShape.lineTo(0.023, 0);
+    headShape.moveTo(-0.0215, 0.48);
+    headShape.lineTo(0.0215, 0.48);
+    headShape.bezierCurveTo(0.023, 0.53, 0.021, 0.58, 0.018, 0.62);
+    headShape.bezierCurveTo(0.016, 0.65, -0.005, 0.665, -0.028, 0.655);
+    headShape.bezierCurveTo(-0.048, 0.645, -0.048, 0.615, -0.038, 0.59);
+    headShape.bezierCurveTo(-0.032, 0.57, -0.034, 0.53, -0.032, 0.50);
+    headShape.bezierCurveTo(-0.030, 0.485, -0.025, 0.48, -0.0215, 0.48);
     headShape.closePath();
 
-    const headGeom = new THREE.ExtrudeGeometry(headShape, { depth: 0.012, bevelEnabled: false });
+    const headGeom = new THREE.ExtrudeGeometry(headShape, { depth: 0.013, bevelEnabled: false });
     const headMesh = new THREE.Mesh(headGeom, this.mapleNeckMaterial);
-    headMesh.position.set(0, nutY, -0.008);
+    headMesh.position.set(0, 0, -0.005);
     this.guitarModel.add(headMesh);
 
-    // 6 In-Line Chrome Tuners (on upper edge at -X)
+    // 6 In-Line Chrome Tuners (along bass edge at -X)
     for (let t = 0; t < 6; t++) {
-      const ty = nutY + 0.022 + t * 0.024;
+      const ty = 0.505 + t * 0.024;
       const post = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.0025, 0.0025, 0.018, 12),
+        new THREE.CylinderGeometry(0.0025, 0.0025, 0.016, 12),
         this.chromeMaterial
       );
       post.rotation.x = Math.PI / 2;
-      post.position.set(-0.018, ty, 0.002);
+      post.position.set(-0.018, ty, 0.005);
       this.guitarModel.add(post);
 
       const washer = new THREE.Mesh(
@@ -528,14 +580,14 @@ export class Guitar3D {
         this.chromeMaterial
       );
       washer.rotation.x = Math.PI / 2;
-      washer.position.set(-0.018, ty, 0.005);
+      washer.position.set(-0.018, ty, 0.008);
       this.guitarModel.add(washer);
 
       const key = new THREE.Mesh(
         new THREE.BoxGeometry(0.0032, 0.013, 0.009),
         this.chromeMaterial
       );
-      key.position.set(-0.033, ty, -0.004);
+      key.position.set(-0.033, ty, 0.002);
       this.guitarModel.add(key);
     }
   }
@@ -587,7 +639,7 @@ export class Guitar3D {
       halo.position.z = 0.005;
       markerGroup.add(halo);
 
-      markerGroup.position.set(0, 0, 0.008);
+      markerGroup.position.set(0, 0, 0.012);
       this.guitarModel.add(markerGroup);
 
       this.fretMarkers.push({
@@ -602,40 +654,46 @@ export class Guitar3D {
 
   _buildStrings() {
     const stringCount = 6;
-    const bridgeY = -0.18;
-    const nutY = 0.52;
+    const bridgeY = -0.15;
+    const nutY = 0.48;
     const length = nutY - bridgeY;
 
-    // Authentic Fender Gauges:
-    // s=0 (Low E / Grave, TOP edge): 0.0042 (thickest wound string)
-    // s=1 (A / Grave): 0.0034 (wound)
-    // s=2 (D / Grave): 0.0026 (wound)
-    // s=3 (G / Aguda): 0.0020 (plain steel)
-    // s=4 (B / Aguda): 0.0015 (plain steel)
-    // s=5 (High E / Fina, BOTTOM edge): 0.0012 (thinnest string)
-    const gauges = [0.0042, 0.0034, 0.0026, 0.0020, 0.0015, 0.0012];
-    const bridgeSpacing = 0.0092;
-    const nutSpacing = 0.0065;
+    // Realistic calibrated electric guitar gauges (scaled to match acoustic guitar refinement):
+    // s=0 (Low E, TOP edge): wound nickel-plated steel
+    // s=1 (A): wound nickel-plated steel
+    // s=2 (D): wound nickel-plated steel
+    // s=3 (G): plain steel
+    // s=4 (B): plain steel
+    // s=5 (High E, BOTTOM edge): plain steel
+    const gauges = [0.0022, 0.0018, 0.00145, 0.00115, 0.00090, 0.00072];
+    const bridgeSpacing = 0.0105;
+    const nutSpacing = 0.0070;
 
     for (let s = 0; s < stringCount; s++) {
       // s=0 is at -X (top edge in playing angle), s=5 is at +X (bottom edge)
-      const bridgeX = -0.023 + s * bridgeSpacing;
-      const nutX = -0.016 + s * nutSpacing;
+      const bridgeX = -0.02625 + s * bridgeSpacing;
+      const nutX = -0.0175 + s * nutSpacing;
       const midX = (bridgeX + nutX) * 0.5;
       const angleZ = Math.atan2(nutX - bridgeX, length);
 
-      const geom = new THREE.CylinderGeometry(gauges[s], gauges[s], length, 8);
+      const geom = new THREE.CylinderGeometry(gauges[s], gauges[s], length, 10);
       const isWound = s <= 2;
+
+      // Authentic nickel-steel guitar string material:
+      // - Realistic metallic specular highlights (no constant glowing wash)
+      // - Wound strings (s <= 2): wound nickel-plated steel
+      // - Plain strings (s >= 3): polished high-carbon steel
       const mat = new THREE.MeshStandardMaterial({
-        color: isWound ? 0xd6d6de : 0xf2f2f8,
-        metalness: 0.95,
-        roughness: isWound ? 0.22 : 0.06,
+        color: isWound ? 0xd0d4de : 0xe2e6ee,
+        metalness: isWound ? 0.82 : 0.88,
+        roughness: isWound ? 0.28 : 0.20,
         emissive: 0x000000,
         emissiveIntensity: 0
       });
 
       const mesh = new THREE.Mesh(geom, mat);
-      mesh.position.set(midX, (bridgeY + nutY) * 0.5, 0.008);
+      // Action height: 0.0125 (naturally clearing frets and resting on saddles and nut)
+      mesh.position.set(midX, (bridgeY + nutY) * 0.5, 0.0125);
       mesh.rotation.z = -angleZ;
       mesh.castShadow = true;
       this.guitarModel.add(mesh);
@@ -644,26 +702,28 @@ export class Guitar3D {
         mesh: mesh,
         material: mat,
         baseX: midX,
-        baseZ: 0.008,
+        baseZ: 0.0125,
+        baseEmissiveColor: 0x000000,
+        baseEmissiveIntensity: 0,
         vibrationAmp: 0,
-        vibrationSpeed: 40 + s * 14,
+        vibrationSpeed: 42 + s * 12,
         phase: Math.random() * Math.PI * 2
       });
     }
   }
 
   _getStringXAtY(stringIndex, y) {
-    const bridgeY = -0.18;
-    const nutY = 0.52;
-    const bridgeX = -0.023 + stringIndex * 0.0092;
-    const nutX = -0.016 + stringIndex * 0.0065;
+    const bridgeY = -0.15;
+    const nutY = 0.48;
+    const bridgeX = -0.02625 + stringIndex * 0.0105;
+    const nutX = -0.0175 + stringIndex * 0.0070;
     const t = (y - bridgeY) / (nutY - bridgeY);
     return bridgeX + t * (nutX - bridgeX);
   }
 
   _buildFloatingPlectrum() {
     const pGroup = new THREE.Group();
-    pGroup.position.set(0, -0.13, 0.020);
+    pGroup.position.set(0, -0.11, 0.021);
 
     const pickShape = new THREE.Shape();
     pickShape.moveTo(0, -0.016);
@@ -703,15 +763,15 @@ export class Guitar3D {
 
     // Plectrum alternate picking animation
     if (this.plectrumGroup) {
-      const stringX = this._getStringXAtY(bestString, -0.13);
+      const stringX = this._getStringXAtY(bestString, -0.11);
       this.strumDir = -this.strumDir;
       gsap.killTweensOf(this.plectrumGroup.position);
       gsap.killTweensOf(this.plectrumGroup.rotation);
       gsap.timeline()
         .to(this.plectrumGroup.position, {
           x: stringX,
-          y: -0.13 + this.strumDir * 0.008,
-          z: 0.014,
+          y: -0.11 + this.strumDir * 0.008,
+          z: 0.017,
           duration: 0.035,
           ease: 'power2.in'
         })
@@ -721,8 +781,8 @@ export class Guitar3D {
           ease: 'power2.in'
         }, 0)
         .to(this.plectrumGroup.position, {
-          y: -0.13,
-          z: 0.020,
+          y: -0.11,
+          z: 0.023,
           duration: 0.14,
           ease: 'power1.out'
         })
@@ -742,10 +802,13 @@ export class Guitar3D {
       gsap.to(str.material, {
         emissiveIntensity: 0,
         duration: 0.6 + vel * 0.3,
-        ease: 'power2.out'
+        ease: 'power2.out',
+        onComplete: () => {
+          str.material.emissive.setHex(0x000000);
+        }
       });
 
-      str.vibrationAmp = 0.014 * vel;
+      str.vibrationAmp = 0.008 * vel;
       gsap.killTweensOf(str);
       gsap.to(str, {
         vibrationAmp: 0,
@@ -761,7 +824,7 @@ export class Guitar3D {
         const fretY = (this.fretYPositions[bestFret - 1] + this.fretYPositions[bestFret]) * 0.5;
         const fretX = this._getStringXAtY(bestString, fretY);
 
-        marker.group.position.set(fretX, fretY, 0.008);
+        marker.group.position.set(fretX, fretY, 0.012);
         marker.group.visible = true;
         marker.active = true;
 
