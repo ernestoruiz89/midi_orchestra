@@ -24,6 +24,13 @@ export class DemoSongs {
   static getSongsList() {
     return [
       {
+        id: 'ccr_have_you_ever_seen_the_rain',
+        name: 'Creedence Clearwater Revival - Have You Ever Seen The Rain',
+        genre: 'Classic Rock',
+        bpm: 116,
+        file: '/midi/creedence-clearwater-revival-have-you-ever-seen-the-rain.kar'
+      },
+      {
         id: 'abba_winner_takes_it_all',
         name: 'ABBA - The Winner Takes It All',
         genre: 'Pop',

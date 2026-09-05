@@ -23,7 +23,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // 4. Preload the default demo without starting audio. Playback must always
   // follow an explicit Play click or demo-song selection.
-  await uiManager.loadDemoSong('al_stewart_year_of_the_cat', { autoplay: false });
+  await uiManager.loadDemoSong('ccr_have_you_ever_seen_the_rain', { autoplay: false });
 
   // Show welcome toast
   uiManager.showToast(i18n.t('toasts.welcome'));
