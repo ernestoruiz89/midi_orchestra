@@ -26,7 +26,7 @@
     <div class="dropzone-box">
       <div class="dropzone-icon">📥</div>
       <h2 data-i18n="dropzone.title">Drop your MIDI file here</h2>
-      <p data-i18n="dropzone.subtitle">Supported formats: .mid, .midi (Automatic multi-track)</p>
+      <p data-i18n="dropzone.subtitle">Supported formats: .mid, .midi, .kar (Automatic multi-track)</p>
     </div>
   </div>
 
@@ -61,7 +61,7 @@
       <label class="btn btn-primary file-upload-btn">
         <span class="btn-icon">📁</span>
         <span data-i18n="nav.loadMidi">Load MIDI</span>
-        <input type="file" id="file-input" accept=".mid,.midi" style="display: none;" />
+        <input type="file" id="file-input" accept=".mid,.midi,.kar" style="display: none;" />
       </label>
 
       <button id="btn-open-tracks" class="btn btn-icon-only" title="MIDI Track Mapping" data-i18n-title="nav.tracksMap">
@@ -75,8 +75,30 @@
       <button id="btn-open-help" class="btn btn-icon-only" title="Controls Guide" data-i18n-title="nav.controlsGuide">
         <span>⌨️</span>
       </button>
+      <button id="btn-open-quality" class="btn btn-icon-only mobile-quality-control" title="Graphics quality" data-i18n-title="quality.title" aria-haspopup="dialog" aria-controls="modal-quality">
+        <span aria-hidden="true">⚙️</span>
+      </button>
     </div>
   </header>
+
+  <div id="modal-quality" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="quality-title">
+    <div class="modal-card quality-card glass-panel">
+      <div class="modal-header">
+        <h2 id="quality-title" data-i18n="quality.title">Graphics quality</h2>
+        <button id="btn-close-quality" class="btn btn-icon-only" title="Close" data-i18n-title="quality.close">✕</button>
+      </div>
+      <div class="modal-body">
+        <label for="select-quality" data-i18n="quality.label">Choose the quality for your phone</label>
+        <select id="select-quality">
+          <option value="low" data-i18n="quality.low">Low</option>
+          <option value="medium" data-i18n="quality.medium">Medium</option>
+          <option value="high" data-i18n="quality.high">High</option>
+        </select>
+        <p id="quality-description" aria-live="polite"></p>
+        <p class="quality-note" data-i18n="quality.saved">Applied immediately and saved on this device. Audio quality is unchanged.</p>
+      </div>
+    </div>
+  </div>
 
   <!-- Camera Presets Bar (Top Right Floating) -->
   <div class="camera-toolbar glass-panel">

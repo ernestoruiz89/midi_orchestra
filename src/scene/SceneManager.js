@@ -39,6 +39,11 @@ export class SceneManager {
     this.soundEngine = soundEngine;
     const reportedMemory = Number(navigator.deviceMemory) || 8;
     this.isMobilePerformanceMode = window.matchMedia('(max-width: 900px), (pointer: coarse)').matches || reportedMemory <= 4;
+    let savedQuality;
+    try { savedQuality = localStorage.getItem('midi_orchestra_mobile_quality'); } catch {}
+    this.quality = this.isMobilePerformanceMode
+      ? (['low', 'medium', 'high'].includes(savedQuality) ? savedQuality : 'low')
+      : 'high';
     this.mobilePixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
     this.minimumRenderInterval = 0;
     this.lastRenderTimestamp = 0;
@@ -60,7 +65,7 @@ export class SceneManager {
       antialias: true,
       powerPreference: 'high-performance'
     });
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setSize(this.container.clientWidth, this.container.clientHeight, false);
     this.renderer.setPixelRatio(this.isMobilePerformanceMode ? this.mobilePixelRatio : Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -74,6 +79,7 @@ export class SceneManager {
     this._setupGlobalLighting();
 
     this.stage = new Stage(this.scene, { mobilePerformanceMode: this.isMobilePerformanceMode });
+    this.setQuality(this.quality, false);
 
     // Primary instruments
     this.piano = new Piano3D(this.scene, { tier: 1, hasStand: true });
@@ -297,6 +303,9 @@ export class SceneManager {
 
     // Event listeners
     window.addEventListener('resize', () => this._onResize());
+    // Mobile browser chrome and rotation can settle after the window event.
+    this.viewportObserver = new ResizeObserver(() => this._onResize());
+    this.viewportObserver.observe(this.container);
 
     // Start render loop
     this._animate();
@@ -304,6 +313,34 @@ export class SceneManager {
 
   _getInstrumentFamily(key) {
     return key.replace(/_\d+$/, '');
+  }
+
+  setQuality(quality, persist = true) {
+    const profiles = {
+      low: { pixelRatio: 1, fps: 30, shadows: false },
+      medium: { pixelRatio: 1.5, fps: 0, shadows: true },
+      high: { pixelRatio: 2, fps: 0, shadows: true }
+    };
+    const profile = profiles[quality];
+    if (!profile) return;
+    this.quality = quality;
+    this.pixelRatioLimit = profile.pixelRatio;
+    this.minimumRenderInterval = profile.fps ? 1000 / profile.fps : 0;
+    this.lastRenderTimestamp = 0;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, profile.pixelRatio));
+    this.renderer.shadowMap.enabled = profile.shadows;
+    this.frontWash.castShadow = profile.shadows;
+    const shadowSize = quality === 'high' ? 2048 : 1024;
+    if (this.frontWash.shadow.mapSize.width !== shadowSize) {
+      this.frontWash.shadow.map?.dispose();
+      this.frontWash.shadow.map = null;
+      this.frontWash.shadow.mapSize.set(shadowSize, shadowSize);
+    }
+    this.stage.setQuality(quality);
+    this.renderer.domElement.dataset.quality = quality;
+    if (persist) {
+      try { localStorage.setItem('midi_orchestra_mobile_quality', quality); } catch {}
+    }
   }
 
   getStageFloorElevation(x, z) {
@@ -867,6 +904,7 @@ export class SceneManager {
 
     // Front stage wash light
     const frontWash = new THREE.DirectionalLight(0x7099ff, 1.2);
+    this.frontWash = frontWash;
     frontWash.position.set(0, 8, 12);
     frontWash.castShadow = true;
     frontWash.shadow.mapSize.width = this.isMobilePerformanceMode ? 1024 : 2048;
@@ -978,8 +1016,11 @@ export class SceneManager {
   }
 
   _onResize() {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    // innerWidth can include the previous landscape canvas overflow on mobile.
+    // CSS owns the canvas layout; only resize its drawing buffer here.
+    const width = this.container.clientWidth;
+    const height = this.container.clientHeight;
+    if (!width || !height) return;
 
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
@@ -987,9 +1028,8 @@ export class SceneManager {
       this.cameraController.setViewportAspect(this.camera.aspect);
     }
 
-    this.renderer.setSize(width, height);
-    this.mobilePixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
-    this.renderer.setPixelRatio(this.isMobilePerformanceMode ? this.mobilePixelRatio : Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(width, height, false);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.pixelRatioLimit));
   }
 
   _animate(timestamp = performance.now()) {
@@ -997,11 +1037,14 @@ export class SceneManager {
 
     if (
       this.minimumRenderInterval > 0 &&
-      timestamp - this.lastRenderTimestamp < this.minimumRenderInterval
+      timestamp - this.lastRenderTimestamp < this.minimumRenderInterval - 0.5
     ) {
       return;
     }
-    this.lastRenderTimestamp = timestamp;
+    const elapsed = timestamp - this.lastRenderTimestamp;
+    this.lastRenderTimestamp = this.minimumRenderInterval && elapsed >= this.minimumRenderInterval
+      ? timestamp - (elapsed % this.minimumRenderInterval)
+      : timestamp;
 
     const delta = Math.min(this.clock.getDelta(), 0.05);
 

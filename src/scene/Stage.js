@@ -10,6 +10,7 @@ export class Stage {
   constructor(scene, { mobilePerformanceMode = false } = {}) {
     this.scene = scene;
     this.mobilePerformanceMode = mobilePerformanceMode;
+    this.effectsEnabled = true;
     this.group = new THREE.Group();
 
     this.spotlights = [];
@@ -52,6 +53,20 @@ export class Stage {
       color: 0x111111,
       roughness: 0.2,
       metalness: 0.8
+    });
+  }
+
+  setQuality(quality) {
+    this.effectsEnabled = quality !== 'low';
+    this.dustParticles.visible = this.effectsEnabled;
+    this.spotlights.forEach(spot => {
+      spot.light.castShadow = quality === 'high';
+      spot.light.shadow.mapSize.set(1024, 1024);
+      if (!spot.light.castShadow && spot.light.shadow.map) {
+        spot.light.shadow.map.dispose();
+        spot.light.shadow.map = null;
+      }
+      spot.beam.visible = this.effectsEnabled && this.lightShowEnabled && spot.light.intensity > 0;
     });
   }
 
@@ -314,7 +329,7 @@ export class Stage {
           : activeFamilies.has(inst);
         spot.light.intensity = isVisible ? spot.baseIntensity : 0;
         // Beam cones only visible when Light Show is enabled AND instrument is active
-        spot.beam.visible = this.lightShowEnabled && isVisible;
+        spot.beam.visible = this.effectsEnabled && this.lightShowEnabled && isVisible;
       }
     });
   }
@@ -386,7 +401,7 @@ export class Stage {
     if (this.lightShowEnabled) {
       // Show beam cones for spots that have their light on
       this.spotlights.forEach(spot => {
-        if (spot.light.intensity > 0) {
+        if (this.effectsEnabled && spot.light.intensity > 0) {
           spot.beam.visible = true;
         }
       });
@@ -395,7 +410,7 @@ export class Stage {
       this.spotlights.forEach(spot => {
         const c = new THREE.Color(spot.baseColor);
         spot.light.color.copy(c);
-        spot.light.intensity = spot.beam.visible ? spot.baseIntensity : 0;
+        spot.light.intensity = spot.light.intensity > 0 ? spot.baseIntensity : 0;
         spot.beam.material.color.copy(c);
         spot.beam.material.opacity = 0.18;
         spot.beam.visible = false;
@@ -409,7 +424,7 @@ export class Stage {
 
   update(delta, visualizerData = null) {
     // 1. Animate Atmospheric Dust Particles
-    if (this.dustParticles) {
+    if (this.dustParticles?.visible) {
       const pos = this.dustParticles.geometry.attributes.position.array;
       const count = pos.length / 3;
       const time = performance.now() * 0.0005;

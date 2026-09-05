@@ -27,6 +27,7 @@ export class UIManager {
     this._bindMidiOutputSelector();
     this._bindTrackInspectorModal();
     this._bindHelpModal();
+    this._bindQualitySettings();
     this._bindLanguageSwitcher();
     this._bindGlobalKeyboardShortcuts();
     this._bindMidiPlayerCallbacks();
@@ -107,6 +108,45 @@ export class UIManager {
       toast: document.getElementById('toast'),
       toastMessage: document.getElementById('toast-message')
     };
+  }
+
+  _bindQualitySettings() {
+    const button = document.getElementById('btn-open-quality');
+    const modal = document.getElementById('modal-quality');
+    const select = document.getElementById('select-quality');
+    const closeButton = document.getElementById('btn-close-quality');
+    const description = document.getElementById('quality-description');
+    const refresh = () => {
+      select.value = this.sceneManager.quality;
+      description.textContent = i18n.t(`quality.${select.value}Description`);
+    };
+    const close = () => {
+      modal.classList.add('hidden');
+      button.focus();
+    };
+    button.addEventListener('click', () => {
+      refresh();
+      modal.classList.remove('hidden');
+      select.focus();
+    });
+    closeButton.addEventListener('click', close);
+    modal.addEventListener('click', event => {
+      if (event.target === modal) close();
+    });
+    modal.addEventListener('keydown', event => {
+      event.stopPropagation();
+      if (event.key === 'Escape') close();
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        (document.activeElement === select ? closeButton : select).focus();
+      }
+    });
+    select.addEventListener('change', () => {
+      this.sceneManager.setQuality(select.value);
+      refresh();
+    });
+    i18n.onLocaleChange(refresh);
+    refresh();
   }
 
   _bindPlaybackControls() {
@@ -466,7 +506,7 @@ export class UIManager {
   }
 
   async _handleFile(file) {
-    if (!file.name.match(/\.(mid|midi)$/i)) {
+    if (!file.name.match(/\.(mid|midi|kar)$/i)) {
       this.showToast(i18n.t('toasts.invalidFile'));
       return;
     }

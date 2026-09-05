@@ -4,6 +4,15 @@
  */
 export const translations = {
   en: {
+    quality: {
+      title: 'Graphics quality', close: 'Close',
+      label: 'Choose the quality for your phone',
+      low: 'Low', medium: 'Medium', high: 'High',
+      lowDescription: 'Best performance: reduced resolution, 30 FPS, no shadows, light cones or ambient particles.',
+      mediumDescription: 'Balanced: sharper image, one main shadow and subtle ambient effects.',
+      highDescription: 'More detail: higher resolution and full stage shadows. Requires a faster phone.',
+      saved: 'Applied immediately and saved on this device. Audio quality is unchanged.'
+    },
     nav: {
       demoSongs: 'Demo Songs',
       loadMidi: 'Load MIDI',
@@ -14,7 +23,7 @@ export const translations = {
     },
     dropzone: {
       title: 'Drop your MIDI file here',
-      subtitle: 'Supported formats: .mid, .midi (Automatic multi-track)'
+      subtitle: 'Supported formats: .mid, .midi, .kar (Automatic multi-track)'
     },
     camera: {
       label: 'CAMERA:',
@@ -185,7 +194,7 @@ export const translations = {
       instUnmute: (i) => `🔊 ${i} unmuted`,
       instMute: (i) => `🔇 ${i} muted`,
       songLoaded: (name) => `Loaded: ${name}`,
-      invalidFile: '⚠️ Please select a .mid or .midi file',
+      invalidFile: '⚠️ Please select a .mid, .midi or .kar file',
       processingFile: (name) => `Processing file: ${name}...`,
       fileLoaded: (count) => `✅ File loaded (${count} tracks)`,
       fileError: '❌ Error processing MIDI file',
@@ -251,6 +260,15 @@ export const translations = {
   },
 
   es: {
+    quality: {
+      title: 'Calidad gráfica', close: 'Cerrar',
+      label: 'Elige la calidad para tu celular',
+      low: 'Baja', medium: 'Media', high: 'Alta',
+      lowDescription: 'Mayor rendimiento: resolución reducida, 30 FPS, sin sombras, conos de luz ni partículas ambientales.',
+      mediumDescription: 'Equilibrada: imagen más nítida, una sombra principal y efectos ambientales sutiles.',
+      highDescription: 'Más detalle: mayor resolución y todas las sombras del escenario. Requiere un celular más potente.',
+      saved: 'Se aplica al instante y se guarda en este dispositivo. La calidad del audio se mantiene.'
+    },
     nav: {
       demoSongs: 'Canciones Demo',
       loadMidi: 'Cargar MIDI',
@@ -261,7 +279,7 @@ export const translations = {
     },
     dropzone: {
       title: 'Suelta tu archivo MIDI aquí',
-      subtitle: 'Formatos compatibles: .mid, .midi (Multi-pista automático)'
+      subtitle: 'Formatos compatibles: .mid, .midi, .kar (Multi-pista automático)'
     },
     camera: {
       label: 'CÁMARA:',
@@ -432,7 +450,7 @@ export const translations = {
       instUnmute: (i) => `🔊 ${i} reactivado`,
       instMute: (i) => `🔇 ${i} silenciado`,
       songLoaded: (name) => `Cargada: ${name}`,
-      invalidFile: '⚠️ Por favor selecciona un archivo .mid o .midi',
+      invalidFile: '⚠️ Por favor selecciona un archivo .mid, .midi o .kar',
       processingFile: (name) => `Procesando archivo: ${name}...`,
       fileLoaded: (count) => `✅ Archivo cargado (${count} pistas)`,
       fileError: '❌ Error al procesar el archivo MIDI',
