@@ -451,10 +451,11 @@ export class UIManager {
         if (!response.ok) {
           throw new Error(`Unable to load demo MIDI (${response.status})`);
         }
-        await this.midiPlayer.loadMidiData(await response.arrayBuffer(), song.name);
+        await this.midiPlayer.loadMidiData(await response.arrayBuffer(), decodeURIComponent(song.file.split('/').pop()));
         this.midiPlayer.songName = song.name;
       } else {
         const songData = DemoSongs.getSongData(songId);
+        this.midiPlayer.loadSongPreset(`demo:${songId}`);
         this.midiPlayer.midiData = songData;
         this.midiPlayer.songName = songData.name;
         this.midiPlayer.duration = songData.duration;
@@ -555,6 +556,10 @@ export class UIManager {
   }
 
   _bindMixerDrawer() {
+    document.getElementById('btn-reset-mixer').addEventListener('click', async () => {
+      await this.midiPlayer.resetSongPreset();
+      this._refreshMixerControls();
+    });
     this.dom.btnToggleMixer.addEventListener('click', () => {
       this.dom.drawerMixer.classList.toggle('hidden');
     });
@@ -569,6 +574,11 @@ export class UIManager {
     strips.forEach(strip => {
       const inst = strip.dataset.inst;
       const slider = strip.querySelector('.vertical-slider');
+      slider.max = '2';
+      slider.setAttribute('aria-label', inst);
+      const readout = document.createElement('output');
+      readout.className = 'mixer-level';
+      slider.after(readout);
       const btnMute = strip.querySelector('.btn-mute');
       const btnSolo = strip.querySelector('.btn-solo');
       const vu = strip.querySelector('.vu-fill');
@@ -584,20 +594,44 @@ export class UIManager {
       slider.addEventListener('input', (e) => {
         const val = parseFloat(e.target.value);
         this.soundEngine.setInstrumentVolume(inst, val);
+        readout.textContent = `${Math.round(val * 100)}%`;
+        this.midiPlayer.saveSongPreset();
       });
 
       btnMute.addEventListener('click', () => {
         const isMuted = !btnMute.classList.contains('active');
         btnMute.classList.toggle('active', isMuted);
         this.soundEngine.setMute(inst, isMuted);
+        this.midiPlayer.saveSongPreset();
       });
 
       btnSolo.addEventListener('click', () => {
         const isSolo = !btnSolo.classList.contains('active');
         btnSolo.classList.toggle('active', isSolo);
         this.soundEngine.setSolo(inst, isSolo);
+        this.midiPlayer.saveSongPreset();
       });
     });
+    this._refreshMixerControls();
+  }
+
+  _refreshMixerControls() {
+    this.dom.drawerMixer.querySelectorAll('.mixer-strip').forEach(strip => {
+      const inst = strip.dataset.inst;
+      const value = this.soundEngine.volumes[inst] ?? 1;
+      strip.querySelector('.vertical-slider').value = value;
+      const readout = strip.querySelector('.mixer-level');
+      if (readout) readout.textContent = `${Math.round(value * 100)}%`;
+      strip.querySelector('.btn-mute').classList.toggle('active', !!this.soundEngine.muted[inst]);
+      strip.querySelector('.btn-solo').classList.toggle('active', !!this.soundEngine.solo[inst]);
+    });
+    // The compact dock's temporary mute/solo state must not cross song loads.
+    if (!Object.values(this.soundEngine.gmTemporaryMuted).some(Boolean)) {
+      this.mutedInstruments.clear();
+      this.soloedInstrument = null;
+      this.dom.muteButtons.forEach(button => button.classList.remove('active'));
+      this.dom.soloButtons.forEach(button => button.classList.remove('active'));
+    }
   }
 
   _bindMidiOutputSelector() {
@@ -870,6 +904,7 @@ export class UIManager {
   }
 
   _bindMidiPlayerCallbacks() {
+    this.midiPlayer.onPresetStorageError = () => this.showToast(i18n.t('mixer.storageError'));
     // Progress
     this.midiPlayer.onProgress = (current, total, percent) => {
       if (!this.isSeeking) {
@@ -928,6 +963,7 @@ export class UIManager {
     // Automatically show only instruments present in loaded song
     this.midiPlayer.onActiveInstrumentsChanged = (activeList) => {
       this._applyActiveInstruments(activeList);
+      this._refreshMixerControls();
       this.sceneManager.updatePianoMidiPrograms(this.midiPlayer.trackInfos);
     };
     this.midiPlayer.onTrackUpdate = (tracks) => {
@@ -946,6 +982,7 @@ export class UIManager {
 
     // Highlight active instruments when song is loaded
     this.midiPlayer.onSongLoaded = (songInfo) => {
+      this._refreshMixerControls();
       this.dom.songTitle.textContent = songInfo.name;
       this.dom.songBpm.textContent = `${songInfo.bpm} BPM`;
       this.dom.timeTotal.textContent = this._formatTime(songInfo.duration);

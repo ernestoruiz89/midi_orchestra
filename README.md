@@ -10,6 +10,10 @@ Web-based MIDI player with an interactive 3D orchestra. It turns MIDI tracks int
 - General MIDI playback through GeneralUser GS, including program, volume, expression, pan, and pitch-bend MIDI controls.
 - Internal Web Audio output or browser-available MIDI devices.
 
+## Saved mixes
+
+The mixer starts at 100% (unity gain), preserving the MIDI file's channel volume, expression, and note velocities. Adjustments from 0–200%, Mute/Solo settings, and instrument reassignments are saved in this browser for the exact file name, including its extension and capitalization. Files with the same name share a preset. **Reset Default** removes that file's preset and restores its original instruments and mix. Browser data clearing also removes saved presets.
+
 ## Run locally
 
 Requires Node.js 18 or later.

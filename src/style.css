@@ -520,6 +520,27 @@ body {
   gap: 6px;
 }
 
+.mixer-preset-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.mixer-preset-controls p {
+  flex: 1 1 200px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.mixer-level {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .github-link {
   display: inline-flex;
   align-items: center;

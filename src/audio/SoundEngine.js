@@ -185,55 +185,17 @@ export class SoundEngine {
     const saveData = Boolean(navigator.connection?.saveData);
     this.preferCompressedGmBank = window.matchMedia('(max-width: 900px), (pointer: coarse)').matches || reportedMemory <= 4 || saveData;
 
-    // Per-instrument channel volumes
-    this.volumes = {
-      piano: 0.78,
-      piano_2: 0.78,
-      piano_3: 0.78,
-      piano_4: 0.78,
-      drums: 0.46,
-      bass: 0.72,
-      bass_2: 0.72,
-      doubleBass: 0.72,
-      doubleBass_2: 0.72,
-      guitar: 0.68,
-      guitar_2: 0.68,
-      guitar_3: 0.68,
-      guitar_4: 0.68,
-      acousticGuitar: 0.64,
-      acousticGuitar_2: 0.64,
-      acousticGuitar_3: 0.64,
-      acousticGuitar_4: 0.64,
-      trumpet: 0.64,
-      trumpet_2: 0.64,
-      sax: 0.65,
-      sax_2: 0.65,
-      violin: 0.68,
-      violin_2: 0.68,
-      cello: 0.68,
-      cello_2: 0.68,
-      flute: 0.60,
-      flute_2: 0.60,
-      xylophone: 0.60,
-      xylophone_2: 0.60,
-      synth: 0.62,
-      synth_2: 0.62,
-      synth_3: 0.62,
-      synth_4: 0.62,
-      frenchHorn: 0.65,
-      clarinet: 0.62,
-      cabasa: 0.55,
-      congas: 0.62,
-      timbales: 0.60,
-      tambourine: 0.58,
-      maracas: 0.55,
-      whistle: 0.52,
-      guiro: 0.58,
-      triangle: 0.52,
-      harp: 0.66,
-      harmonica: 0.62,
-      accordion: 0.68
-    };
+    // Unity gain preserves the song's CC7/CC11 and velocity balance.
+    this.volumes = Object.fromEntries([
+      'piano', 'piano_2', 'piano_3', 'piano_4', 'drums', 'bass',
+      'bass_2', 'doubleBass', 'doubleBass_2', 'guitar', 'guitar_2', 'guitar_3',
+      'guitar_4', 'acousticGuitar', 'acousticGuitar_2', 'acousticGuitar_3', 'acousticGuitar_4', 'trumpet',
+      'trumpet_2', 'sax', 'sax_2', 'violin', 'violin_2', 'cello',
+      'cello_2', 'flute', 'flute_2', 'xylophone', 'xylophone_2', 'synth',
+      'synth_2', 'synth_3', 'synth_4', 'frenchHorn', 'clarinet', 'cabasa',
+      'congas', 'timbales', 'tambourine', 'maracas', 'whistle', 'guiro',
+      'triangle', 'harp', 'harmonica', 'accordion',
+    ].map(instrument => [instrument, 1]));
 
     this.muted = {};
     this.solo = {};
@@ -828,14 +790,13 @@ export class SoundEngine {
       if (!input) return;
       const bus = this.gmChannelBuses[channel] || 'piano';
       const instance = this.gmChannelInstances[channel] || bus;
-      const level = this.volumes[instance] ?? this.volumes[bus] ?? 0.80;
+      const level = this.volumes[instance] ?? this.volumes[bus] ?? 1;
       const muted = Boolean(
         this.muted[instance] ||
-        this.muted[bus] ||
         this.gmTemporaryMuted[instance] ||
         this.gmTemporaryMuted[bus]
       );
-      const soloed = Boolean(this.solo[instance] || this.solo[bus]);
+      const soloed = Boolean(this.solo[instance]);
       const target = muted || (anySolo && !soloed) ? 0 : level;
       const now = input.context.currentTime;
       input.gain.cancelScheduledValues(now);
@@ -1328,7 +1289,7 @@ export class SoundEngine {
 
     const baseInst = instrument.split('_')[0];
     const instKey = instanceId || instrument;
-    if (this.muted[instKey] || this.muted[baseInst]) return;
+    if (this.muted[instKey]) return;
 
     // Preserve the MIDI velocity range. A fixed minimum made ghost notes and
     // soft accompaniment much louder than they are in the original file.
@@ -1431,7 +1392,7 @@ export class SoundEngine {
 
       // B. 4. Oscillator synths (last-resort fallback)
       const t = time || Tone.now();
-      const fallbackVelocity = this._getMidiVelocityGain(vel);
+      const fallbackVelocity = this._getMidiVelocityGain(vel) * this._getMidiChannelGain(channel);
       if (baseInst === 'bass') {
         this.synths.bass.triggerAttack(note, t, fallbackVelocity);
       } else if (this.synths[baseInst]) {
@@ -1615,8 +1576,26 @@ export class SoundEngine {
     }
   }
 
+  applyMixerSettings(settings = {}) {
+    this.muted = {};
+    this.solo = {};
+    this.gmTemporaryMuted = {};
+    for (const instrument of Object.keys(this.volumes)) {
+      const value = settings?.volumes?.[instrument];
+      this.volumes[instrument] = Number.isFinite(value) ? Math.max(0, Math.min(2, value)) : 1;
+      this.muted[instrument] = settings?.muted?.[instrument] === true;
+      this.solo[instrument] = settings?.solo?.[instrument] === true;
+    }
+    this._refreshGmMixerLevels();
+    const anySolo = Object.values(this.solo).some(Boolean);
+    for (const [instrument, channel] of Object.entries(this.channels)) {
+      const silent = this.muted[instrument] || (anySolo && !this.solo[instrument]);
+      channel.volume.rampTo(silent ? -Infinity : Tone.gainToDb(this.volumes[instrument] ?? 1), 0.05);
+    }
+  }
+
   setInstrumentVolume(instrument, val) {
-    const clamped = Math.max(0, Math.min(1, val));
+    const clamped = Number.isFinite(val) ? Math.max(0, Math.min(2, val)) : 1;
     this.volumes[instrument] = clamped;
     this._refreshGmMixerLevels();
     const baseInst = instrument.split('_')[0];
@@ -1633,7 +1612,7 @@ export class SoundEngine {
    * Unlike setInstrumentVolume it does not overwrite the user's mixer fader.
    */
   setChannelVolume(instrument, val) {
-    const level = Math.max(0, Math.min(1, val));
+    const level = Math.max(0, Math.min(2, val));
     this.gmTemporaryMuted[instrument] = level === 0;
     this._refreshGmMixerLevels();
 

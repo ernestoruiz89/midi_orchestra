@@ -1,4 +1,5 @@
 import * as toneMidi from '@tonejs/midi';
+import { readSongPreset, writeSongPreset, deleteSongPreset } from './SongPresets.js';
 const Midi = toneMidi.Midi || toneMidi.default?.Midi || toneMidi.default || toneMidi;
 
 // Kept separate from audio scheduling: drumstick motion should prepare the
@@ -182,6 +183,7 @@ export class MidiPlayer {
 
     try {
       const midi = new Midi(arrayBuffer);
+      this.loadSongPreset(name);
       this.midiData = midi;
       this.songName = midi.name || name;
       this.duration = midi.duration || 0;
@@ -217,7 +219,9 @@ export class MidiPlayer {
     const instCounts = {};
 
     midi.tracks.forEach((track, index) => {
-      const channel = track.channel !== undefined ? track.channel : 0;
+      let channel = track.channel !== undefined ? track.channel : 0;
+      const override = this.trackInstrumentOverrides?.[index];
+      if (override) channel = override === 'drums' ? 9 : (channel === 9 ? 0 : channel);
 
       // Control changes are part of the MIDI performance, not UI metadata.
       // A CC 7 (channel volume) or CC 11 (expression) may live in a track
@@ -227,6 +231,7 @@ export class MidiPlayer {
         changes.forEach(change => {
           this.events.push({
             type: 'cc',
+            trackIndex: index,
             time: change.time,
             controller: Number(controller),
             value: change.value,
@@ -238,6 +243,7 @@ export class MidiPlayer {
       (track.pitchBends || []).forEach(change => {
         this.events.push({
           type: 'pitchBend',
+          trackIndex: index,
           time: change.time,
           value: change.value,
           channel
@@ -246,7 +252,7 @@ export class MidiPlayer {
 
       if (track.notes.length === 0) return;
 
-      const detectedInstrument = this._classifyTrackInstrument(track, index);
+      const detectedInstrument = override || this._classifyTrackInstrument(track, index);
       let instanceIndex = 0;
       let instanceId = detectedInstrument;
 
@@ -269,7 +275,7 @@ export class MidiPlayer {
         instanceIndex: instanceIndex,
         instanceId: instanceId,
         noteCount: track.notes.length,
-        programNumber: Number.isInteger(track.programNumber)
+        programNumber: override ? (DEFAULT_GM_PROGRAMS[override] ?? 0) : Number.isInteger(track.programNumber)
           ? track.programNumber
           : (Number.isInteger(track.instrument?.number)
             ? track.instrument.number
@@ -712,8 +718,11 @@ export class MidiPlayer {
   }
 
   setTrackInstrument(trackIndex, newInstrument) {
+    if (!VALID_3D_INSTRUMENTS.has(newInstrument)) return;
     const trackInfo = this.trackInfos.find(t => t.index === trackIndex);
     if (trackInfo) {
+      this.trackInstrumentOverrides ??= {};
+      this.trackInstrumentOverrides[trackIndex] = newInstrument;
       trackInfo.instrument = newInstrument;
       if (DEFAULT_GM_PROGRAMS[newInstrument] !== undefined) {
         trackInfo.programNumber = DEFAULT_GM_PROGRAMS[newInstrument];
@@ -760,7 +769,47 @@ export class MidiPlayer {
       if (this.onActiveInstrumentsChanged) {
         this.onActiveInstrumentsChanged(this.getActiveInstruments());
       }
+      this.saveSongPreset();
     }
+  }
+
+  loadSongPreset(fileName) {
+    this.presetFileName = fileName;
+    const preset = readSongPreset(fileName);
+    this.trackInstrumentOverrides = Object.fromEntries(
+      Object.entries(preset.instruments || {}).filter(([index, instrument]) =>
+        /^\d+$/.test(index) && VALID_3D_INSTRUMENTS.has(instrument))
+    );
+    this.soundEngine.applyMixerSettings(preset.mixer);
+  }
+
+  saveSongPreset() {
+    const saved = writeSongPreset(this.presetFileName, {
+      instruments: this.trackInstrumentOverrides || {},
+      mixer: {
+        volumes: this.soundEngine.volumes,
+        muted: this.soundEngine.muted,
+        solo: this.soundEngine.solo
+      }
+    });
+    if (!saved) this.onPresetStorageError?.();
+    return saved;
+  }
+
+  async resetSongPreset() {
+    if (!this.midiData) return;
+    const wasPlaying = this.isPlaying;
+    const time = this.currentTime;
+    this.pause();
+    this.soundEngine.stopAll();
+    const removed = deleteSongPreset(this.presetFileName);
+    this.trackInstrumentOverrides = {};
+    this.soundEngine.applyMixerSettings();
+    this._processTracks(this.midiData);
+    this.seek(time);
+    this.onTrackUpdate?.(this.trackInfos);
+    if (!removed) this.onPresetStorageError?.();
+    if (wasPlaying) await this.play();
   }
 
   async play() {

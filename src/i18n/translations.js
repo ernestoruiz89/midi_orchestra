@@ -126,6 +126,9 @@ export const translations = {
     },
     mixer: {
       title: '🎚️ Studio Mixer',
+      resetDefault: 'Reset Default',
+      presetHint: '100% = original MIDI volume. Mix and instrument changes are saved for this file name. Reset Default restores both.',
+      storageError: 'Browser storage is unavailable. These changes will not be remembered.',
       outputLabel: '🔊 Output:',
       internalSoundfonts: '🔊 Web Studio (GeneralUser GS)',
       muteTitle: 'Mute',
@@ -382,6 +385,9 @@ export const translations = {
     },
     mixer: {
       title: '🎚️ Mezclador de Estudio',
+      resetDefault: 'Reset Default',
+      presetHint: '100% = volumen original del MIDI. La mezcla y los instrumentos se guardan por nombre de archivo. Reset Default restaura ambos.',
+      storageError: 'El almacenamiento del navegador no está disponible. Estos cambios no se recordarán.',
       outputLabel: '🔊 Salida:',
       internalSoundfonts: '🔊 Web Studio (GeneralUser GS)',
       muteTitle: 'Silenciar',
