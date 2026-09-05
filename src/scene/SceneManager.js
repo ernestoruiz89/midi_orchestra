@@ -884,9 +884,9 @@ export class SceneManager {
       const energy = this.stage.lightShowEnabled ? Math.sqrt(this.stage.musicEnergy) : 0;
       const pulse = this.stage.showPulse;
       this.frontWash.color.copy(this.frontWashBaseColor).lerp(this.stage.showColor, energy * 0.8);
-      this.frontWash.intensity = this.frontWashBaseIntensity * (1 + energy * (0.2 + pulse * 0.45));
+      this.frontWash.intensity = this.frontWashBaseIntensity * (1 + energy * (0.35 + pulse * 0.75));
       this.rimLight.color.copy(this.rimLightBaseColor).lerp(this.stage.showAccent, energy * 0.95);
-      this.rimLight.intensity = this.rimLightBaseIntensity * (1 + energy * (0.6 + pulse * 0.8));
+      this.rimLight.intensity = this.rimLightBaseIntensity * (1 + energy * (0.9 + pulse * 1.1));
     }
 
     // Update only visible instruments for peak performance

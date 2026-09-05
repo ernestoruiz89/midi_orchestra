@@ -469,11 +469,11 @@ export class Stage {
         spot.beam.material.color.copy(spot.light.color);
       }
       const intensity = spot.active
-        ? spot.baseIntensity * (1 + (show ? energy * (0.35 + this.showPulse * 0.65) : 0) + spot.notePulse * 0.3)
+        ? spot.baseIntensity * (1 + (show ? energy * (0.6 + this.showPulse * 0.9) : 0) + spot.notePulse * 0.3)
         : 0;
       spot.light.intensity = THREE.MathUtils.lerp(spot.light.intensity, intensity, smooth);
       const opacity = show && this.effectsEnabled
-        ? energy * (0.025 + 0.035 * this.showPulse + 0.03 * spot.notePulse)
+        ? energy * (0.035 + 0.055 * this.showPulse + 0.04 * spot.notePulse)
         : 0;
       spot.beam.material.opacity = THREE.MathUtils.lerp(spot.beam.material.opacity, opacity, smooth);
       spot.beam.visible = show && this.effectsEnabled && spot.beam.material.opacity > 0.001;
