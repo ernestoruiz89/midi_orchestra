@@ -230,6 +230,7 @@ export const translations = {
       flute: 'Flute',
       flute_2: 'Flute 2',
       xylophone: 'Xylophone',
+      xylophone_2: 'Xylophone 2',
       cabasa: 'Cabasa',
       cabasa_2: 'Cabasa 2',
       tambourine: 'Tambourine',
@@ -243,7 +244,7 @@ export const translations = {
       synth_2: 'Synth 2',
       synth_3: 'Synth 3',
       synth_4: 'Synth 4',
-      harp: 'Concert Harp',
+      harp: 'Harp',
       accordion: 'Accordion',
       harmonica: 'Harmonica'
     }
@@ -476,6 +477,7 @@ export const translations = {
       flute: 'Flauta',
       flute_2: 'Flauta 2',
       xylophone: 'Xilófono',
+      xylophone_2: 'Xilófono 2',
       cabasa: 'Cabasa',
       cabasa_2: 'Cabasa 2',
       tambourine: 'Pandereta',
@@ -489,7 +491,7 @@ export const translations = {
       synth_2: 'Synth 2',
       synth_3: 'Synth 3',
       synth_4: 'Synth 4',
-      harp: 'Arpa de Concierto',
+      harp: 'Arpa',
       accordion: 'Acordeón',
       harmonica: 'Armónica'
     }

@@ -2,23 +2,97 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 
 /**
- * Harmonica3D: Professional 12-Hole Chromatic Concert Harmonica
- * - Mirror-polished stainless steel cover plates with acoustic sound vents.
- * - Pearwood / black resin comb with 12 precision-beveled air chamber blow/draw holes.
- * - Solid brass reed plates with individual micro-reeds.
- * - Spring-loaded chromatic slide button on right cheek (depresses on sharps/flats).
- * - Studio isolation cradle stand with satin chrome gooseneck and shockmount rings.
- * - Physical animation: Concentric translucent breath wave rings pulsing from active chamber hole,
- *   chromatic slide button action, and acoustic "wah-wah" hand cup resonance sway.
+ * Harmonica3D: Professional 10-Hole Diatonic Blues Harmonica
+ * - Straight rectangular architecture with stepped cover plates and chamfered bevels.
+ * - Dark gunmetal/graphite cover plates with polished chrome perimeter trim.
+ * - Stamped side flanges with 4 precision socket-head hex fasteners (2 on each wing).
+ * - Black ABS comb with 10 square blow/draw chamber holes and polished nickel reed plates.
+ * - Heavy studio cast pedestal stand with telescopic mast, brass locking collar,
+/**
+ * Authentic 10-Hole Diatonic Harmonica Tuning Chart (Standard C Richter System)
+ * Maps every chromatic MIDI note to its exact hole (0..9 -> Holes 1 to 10)
+ * and articulation technique:
+ * - 'blow': Soplado (air expelled forward through the reed out into the room)
+ * - 'draw': Aspirado (air inhaled/drawn inward into the reed chamber)
+ * - 'bend': Blues Draw/Blow Bend (characteristic blues micro-tonal bending)
  */
+export const RICHTER_C_MAP = {
+  // Octave 4 (Holes 1 to 3: Bass/Rhythm Register)
+  60: { hole: 0, type: 'blow', label: 'Hole 1 Blow (C4)' },
+  61: { hole: 0, type: 'bend', label: 'Hole 1 Draw Bend (C#4)' },
+  62: { hole: 0, type: 'draw', label: 'Hole 1 Draw (D4)' },
+  63: { hole: 1, type: 'draw', label: 'Hole 2 Draw Bend (Eb4)' },
+  64: { hole: 1, type: 'blow', label: 'Hole 2 Blow (E4)' },
+  65: { hole: 1, type: 'bend', label: 'Hole 2 Draw Bend (F4)' },
+  66: { hole: 1, type: 'bend', label: 'Hole 2 Draw Bend (F#4)' },
+  67: { hole: 1, type: 'draw', label: 'Hole 2 Draw (G4)' },
+  68: { hole: 2, type: 'bend', label: 'Hole 3 Draw Bend (G#4)' },
+  69: { hole: 2, type: 'bend', label: 'Hole 3 Draw Bend (A4)' },
+  70: { hole: 2, type: 'bend', label: 'Hole 3 Draw Bend (Bb4)' },
+  71: { hole: 2, type: 'draw', label: 'Hole 3 Draw (B4)' },
+
+  // Octave 5 (Holes 4 to 6: Core Middle Solo Register)
+  72: { hole: 3, type: 'blow', label: 'Hole 4 Blow (C5)' },
+  73: { hole: 3, type: 'bend', label: 'Hole 4 Draw Bend (C#5)' },
+  74: { hole: 3, type: 'draw', label: 'Hole 4 Draw (D5)' },
+  75: { hole: 4, type: 'draw', label: 'Hole 5 Draw (Eb5)' },
+  76: { hole: 4, type: 'blow', label: 'Hole 5 Blow (E5)' },
+  77: { hole: 4, type: 'draw', label: 'Hole 5 Draw (F5)' },
+  78: { hole: 4, type: 'bend', label: 'Hole 5 Draw Bend (F#5)' },
+  79: { hole: 5, type: 'blow', label: 'Hole 6 Blow (G5)' },
+  80: { hole: 5, type: 'bend', label: 'Hole 6 Draw Bend (G#5)' },
+  81: { hole: 5, type: 'draw', label: 'Hole 6 Draw (A5)' },
+  82: { hole: 5, type: 'bend', label: 'Hole 6 Draw Bend (Bb5)' },
+
+  // Octave 6 (Holes 7 to 9: High Register - Blow/Draw inverts at Hole 7)
+  83: { hole: 6, type: 'draw', label: 'Hole 7 Draw (B5)' },
+  84: { hole: 6, type: 'blow', label: 'Hole 7 Blow (C6)' },
+  85: { hole: 6, type: 'bend', label: 'Hole 7 Draw Bend (C#6)' },
+  86: { hole: 7, type: 'draw', label: 'Hole 8 Draw (D6)' },
+  87: { hole: 7, type: 'bend', label: 'Hole 8 Blow Bend (Eb6)' },
+  88: { hole: 7, type: 'blow', label: 'Hole 8 Blow (E6)' },
+  89: { hole: 8, type: 'draw', label: 'Hole 9 Draw (F6)' },
+  90: { hole: 8, type: 'bend', label: 'Hole 9 Blow Bend (F#6)' },
+  91: { hole: 8, type: 'blow', label: 'Hole 9 Blow (G6)' },
+  92: { hole: 8, type: 'draw', label: 'Hole 9 Draw (Ab6)' },
+
+  // Octave 7 (Hole 10: Top Octave)
+  93: { hole: 9, type: 'draw', label: 'Hole 10 Draw (A6)' },
+  94: { hole: 9, type: 'bend', label: 'Hole 10 Blow Bend (Bb6)' },
+  95: { hole: 9, type: 'bend', label: 'Hole 10 Blow Bend (B6)' },
+  96: { hole: 9, type: 'blow', label: 'Hole 10 Blow (C7)' }
+};
+
+export function getHarmonicaNoteInfo(midiPitch) {
+  if (RICHTER_C_MAP[midiPitch]) {
+    return RICHTER_C_MAP[midiPitch];
+  }
+  // Transpose into 60-96 Richter octave range
+  let p = midiPitch;
+  while (p < 60) p += 12;
+  while (p > 96) p -= 12;
+  if (RICHTER_C_MAP[p]) {
+    return RICHTER_C_MAP[p];
+  }
+  const norm = Math.max(0, Math.min(1, (midiPitch - 55) / 45));
+  const hole = Math.min(9, Math.floor(norm * 10));
+  return { hole, type: midiPitch % 2 === 0 ? 'blow' : 'draw', label: `Hole ${hole + 1}` };
+}
+
 export class Harmonica3D {
   constructor(scene) {
     this.scene = scene;
     this.group = new THREE.Group();
 
-    // Stage position: Front-right melodic section near winds & acoustic guitar
-    this.group.position.set(1.15, 1.22, 2.30);
-    this.group.rotation.set(-0.06, -0.22, 0.04);
+    // Stage position: Front-right melodic wind section near acoustic guitar & flute
+    this.group.position.set(1.15, 1.25, 2.30);
+    // Vertical stage orientation facing audience and conductor
+    this.group.rotation.set(0, -0.22, 0);
+
+    // Instrument body container holds harmonica components with natural performance tilt
+    this.instrumentBody = new THREE.Group();
+    this.instrumentBody.rotation.set(0.10, 0, 0.02);
+    this.group.add(this.instrumentBody);
 
     this.holes = [];
     this.breathRings = [];
@@ -26,60 +100,84 @@ export class Harmonica3D {
     this.vibratoPhase = 0;
 
     this._buildMaterials();
+    this._buildLighting();
     this._buildStand();
-    this._buildComb();
-    this._buildCoverPlates();
-    this._buildSlideButton();
+    this._buildHarmonicaModel();
     this._buildBreathRings();
 
     this.scene.add(this.group);
   }
 
+  _buildLighting() {
+    // Local studio key and fill illumination to showcase the gunmetal & chrome finish matching reference
+    const keyLight = new THREE.PointLight(0xffeedd, 2.8, 3.2, 1.6);
+    keyLight.position.set(0.25, 0.40, 0.42);
+    this.group.add(keyLight);
+
+    const fillLight = new THREE.PointLight(0xa0c4ff, 1.4, 2.8, 1.6);
+    fillLight.position.set(-0.30, 0.22, 0.38);
+    this.group.add(fillLight);
+  }
+
   _buildMaterials() {
-    // 1. Mirror Chrome Stainless Steel (Cover Plates, Screws, Slide Button)
-    this.chromeMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0xf4f6f9,
-      emissive: 0x050d18,
-      emissiveIntensity: 0.12,
-      roughness: 0.06,
+    // 1. Sleek Gunmetal Grey / Satin Graphite (Cover Plates matching reference image)
+    this.coverPlateMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x484d56,
+      roughness: 0.28,
+      metalness: 0.85,
+      clearcoat: 0.65,
+      clearcoatRoughness: 0.10
+    });
+
+    // 2. Mirror Chrome / Polished Nickel (Perimeter Bevel Trim, Mouthpiece Guides & Reed Plates)
+    this.chromeTrimMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xf4f7fb,
+      roughness: 0.08,
       metalness: 0.98,
       clearcoat: 1.0,
       clearcoatRoughness: 0.03
     });
 
-    // 2. High-Grade Black Pearwood / Polished Acetoid Comb (Peine)
+    // 3. Deep Ebony Black ABS Comb (Peine with 10 square chambers)
     this.combMaterial = new THREE.MeshStandardMaterial({
-      color: 0x161413,
-      roughness: 0.45,
-      metalness: 0.08
+      color: 0x0e1012,
+      roughness: 0.55,
+      metalness: 0.20
     });
 
-    // 3. Acoustic Chamber Dark Interior
+    // 4. Acoustic Chamber Dark Interior
     this.chamberInteriorMaterial = new THREE.MeshBasicMaterial({
-      color: 0x080605
+      color: 0x020304
     });
 
-    // 4. Solid Bell Brass (Reed Plates & Micro Reeds)
-    this.brassMaterial = new THREE.MeshStandardMaterial({
-      color: 0xe5bf54,
-      roughness: 0.22,
+    // 5. Socket-Head Hex Screws / Fasteners (Black Oxide finish)
+    this.fastenerMaterial = new THREE.MeshStandardMaterial({
+      color: 0x16181b,
+      roughness: 0.25,
       metalness: 0.90
     });
 
-    // 5. Studio Stand Satin Chrome & Shockmount Rubber
+    // 6. Studio Stand Satin Chrome & Shockmount Rubber
     this.standChromeMaterial = new THREE.MeshStandardMaterial({
-      color: 0xccd3dc,
-      roughness: 0.28,
-      metalness: 0.88
+      color: 0xd8dee8,
+      roughness: 0.22,
+      metalness: 0.92
     });
 
     this.rubberMaterial = new THREE.MeshStandardMaterial({
-      color: 0x1a1a1d,
-      roughness: 0.90,
-      metalness: 0.02
+      color: 0x161618,
+      roughness: 0.92,
+      metalness: 0.05
     });
 
-    // 6. Translucent Breath Wave Ring Material
+    // 7. Machined Brass Collar Accent Ring
+    this.brassMaterial = new THREE.MeshStandardMaterial({
+      color: 0xe5bf54,
+      roughness: 0.20,
+      metalness: 0.88
+    });
+
+    // 8. Translucent Breath Wave Ring Material
     this.breathMaterial = new THREE.MeshBasicMaterial({
       color: 0x88ddff,
       transparent: true,
@@ -88,9 +186,9 @@ export class Harmonica3D {
       blending: THREE.AdditiveBlending
     });
 
-    // 7. Active Chamber Glow Material
+    // 9. Active Chamber Hole Glow Material
     this.glowMaterial = new THREE.MeshBasicMaterial({
-      color: 0x44bbff,
+      color: 0x66ccff,
       transparent: true,
       opacity: 0.0,
       blending: THREE.AdditiveBlending
@@ -98,317 +196,429 @@ export class Harmonica3D {
   }
 
   /* ------------------------------------------------------------------ */
-  /*  STUDIO ISOLATION CRADLE STAND                                     */
+  /*  STUDIO CAST PEDESTAL STAND (Matching Violin, Flute & Trumpet)     */
   /* ------------------------------------------------------------------ */
   _buildStand() {
     this.standGroup = new THREE.Group();
+    // Stand extends from stage floor (y = -1.25) up to harmonica cradle (y = -0.02)
+    const stand = new THREE.Group();
+    stand.position.set(0, -1.25, 0);
 
-    // Telescoping Chrome Mast from floor deck up to cradle
-    const mastGeom = new THREE.CylinderGeometry(0.014, 0.018, 1.15, 16);
-    const mast = new THREE.Mesh(mastGeom, this.standChromeMaterial);
-    mast.position.set(0, -0.60, -0.04);
-    mast.castShadow = true;
-    this.standGroup.add(mast);
+    // 1. Heavy studio cast round chrome base with beveled rim (matching flute/violin/trumpet)
+    const baseGeom = new THREE.CylinderGeometry(0.18, 0.21, 0.032, 24);
+    const base = new THREE.Mesh(baseGeom, this.standChromeMaterial);
+    base.position.y = 0.016;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    stand.add(base);
 
-    // Tripod Base on floor
-    const tripodHubGeom = new THREE.CylinderGeometry(0.038, 0.045, 0.04, 16);
-    const tripodHub = new THREE.Mesh(tripodHubGeom, this.rubberMaterial);
-    tripodHub.position.set(0, -1.18, -0.04);
-    this.standGroup.add(tripodHub);
-
+    // 3 Non-slip rubber feet underneath spaced at 120°
     for (let i = 0; i < 3; i++) {
-      const angle = (i / 3) * Math.PI * 2;
-      const legGeom = new THREE.CylinderGeometry(0.010, 0.010, 0.38, 12);
-      const leg = new THREE.Mesh(legGeom, this.standChromeMaterial);
-      leg.rotation.z = Math.PI / 2 - 0.22;
-      leg.rotation.y = angle;
-      leg.position.set(Math.cos(angle) * 0.18, -1.21, -0.04 + Math.sin(angle) * 0.18);
-      this.standGroup.add(leg);
+      const angle = (i * Math.PI * 2) / 3;
+      const foot = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.016, 0.016, 0.008, 12),
+        this.rubberMaterial
+      );
+      foot.position.set(Math.cos(angle) * 0.17, 0.004, Math.sin(angle) * 0.17);
+      stand.add(foot);
     }
 
-    // Swivel Knuckle Joint
-    const jointGeom = new THREE.SphereGeometry(0.022, 14, 10);
-    const joint = new THREE.Mesh(jointGeom, this.standChromeMaterial);
-    joint.position.set(0, -0.04, -0.04);
-    this.standGroup.add(joint);
+    // 2. Telescopic lower mast (height 0.62m)
+    const lowerPole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.013, 0.013, 0.62, 14),
+      this.standChromeMaterial
+    );
+    lowerPole.position.y = 0.34;
+    lowerPole.castShadow = true;
+    stand.add(lowerPole);
 
-    // Dual Cradle Claws holding harmonica body gently from underneath
-    [-0.075, 0.075].forEach(cx => {
-      const clawGeom = new THREE.TorusGeometry(0.032, 0.005, 8, 16, Math.PI);
-      const claw = new THREE.Mesh(clawGeom, this.standChromeMaterial);
-      claw.rotation.x = Math.PI / 2;
-      claw.position.set(cx, -0.012, 0);
-      this.standGroup.add(claw);
+    // Machined locking collar with brass accent ring
+    const collar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.019, 0.019, 0.038, 16),
+      this.brassMaterial
+    );
+    collar.position.y = 0.66;
+    collar.castShadow = true;
+    stand.add(collar);
 
-      const cushionGeom = new THREE.BoxGeometry(0.016, 0.008, 0.035);
-      const cushion = new THREE.Mesh(cushionGeom, this.rubberMaterial);
-      cushion.position.set(cx, -0.022, 0);
-      this.standGroup.add(cushion);
+    // Tension lock knob on collar
+    const lockKnob = new THREE.Mesh(
+      new THREE.BoxGeometry(0.024, 0.008, 0.008),
+      this.standChromeMaterial
+    );
+    lockKnob.position.set(0.018, 0.66, 0);
+    stand.add(lockKnob);
+
+    // Telescopic upper mast (height 0.50m)
+    const upperPole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.009, 0.009, 0.50, 14),
+      this.standChromeMaterial
+    );
+    upperPole.position.y = 0.92;
+    upperPole.castShadow = true;
+    stand.add(upperPole);
+
+    // 3. Studio Swivel Knuckle & Non-Penetrating Isolation Cradle
+    // Positioned at y = 1.18 relative to floor stand (y = -0.07 relative to group)
+    const knuckleGroup = new THREE.Group();
+    knuckleGroup.position.set(0, 1.18, 0);
+    knuckleGroup.rotation.x = 0.10;
+
+    // Swivel joint sphere
+    const joint = new THREE.Mesh(
+      new THREE.SphereGeometry(0.016, 16, 12),
+      this.standChromeMaterial
+    );
+    knuckleGroup.add(joint);
+
+    // Tilt adjuster wing-screw
+    const wingScrew = new THREE.Mesh(
+      new THREE.BoxGeometry(0.026, 0.007, 0.006),
+      this.standChromeMaterial
+    );
+    wingScrew.position.set(0.018, 0, 0);
+    knuckleGroup.add(wingScrew);
+
+    // Horizontal chrome crossbar supporting dual isolation cradles
+    const crossbar = new THREE.Mesh(
+      new THREE.BoxGeometry(0.16, 0.008, 0.012),
+      this.standChromeMaterial
+    );
+    crossbar.position.set(0, 0.016, 0);
+    crossbar.castShadow = true;
+    knuckleGroup.add(crossbar);
+
+    // Dual padded cradle prongs supporting the harmonica strictly from underneath
+    // Placed at [-0.065, 0.065] under the harmonica ends
+    [-0.065, 0.065].forEach(cx => {
+      const cradleGroup = new THREE.Group();
+      cradleGroup.position.set(cx, 0.016, 0);
+
+      // Vertical riser post up to the cradle shelf
+      const post = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.004, 0.004, 0.034, 12),
+        this.standChromeMaterial
+      );
+      post.position.y = 0.017;
+      cradleGroup.add(post);
+
+      // Horizontal chrome shelf plate
+      const plate = new THREE.Mesh(
+        new THREE.BoxGeometry(0.016, 0.004, 0.046),
+        this.standChromeMaterial
+      );
+      plate.position.set(0, 0.034, 0);
+      cradleGroup.add(plate);
+
+      // Protective high-density rubber cushion pad directly supporting the underside
+      const pad = new THREE.Mesh(
+        new THREE.BoxGeometry(0.015, 0.004, 0.044),
+        this.rubberMaterial
+      );
+      pad.position.set(0, 0.037, 0);
+      cradleGroup.add(pad);
+
+      // Low-profile front and rear retention lips
+      // These rise only 4mm at the outer edges to gently cup the lower rim without ever penetrating
+      [-0.022, 0.022].forEach(rz => {
+        const lip = new THREE.Mesh(
+          new THREE.BoxGeometry(0.015, 0.008, 0.004),
+          this.rubberMaterial
+        );
+        lip.position.set(0, 0.040, rz);
+        cradleGroup.add(lip);
+      });
+
+      knuckleGroup.add(cradleGroup);
     });
 
+    stand.add(knuckleGroup);
+    this.standGroup.add(stand);
     this.group.add(this.standGroup);
   }
 
   /* ------------------------------------------------------------------ */
-  /*  PEINE (COMB) & 12 AIR CHAMBER HOLES                               */
+  /*  RECTANGULAR 10-HOLE DIATONIC HARMONICA MODEL (Matching Reference)  */
   /* ------------------------------------------------------------------ */
-  _buildComb() {
+  _buildHarmonicaModel() {
     this.bodyGroup = new THREE.Group();
 
-    // Harmonica overall dimensions: Width 0.26m (26cm), Height 0.036m (3.6cm), Depth 0.052m (5.2cm)
-    const combGeom = new THREE.BoxGeometry(0.24, 0.024, 0.046);
+    // Harmonica dimensions:
+    // Total Width: 0.230m (23 cm)
+    // Comb Depth: 0.050m (5.0 cm)
+    // Comb Height: 0.016m (1.6 cm)
+
+    // 1. Black ABS Comb (Peine)
+    const combGeom = new THREE.BoxGeometry(0.230, 0.016, 0.050);
     const combMesh = new THREE.Mesh(combGeom, this.combMaterial);
     combMesh.castShadow = true;
     combMesh.receiveShadow = true;
     this.bodyGroup.add(combMesh);
 
-    // Upper and Lower Brass Reed Plates
-    [-0.0125, 0.0125].forEach(ry => {
-      const plateGeom = new THREE.BoxGeometry(0.242, 0.0022, 0.047);
-      const plateMesh = new THREE.Mesh(plateGeom, this.brassMaterial);
-      plateMesh.position.y = ry;
-      plateMesh.castShadow = true;
-      this.bodyGroup.add(plateMesh);
+    // 2. Top and Bottom Polished Nickel Reed Plates
+    [-0.0089, 0.0089].forEach(ry => {
+      const reedGeom = new THREE.BoxGeometry(0.232, 0.0018, 0.052);
+      const reedMesh = new THREE.Mesh(reedGeom, this.chromeTrimMaterial);
+      reedMesh.position.y = ry;
+      reedMesh.castShadow = true;
+      this.bodyGroup.add(reedMesh);
     });
 
-    // 12 Precision Air Chamber Holes (Mouthpiece Front Face: Z = +0.023)
-    const numHoles = 12;
-    const holeSpan = 0.20;
-    const holeWidth = 0.011;
-    const holeHeight = 0.013;
-    const startX = -holeSpan / 2 + holeWidth / 2;
+    // 3. Top and Bottom Stepped Cover Plates with Chamfers and Fasteners
+    [1, -1].forEach(sign => {
+      const coverGroup = new THREE.Group();
+
+      // Silver perimeter trim border plate (reveals fine chrome outline around cover)
+      const trimGeom = new THREE.BoxGeometry(0.231, 0.0008, 0.051);
+      const trimMesh = new THREE.Mesh(trimGeom, this.chromeTrimMaterial);
+      trimMesh.position.y = sign * 0.0102;
+      coverGroup.add(trimMesh);
+
+      // Left Flange Wing (stepped down)
+      const wingGeom = new THREE.BoxGeometry(0.038, 0.0026, 0.048);
+      const leftWing = new THREE.Mesh(wingGeom, this.coverPlateMaterial);
+      leftWing.position.set(-0.096, sign * 0.0115, 0);
+      leftWing.castShadow = true;
+      coverGroup.add(leftWing);
+
+      // Right Flange Wing (stepped down)
+      const rightWing = leftWing.clone();
+      rightWing.position.x = 0.096;
+      coverGroup.add(rightWing);
+
+      // Socket-head fasteners (2 on each flange, matching reference image)
+      [-0.096, 0.096].forEach(fx => {
+        [-0.013, 0.013].forEach(fz => {
+          // Outer screw head rim
+          const screwGeom = new THREE.CylinderGeometry(0.0032, 0.0032, 0.0012, 14);
+          const screw = new THREE.Mesh(screwGeom, this.fastenerMaterial);
+          screw.position.set(fx, sign * 0.0130, fz);
+          coverGroup.add(screw);
+
+          // Recessed hex socket
+          const socketGeom = new THREE.CylinderGeometry(0.0015, 0.0015, 0.0006, 6);
+          const socket = new THREE.Mesh(socketGeom, this.chamberInteriorMaterial);
+          socket.position.set(fx, sign * 0.0135, fz);
+          coverGroup.add(socket);
+        });
+      });
+
+      // Central Raised Acoustic Cover Body (covering the 10 holes)
+      // Raised central block
+      const centerMainGeom = new THREE.BoxGeometry(0.150, 0.0080, 0.046);
+      const centerMain = new THREE.Mesh(centerMainGeom, this.coverPlateMaterial);
+      centerMain.position.set(0, sign * 0.0150, 0);
+      centerMain.castShadow = true;
+      coverGroup.add(centerMain);
+
+      // Top surface plate
+      const centerTopGeom = new THREE.BoxGeometry(0.144, 0.0022, 0.042);
+      const centerTop = new THREE.Mesh(centerTopGeom, this.coverPlateMaterial);
+      centerTop.position.set(0, sign * 0.0195, 0);
+      coverGroup.add(centerTop);
+
+      // Left & Right Chamfer Steps (connecting raised body to side wings)
+      [-1, 1].forEach(dir => {
+        const chamferGeom = new THREE.BoxGeometry(0.006, 0.0065, 0.046);
+        const chamfer = new THREE.Mesh(chamferGeom, this.coverPlateMaterial);
+        chamfer.position.set(dir * 0.076, sign * 0.0145, 0);
+        chamfer.rotation.z = dir * sign * (Math.PI / 4.5);
+        coverGroup.add(chamfer);
+      });
+
+      // Front Chamfer Slope along mouthpiece edge
+      const frontSlopeGeom = new THREE.BoxGeometry(0.148, 0.0040, 0.0050);
+      const frontSlope = new THREE.Mesh(frontSlopeGeom, this.coverPlateMaterial);
+      frontSlope.position.set(0, sign * 0.0180, 0.022);
+      frontSlope.rotation.x = -sign * (Math.PI / 4);
+      coverGroup.add(frontSlope);
+
+      // Rear Chamfer Slope
+      const rearSlope = frontSlope.clone();
+      rearSlope.position.z = -0.022;
+      rearSlope.rotation.x = sign * (Math.PI / 4);
+      coverGroup.add(rearSlope);
+
+      this.bodyGroup.add(coverGroup);
+    });
+
+    // 4. 10 Square Blow/Draw Chamber Holes along Front Mouthpiece Face (z = +0.025)
+    const numHoles = 10;
+    const holeSpan = 0.136;
+    const startX = -holeSpan / 2;
     const stepX = holeSpan / (numHoles - 1);
+    const holeW = 0.009;
+    const holeH = 0.009;
+
+    // Standard C Diatonic Richter Tuning (C4 to C7)
+    const diatonicNotes = [60, 64, 67, 72, 76, 79, 84, 88, 91, 96];
 
     for (let i = 0; i < numHoles; i++) {
       const hx = startX + i * stepX;
-      // Hole frame aperture (recessed dark chamber)
-      const hGeom = new THREE.BoxGeometry(holeWidth, holeHeight, 0.008);
-      const hMesh = new THREE.Mesh(hGeom, this.chamberInteriorMaterial);
-      hMesh.position.set(hx, 0, 0.023);
-      this.bodyGroup.add(hMesh);
 
-      // Brass divider separator teeth between holes
+      // Recessed dark chamber
+      const holeGeom = new THREE.BoxGeometry(holeW, holeH, 0.006);
+      const hole = new THREE.Mesh(holeGeom, this.chamberInteriorMaterial);
+      hole.position.set(hx, 0, 0.024);
+      this.bodyGroup.add(hole);
+
+      // Mouthpiece separator tooth
       if (i < numHoles - 1) {
-        const divGeom = new THREE.BoxGeometry(stepX - holeWidth, holeHeight + 0.004, 0.006);
-        const divMesh = new THREE.Mesh(divGeom, this.combMaterial);
-        divMesh.position.set(hx + stepX / 2, 0, 0.024);
-        this.bodyGroup.add(divMesh);
+        const toothGeom = new THREE.BoxGeometry(stepX - holeW, holeH + 0.002, 0.004);
+        const tooth = new THREE.Mesh(toothGeom, this.combMaterial);
+        tooth.position.set(hx + stepX / 2, 0, 0.025);
+        this.bodyGroup.add(tooth);
       }
 
-      // Chamber active glow plane
-      const glowGeom = new THREE.PlaneGeometry(holeWidth * 1.4, holeHeight * 1.4);
+      // Subtle active chamber glow disc
+      const glowGeom = new THREE.PlaneGeometry(holeW * 1.1, holeH * 1.1);
       const glowMesh = new THREE.Mesh(glowGeom, this.glowMaterial.clone());
-      glowMesh.position.set(hx, 0, 0.025);
+      glowMesh.position.set(hx, 0, 0.0255);
       glowMesh.visible = false;
       this.bodyGroup.add(glowMesh);
 
-      // Map hole to pitch range:
-      // Hole 0 corresponds to C4 (#60), Hole 11 to D7 (#98)
-      // Base MIDI note for each hole in standard C chromatic tuning
-      const baseNote = 60 + Math.round((i / 11) * 36);
+      const baseNote = diatonicNotes[i];
 
       this.holes.push({
         index: i,
         x: hx,
         baseNote,
         glowMesh,
-        origin: new THREE.Vector3(hx, 0, 0.026)
+        origin: new THREE.Vector3(hx, 0, 0.027)
       });
     }
 
-    // Mouthpiece Beveled Chrome Guide Bar along front edge
-    const mouthBarGeom = new THREE.BoxGeometry(0.246, 0.005, 0.008);
-    [0.012, -0.012].forEach(my => {
-      const bar = new THREE.Mesh(mouthBarGeom, this.chromeMaterial);
-      bar.position.set(0, my, 0.024);
+    // Top and Bottom Mouthpiece Chrome Guide Bars along front edge
+    [-0.006, 0.006].forEach(my => {
+      const barGeom = new THREE.BoxGeometry(0.148, 0.0018, 0.003);
+      const bar = new THREE.Mesh(barGeom, this.chromeTrimMaterial);
+      bar.position.set(0, my, 0.0255);
       this.bodyGroup.add(bar);
     });
 
-    this.group.add(this.bodyGroup);
+    this.instrumentBody.add(this.bodyGroup);
   }
 
   /* ------------------------------------------------------------------ */
-  /*  COVER PLATES (MIRROR CHROME TOP & BOTTOM WITH ACOUSTIC VENTS)     */
-  /* ------------------------------------------------------------------ */
-  _buildCoverPlates() {
-    this.coversGroup = new THREE.Group();
-
-    // Top Cover Plate (Curved aerodynamic chrome shell)
-    const plateShape = new THREE.Shape();
-    plateShape.moveTo(-0.125, -0.024);
-    plateShape.lineTo(0.125, -0.024);
-    plateShape.quadraticCurveTo(0.125, 0.024, 0.120, 0.024);
-    plateShape.lineTo(-0.120, 0.024);
-    plateShape.quadraticCurveTo(-0.125, 0.024, -0.125, -0.024);
-
-    // Top cover with embossed arch
-    const topCoverGeom = new THREE.CylinderGeometry(0.046, 0.046, 0.245, 24, 1, false, 0, Math.PI * 0.42);
-    topCoverGeom.rotateZ(Math.PI / 2);
-    topCoverGeom.rotateY(Math.PI);
-
-    const topCover = new THREE.Mesh(topCoverGeom, this.chromeMaterial);
-    topCover.position.set(0, 0.013, -0.002);
-    topCover.scale.set(1.0, 0.55, 0.95);
-    topCover.castShadow = true;
-    this.coversGroup.add(topCover);
-
-    // Bottom Cover Plate (Mirrored underside shell)
-    const bottomCover = topCover.clone();
-    bottomCover.rotation.x = Math.PI;
-    bottomCover.position.set(0, -0.013, -0.002);
-    this.coversGroup.add(bottomCover);
-
-    // Rear Acoustic Sound Exhaust Vents (5 elongated vents on rear side)
-    for (let i = -2; i <= 2; i++) {
-      const ventGeom = new THREE.BoxGeometry(0.034, 0.012, 0.004);
-      const vent = new THREE.Mesh(ventGeom, this.chamberInteriorMaterial);
-      vent.position.set(i * 0.045, 0, -0.024);
-      this.coversGroup.add(vent);
-    }
-
-    // Left and Right End Cheek Caps
-    [-0.123, 0.123].forEach(cx => {
-      const capGeom = new THREE.BoxGeometry(0.006, 0.032, 0.048);
-      const cap = new THREE.Mesh(capGeom, this.chromeMaterial);
-      cap.position.set(cx, 0, 0);
-      this.coversGroup.add(cap);
-
-      // Fastener Screws
-      [0.009, -0.009].forEach(sy => {
-        const screwGeom = new THREE.CylinderGeometry(0.0028, 0.0028, 0.002, 10);
-        const screw = new THREE.Mesh(screwGeom, this.brassMaterial);
-        screw.rotation.z = Math.PI / 2;
-        screw.position.set(cx + (cx > 0 ? 0.003 : -0.003), sy, 0);
-        this.coversGroup.add(screw);
-      });
-    });
-
-    this.group.add(this.coversGroup);
-  }
-
-  /* ------------------------------------------------------------------ */
-  /*  CHROMATIC SPRING SLIDE BUTTON (RIGHT SIDE CHEEK)                  */
-  /* ------------------------------------------------------------------ */
-  _buildSlideButton() {
-    this.slideGroup = new THREE.Group();
-    // Rest position: protruding 0.018m to the right (+X)
-    this.slideGroup.position.set(0.126, 0, 0.012);
-
-    // Chrome Slider Stem
-    const stemGeom = new THREE.CylinderGeometry(0.0032, 0.0032, 0.022, 12);
-    const stem = new THREE.Mesh(stemGeom, this.chromeMaterial);
-    stem.rotation.z = Math.PI / 2;
-    stem.position.set(0.011, 0, 0);
-    this.slideGroup.add(stem);
-
-    // Ergonomic Knurled Push Button Cap
-    const btnGeom = new THREE.CylinderGeometry(0.0075, 0.0075, 0.010, 16);
-    const btn = new THREE.Mesh(btnGeom, this.chromeMaterial);
-    btn.rotation.z = Math.PI / 2;
-    btn.position.set(0.022, 0, 0);
-    btn.castShadow = true;
-    this.slideGroup.add(btn);
-
-    this.restSlideX = this.slideGroup.position.x;
-    this.group.add(this.slideGroup);
-  }
-
-  /* ------------------------------------------------------------------ */
-  /*  BREATH WAVE PULSES (Acoustic Air Rings)                           */
+  /*  ACOUSTIC BREATH WAVE EMISSION & INHALATION SYSTEM                */
   /* ------------------------------------------------------------------ */
   _buildBreathRings() {
     this.fxGroup = new THREE.Group();
-    for (let i = 0; i < 10; i++) {
-      const ringGeom = new THREE.RingGeometry(0.008, 0.024, 18);
+    // Pool of 16 acoustic wave rings to support rapid blues runs, trills and chords
+    for (let i = 0; i < 16; i++) {
+      const ringGeom = new THREE.RingGeometry(0.007, 0.022, 20);
       const ringMesh = new THREE.Mesh(ringGeom, this.breathMaterial.clone());
       ringMesh.visible = false;
       this.fxGroup.add(ringMesh);
       this.breathRings.push(ringMesh);
     }
-    this.group.add(this.fxGroup);
+    this.instrumentBody.add(this.fxGroup);
   }
 
-  _triggerBreathRing(holeObj, vel) {
+  _triggerBreathRing(holeObj, vel, type = 'blow') {
     const ring = this.breathRings.find(r => !r.visible) || this.breathRings[0];
     if (!ring) return;
-
-    ring.position.copy(holeObj.origin);
-    ring.scale.set(0.2, 0.2, 0.2);
-    ring.material.opacity = 0.90;
-    ring.visible = true;
 
     gsap.killTweensOf(ring.position);
     gsap.killTweensOf(ring.scale);
     gsap.killTweensOf(ring.material);
 
-    // Expand forward in Z towards audience
-    gsap.to(ring.position, {
-      z: holeObj.origin.z + 0.16 + vel * 0.10,
-      y: holeObj.origin.y + (Math.random() - 0.5) * 0.02,
-      duration: 0.42,
-      ease: 'power1.out'
-    });
+    const isBlow = type === 'blow';
+    const isBend = type === 'bend';
 
-    gsap.to(ring.scale, {
-      x: 2.2 + vel * 1.2,
-      y: 2.2 + vel * 1.2,
-      duration: 0.42,
-      ease: 'power2.out'
-    });
+    // Color differentiation:
+    // - Soplado (Blow): Ámbar dorado cálido (aire exhalado a través de la lengüeta)
+    // - Aspirado (Draw): Azul hielo / cian eléctrico (aire inhalado hacia la cámara)
+    // - Blues Bend: Violeta resonante (aire comprimido en cavidad bucal)
+    const colorHex = isBlow ? 0xffcc44 : (isBend ? 0xcc77ff : 0x38bdf8);
+    ring.material.color.setHex(colorHex);
+    ring.visible = true;
 
-    gsap.to(ring.material, {
-      opacity: 0,
-      duration: 0.42,
-      ease: 'power2.out',
-      onComplete: () => {
-        ring.visible = false;
-      }
-    });
+    if (isBlow) {
+      // SOPLADO: El aire sale impulsado desde el orificio hacia el frente (+Z)
+      ring.position.copy(holeObj.origin);
+      ring.scale.set(0.22, 0.22, 0.22);
+      ring.material.opacity = 0.92;
+
+      gsap.to(ring.position, {
+        z: holeObj.origin.z + 0.18 + vel * 0.12,
+        y: holeObj.origin.y + (Math.random() - 0.5) * 0.012,
+        duration: 0.38,
+        ease: 'power1.out'
+      });
+
+      gsap.to(ring.scale, {
+        x: 2.5 + vel * 1.2,
+        y: 2.5 + vel * 1.2,
+        duration: 0.38,
+        ease: 'power2.out'
+      });
+
+      gsap.to(ring.material, {
+        opacity: 0,
+        duration: 0.38,
+        ease: 'power2.out',
+        onComplete: () => {
+          ring.visible = false;
+        }
+      });
+    } else {
+      // ASPIRADO (Draw / Bend): El aire exterior es succionado hacia adentro del hoyo (-Z)
+      ring.position.set(holeObj.origin.x, holeObj.origin.y, holeObj.origin.z + 0.14 + vel * 0.08);
+      ring.scale.set(2.1 + vel * 0.7, 2.1 + vel * 0.7, 2.1 + vel * 0.7);
+      ring.material.opacity = 0.88;
+
+      gsap.to(ring.position, {
+        z: holeObj.origin.z + 0.005,
+        y: holeObj.origin.y,
+        duration: 0.32,
+        ease: 'power2.in'
+      });
+
+      gsap.to(ring.scale, {
+        x: 0.22,
+        y: 0.22,
+        duration: 0.32,
+        ease: 'power2.in'
+      });
+
+      gsap.to(ring.material, {
+        opacity: 0,
+        duration: 0.32,
+        ease: 'power2.in',
+        onComplete: () => {
+          ring.visible = false;
+        }
+      });
+    }
   }
 
   /* ------------------------------------------------------------------ */
-  /*  NOTE PLAYBACK & BREATH DYNAMICS                                   */
+  /*  NOTE PLAYBACK & BREATH DYNAMICS (Authentic Richter C Simulation)  */
   /* ------------------------------------------------------------------ */
-  onNoteOn(midiPitch, velocity = 0.8) {
+  onNoteOn(midiPitch, velocity = 0.8, eventTime = null, trackIndex = null, duration = 0.5) {
     const vel = Math.max(0.2, Math.min(1.0, velocity));
 
-    // 1. Find best matching hole
-    let bestHole = this.holes[0];
-    let minDiff = 999;
-    for (const h of this.holes) {
-      const diff = Math.abs(h.baseNote - midiPitch);
-      if (diff < minDiff) {
-        minDiff = diff;
-        bestHole = h;
-      }
-    }
+    // 1. Mapeo exacto Richter: determina qué hoyo físico (1 a 10) y técnica (soplo/aspirado/bend)
+    const noteInfo = getHarmonicaNoteInfo(midiPitch);
+    const bestHole = this.holes[noteInfo.hole] || this.holes[0];
 
-    // 2. Chromatic slide button press for accidentals (C#, D#, F#, G#, A#)
-    const semitone = midiPitch % 12;
-    const isSharp = [1, 3, 6, 8, 10].includes(semitone);
+    // 2. Disparar onda de aliento física correspondiente (expulsión o succión)
+    this._triggerBreathRing(bestHole, vel, noteInfo.type);
 
-    if (isSharp && this.slideGroup) {
-      gsap.killTweensOf(this.slideGroup.position);
-      // Press inward by 0.009m
-      this.slideGroup.position.x = this.restSlideX - 0.009;
-      gsap.to(this.slideGroup.position, {
-        x: this.restSlideX,
-        duration: 0.28,
-        ease: 'elastic.out(1.4, 0.3)'
-      });
-    }
-
-    // 3. Trigger Acoustic Breath Ring
-    this._triggerBreathRing(bestHole, vel);
-
-    // 4. Chamber Glow
+    // 3. Resplandor reactivo en la celda activa del peine
     if (bestHole.glowMesh) {
       bestHole.glowMesh.visible = true;
-      bestHole.glowMesh.material.opacity = 0.85;
+      const isBlow = noteInfo.type === 'blow';
+      const isBend = noteInfo.type === 'bend';
+      const glowColor = isBlow ? 0xffbb33 : (isBend ? 0xcc77ff : 0x38bdf8);
+      bestHole.glowMesh.material.color.setHex(glowColor);
+      bestHole.glowMesh.material.opacity = 0.95;
+
       gsap.killTweensOf(bestHole.glowMesh.material);
       gsap.to(bestHole.glowMesh.material, {
         opacity: 0,
-        duration: 0.35,
+        duration: Math.max(0.22, Math.min(0.5, (duration || 0.35) * 0.8)),
         ease: 'power2.out',
         onComplete: () => {
           bestHole.glowMesh.visible = false;
@@ -416,28 +626,37 @@ export class Harmonica3D {
       });
     }
 
-    // 5. Acoustic "Wah-Wah" Hand Cupping Vibrato Tilt
-    gsap.killTweensOf(this.group.rotation);
-    const wahX = -0.06 + (Math.sin(midiPitch) * 0.035) * vel;
-    const wahZ = 0.04 + (Math.cos(midiPitch) * 0.045) * vel;
+    // 4. Inclinación y balanceo acústico de embocadura y efecto "Wah-Wah" de manos
+    // Los hoyos graves (1-3) se tocan en el lado izquierdo; los agudos (8-10) en el derecho.
+    if (this.instrumentBody) {
+      gsap.killTweensOf(this.instrumentBody.rotation);
 
-    gsap.to(this.group.rotation, {
-      x: wahX,
-      z: wahZ,
-      duration: 0.08,
-      ease: 'power2.out',
-      onComplete: () => {
-        gsap.to(this.group.rotation, {
-          x: -0.06,
-          z: 0.04,
-          duration: 0.38,
-          ease: 'power2.out'
-        });
-      }
-    });
+      // Inclinación lateral proporcional al hoyo activado (-1 en hoyo 1 a +1 en hoyo 10)
+      const holeNorm = (noteInfo.hole - 4.5) / 4.5;
+      const lateralTiltZ = 0.02 + holeNorm * 0.032 * vel;
+
+      // Inclinación pitch sutil según retroceso de soplo vs succión de aspirado
+      const pitchTiltX = 0.10 + (noteInfo.type === 'blow' ? 0.026 : -0.018) * vel;
+
+      gsap.to(this.instrumentBody.rotation, {
+        x: pitchTiltX,
+        z: lateralTiltZ,
+        duration: 0.07,
+        ease: 'power2.out',
+        onComplete: () => {
+          gsap.to(this.instrumentBody.rotation, {
+            x: 0.10,
+            z: 0.02,
+            duration: 0.35,
+            ease: 'power2.out'
+          });
+        }
+      });
+    }
 
     this.activeNotes.set(midiPitch, {
       hole: bestHole,
+      noteInfo,
       time: performance.now()
     });
   }

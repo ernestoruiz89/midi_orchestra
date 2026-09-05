@@ -19,7 +19,7 @@ const AUDIO_TIMER_INTERVAL_MS = 25;
 const MAX_AUDIO_CATCH_UP_SECONDS = 0.2;
 const MAX_VISUAL_CATCH_UP_SECONDS = 0.2;
 
-const DEFAULT_GM_PROGRAMS = {
+export const DEFAULT_GM_PROGRAMS = {
   piano: 0,
   drums: 0,
   guitar: 27,
@@ -42,7 +42,10 @@ const DEFAULT_GM_PROGRAMS = {
   maracas: 70,
   whistle: 71,
   guiro: 73,
-  triangle: 81
+  triangle: 81,
+  harp: 46,
+  harmonica: 22,
+  accordion: 21
 };
 
 /**
@@ -164,7 +167,10 @@ export class MidiPlayer {
       maracas: 0,
       whistle: 0,
       guiro: 0,
-      triangle: 0
+      triangle: 0,
+      harp: 0,
+      harmonica: 0,
+      accordion: 0
     };
   }
 
@@ -263,9 +269,11 @@ export class MidiPlayer {
         instanceIndex: instanceIndex,
         instanceId: instanceId,
         noteCount: track.notes.length,
-        programNumber: Number.isInteger(track.instrument?.number)
-          ? track.instrument.number
-          : (DEFAULT_GM_PROGRAMS[detectedInstrument] ?? 0)
+        programNumber: Number.isInteger(track.programNumber)
+          ? track.programNumber
+          : (Number.isInteger(track.instrument?.number)
+            ? track.instrument.number
+            : (DEFAULT_GM_PROGRAMS[detectedInstrument] ?? 0))
       };
       this.trackInfos.push(trackInfo);
 
@@ -370,8 +378,18 @@ export class MidiPlayer {
       return 'cello';
     }
 
+    // Harmonica / Armónica:
+    if (/\b(harmonica|arm[oó]nica|mouth\s*organ|blues\s*harp|french\s*harp)\b/i.test(trackName)) {
+      return 'harmonica';
+    }
+
+    // Accordion / Acordeón / Bandoneón:
+    if (/\b(accordion|acorde[oó]n|bandone[oó]n|concertina)\b/i.test(trackName)) {
+      return 'accordion';
+    }
+
     // C. Piano / Keyboard / Organ:
-    if (/\b(piano|pno|grand\s*piano|keyboard|teclado|rhodes|wurlitzer|clavinet|clavi|harpsichord|organ[oó]?|hammond|accordion|acorde[oó]n)\b/i.test(trackName)) {
+    if (/\b(piano|pno|grand\s*piano|keyboard|teclado|rhodes|wurlitzer|clavinet|clavi|harpsichord|organ[oó]?|hammond)\b/i.test(trackName)) {
       return 'piano';
     }
 
@@ -440,8 +458,13 @@ export class MidiPlayer {
       return 'trumpet';
     }
 
+    // Harp / Arpa:
+    if (/\b(harp|arpa|celtic\s*harp|harpe)\b/i.test(trackName)) {
+      return 'harp';
+    }
+
     // J. Violin / Strings Section:
-    if (/\b(violin|viol[ií]n|viola|strings?|cuerdas?|fiddle|harp|arpa|orchestra|orquesta)\b/i.test(trackName)) {
+    if (/\b(violin|viol[ií]n|viola|strings?|cuerdas?|fiddle|orchestra|orquesta)\b/i.test(trackName)) {
       return 'violin';
     }
 
@@ -1144,6 +1167,19 @@ export class MidiPlayer {
     if (!this.soundEngine || typeof this.soundEngine.resetMidiChannelState !== 'function') return;
 
     this.soundEngine.resetMidiChannelState();
+
+    // Re-prime the GM program assignments for each track so channels are immediately on the correct preset
+    this.trackInfos.forEach(t => {
+      if (t.channel !== undefined && t.programNumber !== undefined && t.programNumber >= 0) {
+        if (this.soundEngine.gmSynthReady && this.soundEngine.gmSynth) {
+          try {
+            this.soundEngine.gmSynth.programChange(t.channel & 0x0F, t.programNumber & 0x7F);
+            this.soundEngine.currentPrograms[t.channel & 0x0F] = t.programNumber;
+          } catch (e) {}
+        }
+      }
+    });
+
     this.events.forEach(event => {
       if (event.time > time) return;
       if (event.type === 'cc') {
@@ -1159,6 +1195,7 @@ export class MidiPlayer {
       const allInsts = [
         'piano', 'drums', 'guitar', 'bass', 'doubleBass', 'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'synth', 'cabasa', 'congas', 'timbales',
         'tambourine', 'maracas', 'whistle', 'guiro', 'triangle',
+        'harp', 'harmonica', 'accordion',
         'acousticGuitar', 'piano_2', 'piano_3', 'piano_4', 'guitar_2', 'guitar_3', 'guitar_4',
         'acousticGuitar_2', 'acousticGuitar_3', 'acousticGuitar_4',
         'bass_2', 'doubleBass_2', 'trumpet_2', 'frenchHorn_2', 'sax_2', 'clarinet_2', 'violin_2', 'cello_2', 'flute_2', 'xylophone_2',

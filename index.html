@@ -98,6 +98,11 @@
     <button class="cam-btn" data-preset="flute" title="Concert Flute Close-up" data-i18n="camera.flute" data-i18n-title="camera.fluteTitle">🪈 Flute</button>
     <button class="cam-btn" data-preset="xylophone" title="Xylophone Close-up" data-i18n="camera.xylophone" data-i18n-title="camera.xylophoneTitle">🪵 Xylophone</button>
     <button class="cam-btn" data-preset="cabasa" title="Cabasa Close-up" data-i18n="camera.cabasa" data-i18n-title="camera.cabasaTitle">🪇 Cabasa</button>
+    <button class="cam-btn" data-preset="tambourine" title="Tambourine Close-up" data-i18n="camera.tambourine" data-i18n-title="camera.tambourineTitle">🪘 Tambourine</button>
+    <button class="cam-btn" data-preset="maracas" title="Maracas Close-up" data-i18n="camera.maracas" data-i18n-title="camera.maracasTitle">🪇 Maracas</button>
+    <button class="cam-btn" data-preset="guiro" title="Guiro Close-up" data-i18n="camera.guiro" data-i18n-title="camera.guiroTitle">🪵 Guiro</button>
+    <button class="cam-btn" data-preset="whistle" title="Samba Whistle Close-up" data-i18n="camera.whistle" data-i18n-title="camera.whistleTitle">📯 Whistle</button>
+    <button class="cam-btn" data-preset="triangle" title="Triangle Close-up" data-i18n="camera.triangle" data-i18n-title="camera.triangleTitle">🔺 Triangle</button>
     <button class="cam-btn" data-preset="congas" title="Bongos & Congas Close-up" data-i18n="camera.congas" data-i18n-title="camera.congasTitle">🪘 Bongó y Congas</button>
     <button class="cam-btn" data-preset="timbales" title="Timbales & Agogô Close-up" data-i18n="camera.timbales" data-i18n-title="camera.timbalesTitle">🪘 Timbales</button>
     <button class="cam-btn" data-preset="synth" title="Synthesizer Close-up" data-i18n="camera.synth" data-i18n-title="camera.synthTitle">🎹 Synth</button>
@@ -176,7 +181,7 @@
       <button id="btn-master-mute" class="vol-icon-btn" title="Mute Master Volume" data-i18n-title="playback.muteTitle">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
       </button>
-      <input type="range" id="master-volume" min="0" max="1" step="0.01" value="0.80" />
+      <input type="range" id="master-volume" min="0" max="1" step="0.01" value="1" />
     </div>
   </div>
 
@@ -246,6 +251,20 @@
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-bass"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.9" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Bass 2 Channel -->
+        <div class="mixer-strip" data-inst="bass_2" style="display: none;">
+          <div class="strip-header">
+            <span class="strip-icon">🎸</span>
+            <span class="strip-name" data-i18n="instruments.bass_2">Bass 2</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-bass_2"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.72" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
             <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
@@ -322,6 +341,48 @@
           </div>
         </div>
 
+        <!-- Acoustic Guitar 2 Channel -->
+        <div class="mixer-strip" data-inst="acousticGuitar_2" style="display: none;">
+          <div class="strip-header">
+            <span class="strip-icon">🎼</span>
+            <span class="strip-name" data-i18n="instruments.acousticGuitar_2">Acoustic 2</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-acousticGuitar_2"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.64" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Acoustic Guitar 3 Channel -->
+        <div class="mixer-strip" data-inst="acousticGuitar_3" style="display: none;">
+          <div class="strip-header">
+            <span class="strip-icon">🎼</span>
+            <span class="strip-name" data-i18n="instruments.acousticGuitar_3">Acoustic 3</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-acousticGuitar_3"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.64" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Acoustic Guitar 4 Channel -->
+        <div class="mixer-strip" data-inst="acousticGuitar_4" style="display: none;">
+          <div class="strip-header">
+            <span class="strip-icon">🎼</span>
+            <span class="strip-name" data-i18n="instruments.acousticGuitar_4">Acoustic 4</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-acousticGuitar_4"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.64" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
         <!-- Trumpet Channel -->
         <div class="mixer-strip" data-inst="trumpet">
           <div class="strip-header">
@@ -371,7 +432,21 @@
             <span class="strip-name" data-i18n="instruments.sax">Sax</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-sax"></div></div>
-          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.9" />
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.65" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Saxophone 2 Channel -->
+        <div class="mixer-strip" data-inst="sax_2" style="display: none;">
+          <div class="strip-header">
+            <span class="strip-icon">🎷</span>
+            <span class="strip-name" data-i18n="instruments.sax_2">Sax 2</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-sax_2"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.65" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
             <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
@@ -385,63 +460,7 @@
             <span class="strip-name" data-i18n="instruments.clarinet">Clarinet</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-clarinet"></div></div>
-          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
-          <div class="strip-buttons">
-            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
-            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
-          </div>
-        </div>
-
-        <!-- Violin Channel -->
-        <div class="mixer-strip" data-inst="violin">
-          <div class="strip-header">
-            <span class="strip-icon">🎻</span>
-            <span class="strip-name" data-i18n="instruments.violin">Violin</span>
-          </div>
-          <div class="vu-meter"><div class="vu-fill" id="vu-mix-violin"></div></div>
-          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
-          <div class="strip-buttons">
-            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
-            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
-          </div>
-        </div>
-
-        <!-- Cello Channel -->
-        <div class="mixer-strip" data-inst="cello">
-          <div class="strip-header">
-            <span class="strip-icon">🎻</span>
-            <span class="strip-name" data-i18n="instruments.cello">Cello</span>
-          </div>
-          <div class="vu-meter"><div class="vu-fill" id="vu-mix-cello"></div></div>
-          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
-          <div class="strip-buttons">
-            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
-            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
-          </div>
-        </div>
-
-        <!-- Double Bass Channel -->
-        <div class="mixer-strip" data-inst="doubleBass">
-          <div class="strip-header">
-            <span class="strip-icon">🎻</span>
-            <span class="strip-name" data-i18n="instruments.doubleBass">Contrabajo</span>
-          </div>
-          <div class="vu-meter"><div class="vu-fill" id="vu-mix-doubleBass"></div></div>
-          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
-          <div class="strip-buttons">
-            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
-            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
-          </div>
-        </div>
-
-        <!-- Double Bass 2 Channel -->
-        <div class="mixer-strip" data-inst="doubleBass_2" style="display: none;">
-          <div class="strip-header">
-            <span class="strip-icon">🎻</span>
-            <span class="strip-name" data-i18n="instruments.doubleBass_2">Contrabajo 2</span>
-          </div>
-          <div class="vu-meter"><div class="vu-fill" id="vu-mix-doubleBass_2"></div></div>
-          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.62" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
             <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
@@ -455,7 +474,147 @@
             <span class="strip-name" data-i18n="instruments.flute">Flute</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-flute"></div></div>
-          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.60" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Flute 2 Channel -->
+        <div class="mixer-strip" data-inst="flute_2" style="display: none;">
+          <div class="strip-header">
+            <span class="strip-icon">🪈</span>
+            <span class="strip-name" data-i18n="instruments.flute_2">Flute 2</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-flute_2"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.60" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Harmonica Channel -->
+        <div class="mixer-strip" data-inst="harmonica">
+          <div class="strip-header">
+            <span class="strip-icon">🎷</span>
+            <span class="strip-name" data-i18n="instruments.harmonica">Harmonica</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-harmonica"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.62" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Accordion Channel -->
+        <div class="mixer-strip" data-inst="accordion">
+          <div class="strip-header">
+            <span class="strip-icon">🪗</span>
+            <span class="strip-name" data-i18n="instruments.accordion">Accordion</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-accordion"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.68" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Violin Channel -->
+        <div class="mixer-strip" data-inst="violin">
+          <div class="strip-header">
+            <span class="strip-icon">🎻</span>
+            <span class="strip-name" data-i18n="instruments.violin">Violin</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-violin"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.68" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Violin 2 Channel -->
+        <div class="mixer-strip" data-inst="violin_2" style="display: none;">
+          <div class="strip-header">
+            <span class="strip-icon">🎻</span>
+            <span class="strip-name" data-i18n="instruments.violin_2">Violin 2</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-violin_2"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.68" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Cello Channel -->
+        <div class="mixer-strip" data-inst="cello">
+          <div class="strip-header">
+            <span class="strip-icon">🎻</span>
+            <span class="strip-name" data-i18n="instruments.cello">Cello</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-cello"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.68" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Cello 2 Channel -->
+        <div class="mixer-strip" data-inst="cello_2" style="display: none;">
+          <div class="strip-header">
+            <span class="strip-icon">🎻</span>
+            <span class="strip-name" data-i18n="instruments.cello_2">Cello 2</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-cello_2"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.68" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Double Bass Channel -->
+        <div class="mixer-strip" data-inst="doubleBass">
+          <div class="strip-header">
+            <span class="strip-icon">🎻</span>
+            <span class="strip-name" data-i18n="instruments.doubleBass">Contrabajo</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-doubleBass"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.72" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Double Bass 2 Channel -->
+        <div class="mixer-strip" data-inst="doubleBass_2" style="display: none;">
+          <div class="strip-header">
+            <span class="strip-icon">🎻</span>
+            <span class="strip-name" data-i18n="instruments.doubleBass_2">Contrabajo 2</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-doubleBass_2"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.72" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Harp Channel -->
+        <div class="mixer-strip" data-inst="harp">
+          <div class="strip-header">
+            <span class="strip-icon">🪕</span>
+            <span class="strip-name" data-i18n="instruments.harp">Harp</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-harp"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.66" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
             <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
@@ -469,7 +628,21 @@
             <span class="strip-name" data-i18n="instruments.xylophone">Xylophone</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-xylophone"></div></div>
-          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.60" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Xylophone 2 Channel -->
+        <div class="mixer-strip" data-inst="xylophone_2" style="display: none;">
+          <div class="strip-header">
+            <span class="strip-icon">🪵</span>
+            <span class="strip-name" data-i18n="instruments.xylophone_2">Xylophone 2</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-xylophone_2"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.60" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
             <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
@@ -483,7 +656,77 @@
             <span class="strip-name" data-i18n="instruments.cabasa">Cabasa</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-cabasa"></div></div>
-          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.55" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Tambourine Channel -->
+        <div class="mixer-strip" data-inst="tambourine">
+          <div class="strip-header">
+            <span class="strip-icon">🪘</span>
+            <span class="strip-name" data-i18n="instruments.tambourine">Tambourine</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-tambourine"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.58" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Maracas Channel -->
+        <div class="mixer-strip" data-inst="maracas">
+          <div class="strip-header">
+            <span class="strip-icon">🪇</span>
+            <span class="strip-name" data-i18n="instruments.maracas">Maracas</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-maracas"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.55" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Guiro Channel -->
+        <div class="mixer-strip" data-inst="guiro">
+          <div class="strip-header">
+            <span class="strip-icon">🪵</span>
+            <span class="strip-name" data-i18n="instruments.guiro">Guiro</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-guiro"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.58" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Whistle Channel -->
+        <div class="mixer-strip" data-inst="whistle">
+          <div class="strip-header">
+            <span class="strip-icon">📯</span>
+            <span class="strip-name" data-i18n="instruments.whistle">Whistle</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-whistle"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.52" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Triangle Channel -->
+        <div class="mixer-strip" data-inst="triangle">
+          <div class="strip-header">
+            <span class="strip-icon">🔺</span>
+            <span class="strip-name" data-i18n="instruments.triangle">Triangle</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-triangle"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.52" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
             <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>

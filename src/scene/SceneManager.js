@@ -39,7 +39,8 @@ export class SceneManager {
     this.soundEngine = soundEngine;
     const reportedMemory = Number(navigator.deviceMemory) || 8;
     this.isMobilePerformanceMode = window.matchMedia('(max-width: 900px), (pointer: coarse)').matches || reportedMemory <= 4;
-    this.minimumRenderInterval = this.isMobilePerformanceMode ? 1000 / 40 : 0;
+    this.mobilePixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+    this.minimumRenderInterval = 0;
     this.lastRenderTimestamp = 0;
 
     // Core Three.js components
@@ -56,12 +57,12 @@ export class SceneManager {
     this.camera.position.set(0, 5.0, 11.5);
 
     this.renderer = new THREE.WebGLRenderer({
-      antialias: !this.isMobilePerformanceMode,
+      antialias: true,
       powerPreference: 'high-performance'
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(this.isMobilePerformanceMode ? 1 : Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = !this.isMobilePerformanceMode;
+    this.renderer.setPixelRatio(this.isMobilePerformanceMode ? this.mobilePixelRatio : Math.min(window.devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
@@ -72,7 +73,7 @@ export class SceneManager {
     // Build scene elements
     this._setupGlobalLighting();
 
-    this.stage = new Stage(this.scene);
+    this.stage = new Stage(this.scene, { mobilePerformanceMode: this.isMobilePerformanceMode });
 
     // Primary instruments
     this.piano = new Piano3D(this.scene, { tier: 1, hasStand: true });
@@ -867,9 +868,9 @@ export class SceneManager {
     // Front stage wash light
     const frontWash = new THREE.DirectionalLight(0x7099ff, 1.2);
     frontWash.position.set(0, 8, 12);
-    frontWash.castShadow = !this.isMobilePerformanceMode;
-    frontWash.shadow.mapSize.width = this.isMobilePerformanceMode ? 512 : 2048;
-    frontWash.shadow.mapSize.height = this.isMobilePerformanceMode ? 512 : 2048;
+    frontWash.castShadow = true;
+    frontWash.shadow.mapSize.width = this.isMobilePerformanceMode ? 1024 : 2048;
+    frontWash.shadow.mapSize.height = this.isMobilePerformanceMode ? 1024 : 2048;
     frontWash.shadow.bias = -0.0005;
     this.scene.add(frontWash);
   }
@@ -958,9 +959,9 @@ export class SceneManager {
       triangle: 'drum',
       congas: 'drum',
       timbales: 'drum',
-      harp: 'violin',
-      harmonica: 'flute',
-      accordion: 'piano'
+      harp: 'harp',
+      harmonica: 'harmonica',
+      accordion: 'accordion'
     };
     const spotName = spotMap[baseInst] || 'piano';
     this.stage.pulseInstrumentSpotlight(spotName, velocity);
@@ -987,7 +988,8 @@ export class SceneManager {
     }
 
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(this.isMobilePerformanceMode ? 1 : Math.min(window.devicePixelRatio, 2));
+    this.mobilePixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+    this.renderer.setPixelRatio(this.isMobilePerformanceMode ? this.mobilePixelRatio : Math.min(window.devicePixelRatio, 2));
   }
 
   _animate(timestamp = performance.now()) {

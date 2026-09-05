@@ -83,12 +83,12 @@ export class CameraController {
       synth: { pos: new THREE.Vector3(-3.00, 1.75, 3.15), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
       synth_topdown: { pos: new THREE.Vector3(-3.37, 2.40, 2.38), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
       synth_closeup: { pos: new THREE.Vector3(-3.23, 1.35, 2.75), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
-      harp: { pos: new THREE.Vector3(-3.15, 1.45, 1.55), target: new THREE.Vector3(-4.20, 1.00, -0.40) },
-      harp_closeup: { pos: new THREE.Vector3(-3.65, 1.30, 0.65), target: new THREE.Vector3(-4.20, 1.05, -0.40) },
+      harp: { pos: new THREE.Vector3(-0.90, 1.25, 0.10), target: new THREE.Vector3(-4.20, 0.95, -0.82) },
+      harp_closeup: { pos: new THREE.Vector3(-2.00, 1.20, -0.05), target: new THREE.Vector3(-4.20, 0.95, -0.82) },
       accordion: { pos: new THREE.Vector3(-1.70, 1.25, 3.10), target: new THREE.Vector3(-1.75, 1.15, 1.95) },
       accordion_closeup: { pos: new THREE.Vector3(-1.70, 1.18, 2.70), target: new THREE.Vector3(-1.75, 1.15, 1.95) },
-      harmonica: { pos: new THREE.Vector3(1.35, 1.35, 2.95), target: new THREE.Vector3(1.15, 1.22, 2.30) },
-      harmonica_closeup: { pos: new THREE.Vector3(1.22, 1.28, 2.65), target: new THREE.Vector3(1.15, 1.22, 2.30) },
+      harmonica: { pos: new THREE.Vector3(1.35, 1.38, 2.95), target: new THREE.Vector3(1.15, 1.25, 2.30) },
+      harmonica_closeup: { pos: new THREE.Vector3(1.23, 1.33, 2.46), target: new THREE.Vector3(1.15, 1.25, 2.30) },
       stage_wing_left: { pos: new THREE.Vector3(-6.2, 3.4, 6.2), target: new THREE.Vector3(0.6, 1.25, -0.4) },
       stage_wing_right: { pos: new THREE.Vector3(6.2, 3.4, 6.2), target: new THREE.Vector3(-0.6, 1.25, -0.4) },
       conductor: { pos: new THREE.Vector3(0, 1.8, 5.8), target: new THREE.Vector3(0, 1.8, 0) }
@@ -485,14 +485,14 @@ export class CameraController {
     }
 
     if (name.startsWith('harp')) {
-      // Classical 3/4 front view showcasing the golden pillar, colored strings (red C, blue F) and soundboard
+      // Authentic midis2jam2 perspective: pillar on left, sweeping soundboard to right, 47 strings
       this.presets[name] = {
-        pos: localToWorld(0.95, 1.25, 2.10),
-        target: localToWorld(0.0, 0.90, 0.10)
+        pos: localToWorld(3.30, 1.25, 0.50),
+        target: localToWorld(0.0, 0.95, -0.42)
       };
       this.presets[`${name}_closeup`] = {
-        pos: localToWorld(0.55, 1.10, 1.25),
-        target: localToWorld(0.0, 0.95, 0.15)
+        pos: localToWorld(2.20, 1.20, 0.35),
+        target: localToWorld(0.0, 0.95, -0.42)
       };
       return;
     }

@@ -179,7 +179,8 @@ export class SoundEngine {
     this.initialized = false;
     this.isLoadingSoundfonts = false;
     this.soundfontsLoaded = false;
-    this.masterVolume = 0.80;
+    this.masterVolume = 1.0;
+    this.outputBoost = 1.15;
     const reportedMemory = Number(navigator.deviceMemory) || 8;
     const saveData = Boolean(navigator.connection?.saveData);
     this.preferCompressedGmBank = window.matchMedia('(max-width: 900px), (pointer: coarse)').matches || reportedMemory <= 4 || saveData;
@@ -700,7 +701,7 @@ export class SoundEngine {
       await synth.soundBankManager.addSoundBank(soundBank, soundBankConfig.id);
 
       // Enable GM SoundFont Reverb & Chorus DSP matching midis2jam2's Gervill/FluidSynth acoustics
-      synth.setSystemParameter('gain', 0.8);
+      synth.setSystemParameter('gain', 1.0);
       synth.setSystemParameter('effectsEnabled', true);
       synth.setLogLevel(false, true, false);
 
@@ -714,7 +715,7 @@ export class SoundEngine {
       this.gmMasterCompressor.release.value = 0.10;
 
       this.gmMasterGain = nativeContext.createGain();
-      this.gmMasterGain.gain.value = this.masterVolume;
+      this.gmMasterGain.gain.value = this.masterVolume * this.outputBoost;
 
       this.gmAnalyser = nativeContext.createAnalyser();
       this.gmAnalyser.fftSize = 128;
@@ -801,6 +802,18 @@ export class SoundEngine {
       const midiChannel = this.gmSynth.midiChannels[channel];
       if (midiChannel && typeof midiChannel.setDrums === 'function') {
         midiChannel.setDrums(bus === 'drums');
+      }
+    });
+
+    // Prime the GM programs for each channel immediately so instruments sound right from the first note
+    trackInfos.forEach(track => {
+      const channel = Math.max(0, Math.min(15, Number(track.channel) || 0));
+      const prog = Number.isInteger(track.programNumber) ? track.programNumber : -1;
+      if (prog >= 0 && channel !== 9) {
+        try {
+          this.gmSynth.programChange(channel, prog & 0x7F);
+          this.currentPrograms[channel] = prog;
+        } catch (e) {}
       }
     });
 
@@ -1389,7 +1402,12 @@ export class SoundEngine {
           cello: 'cello',
           flute: 'flute',
           xylophone: 'xylophone',
-          synth: 'lead_1_square'
+          synth: 'lead_1_square',
+          harmonica: 'harmonica',
+          accordion: 'accordion',
+          harp: 'orchestral_harp',
+          frenchHorn: 'french_horn',
+          clarinet: 'clarinet'
         };
         const defaultName = defaultSfNames[baseInst];
         sfPlayer = this.soundfontPlayers[defaultName];
@@ -1590,10 +1608,10 @@ export class SoundEngine {
     if (this.gmMasterGain) {
       const now = this.gmMasterGain.context.currentTime;
       this.gmMasterGain.gain.cancelScheduledValues(now);
-      this.gmMasterGain.gain.setTargetAtTime(this.masterVolume, now, 0.012);
+      this.gmMasterGain.gain.setTargetAtTime(this.masterVolume * this.outputBoost, now, 0.012);
     }
     if (this.limiter) {
-      Tone.getDestination().volume.rampTo(Tone.gainToDb(this.masterVolume), 0.05);
+      Tone.getDestination().volume.rampTo(Tone.gainToDb(this.masterVolume * this.outputBoost), 0.05);
     }
   }
 

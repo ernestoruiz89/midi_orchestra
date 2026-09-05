@@ -7,8 +7,9 @@ import gsap from 'gsap';
  * LED visualizer backdrop wall, stage monitors, and atmospheric particles.
  */
 export class Stage {
-  constructor(scene) {
+  constructor(scene, { mobilePerformanceMode = false } = {}) {
     this.scene = scene;
+    this.mobilePerformanceMode = mobilePerformanceMode;
     this.group = new THREE.Group();
 
     this.spotlights = [];
@@ -166,8 +167,8 @@ export class Stage {
       { x: -2.8, z: 2.4, target: [-3.3, 1.15, -1.2], color: 0xff9f43, name: 'cello_spot' },
       { x: 2.0, z: 2.8, target: [1.6, 1.30, 1.8], color: 0x70f5ff, name: 'flute_spot' },
       { x: -1.75, z: 3.2, target: [-1.75, 1.15, 1.95], color: 0xfff4d0, intensity: 32, penumbra: 0.6, name: 'accordion_spot' },
-      { x: -3.8, z: 3.2, target: [-3.8, 1.35, 0.4], color: 0xffdf80, intensity: 32, penumbra: 0.6, name: 'harp_spot' },
-      { x: 1.15, z: 3.2, target: [1.15, 1.22, 2.30], color: 0x80e5ff, intensity: 28, penumbra: 0.6, name: 'harmonica_spot' }
+      { x: -3.8, z: 3.2, target: [-4.20, 1.10, -0.40], color: 0xffdf80, intensity: 32, penumbra: 0.6, name: 'harp_spot' },
+      { x: 1.15, z: 3.2, target: [1.15, 1.25, 2.30], color: 0xffeedd, intensity: 34, penumbra: 0.65, name: 'harmonica_spot' }
     ];
 
     spotConfigs.forEach((cfg) => {
@@ -187,9 +188,9 @@ export class Stage {
       const penumbra = cfg.penumbra !== undefined ? cfg.penumbra : 0.4;
       const spotLight = new THREE.SpotLight(cfg.color, intensity, 18, Math.PI / 5, penumbra, 1.2);
       spotLight.position.set(0, -0.25, 0);
-      spotLight.castShadow = true;
-      spotLight.shadow.mapSize.width = 1024;
-      spotLight.shadow.mapSize.height = 1024;
+      spotLight.castShadow = !this.mobilePerformanceMode;
+      spotLight.shadow.mapSize.width = this.mobilePerformanceMode ? 512 : 1024;
+      spotLight.shadow.mapSize.height = this.mobilePerformanceMode ? 512 : 1024;
       spotLight.shadow.camera.near = 1;
       spotLight.shadow.camera.far = 18;
 
@@ -261,7 +262,7 @@ export class Stage {
   }
 
   _buildAtmosphericDust() {
-    const particleCount = 200;
+    const particleCount = this.mobilePerformanceMode ? 36 : 80;
     const geom = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
 
@@ -275,10 +276,11 @@ export class Stage {
 
     const mat = new THREE.PointsMaterial({
       color: 0x99ccff,
-      size: 0.04,
+      size: this.mobilePerformanceMode ? 0.018 : 0.024,
       transparent: true,
-      opacity: 0.45,
-      blending: THREE.AdditiveBlending
+      opacity: this.mobilePerformanceMode ? 0.12 : 0.18,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
     });
 
     this.dustParticles = new THREE.Points(geom, mat);
