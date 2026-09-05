@@ -244,74 +244,138 @@ export class BongoCongas3D {
   _buildStand() {
     const stand = new THREE.Group();
 
-    // 1. Double-braced tripod base
-    const legCount = 3;
-    const legRadius = 0.36;
-    const footHeight = 0.025;
+    // 1. Heavy-Duty Double-Braced Conga & Bongo Tripod Base (Matching Snare / Redoblante Stand)
+    const tripodRadius = 0.38;
+    const upperCollarY = 0.28;
+    const lowerCollarY = 0.09;
+    const baseAngle = -Math.PI / 2;
 
-    for (let i = 0; i < legCount; i++) {
-      const angle = (i * Math.PI * 2) / legCount;
-      const legGroup = new THREE.Group();
-      legGroup.rotation.y = angle;
-
-      // Upper leg bar
-      const legGeom = new THREE.CylinderGeometry(0.007, 0.007, 0.44, 8);
-      const leg = new THREE.Mesh(legGeom, this.blackMetalMaterial);
-      leg.rotation.z = -0.68;
-      leg.position.set(0.16, 0.20, 0);
-      leg.castShadow = true;
-      legGroup.add(leg);
-
-      // Lower brace strut
-      const strutGeom = new THREE.CylinderGeometry(0.005, 0.005, 0.26, 8);
-      const strut = new THREE.Mesh(strutGeom, this.blackMetalMaterial);
-      strut.rotation.z = 0.72;
-      strut.position.set(0.15, 0.10, 0);
+    // Helper to connect a strut cylinder directly between two 3D points
+    const addStrut = (start, end, r = 0.006, mat = this.chromeMaterial) => {
+      const dir = new THREE.Vector3().subVectors(end, start);
+      const len = dir.length();
+      const strut = new THREE.Mesh(
+        new THREE.CylinderGeometry(r, r, len, 10),
+        mat
+      );
+      strut.position.copy(start).add(end).multiplyScalar(0.5);
+      strut.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
       strut.castShadow = true;
-      legGroup.add(strut);
+      stand.add(strut);
+      return strut;
+    };
 
-      // Molded ribbed rubber foot
-      const footGeom = new THREE.CylinderGeometry(0.016, 0.022, footHeight, 10);
-      const foot = new THREE.Mesh(footGeom, this.rubberMaterial);
-      foot.position.set(legRadius, footHeight / 2, 0);
-      foot.castShadow = true;
-      legGroup.add(foot);
-
-      stand.add(legGroup);
-    }
-
-    // Tripod sliding collar hub
-    const collarGeom = new THREE.CylinderGeometry(0.028, 0.028, 0.045, 16);
-    const collar = new THREE.Mesh(collarGeom, this.blackMetalMaterial);
-    collar.position.y = 0.09;
-    stand.add(collar);
-
-    // Tripod main upper hub
-    const hubGeom = new THREE.CylinderGeometry(0.030, 0.030, 0.05, 16);
-    const hub = new THREE.Mesh(hubGeom, this.blackMetalMaterial);
-    hub.position.y = 0.38;
-    stand.add(hub);
-
-    // 2. Lower Outer Vertical Mast (Black)
-    const lowerMastGeom = new THREE.CylinderGeometry(0.019, 0.019, 0.52, 16);
-    const lowerMast = new THREE.Mesh(lowerMastGeom, this.blackMetalMaterial);
-    lowerMast.position.y = 0.34;
+    // Central lower mast tube running from floor (y = 0) up to height collar (y = 0.58)
+    const lowerMastHeight = 0.58;
+    const lowerMast = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.016, 0.016, lowerMastHeight, 16),
+      this.chromeMaterial
+    );
+    lowerMast.position.y = lowerMastHeight / 2;
     lowerMast.castShadow = true;
     stand.add(lowerMast);
 
+    // Bottom base end cap resting flat on floor (y = 0)
+    const bottomCap = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.019, 0.019, 0.014, 16),
+      this.blackMetalMaterial
+    );
+    bottomCap.position.y = 0.007;
+    stand.add(bottomCap);
+
+    // Lower Strut Spreader Collar (Chrome)
+    const lowerCollar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.021, 0.021, 0.024, 16),
+      this.chromeMaterial
+    );
+    lowerCollar.position.y = lowerCollarY;
+    stand.add(lowerCollar);
+
+    // Upper Leg Hinge Collar (Chrome) with wing T-bolt
+    const upperCollar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.022, 0.022, 0.028, 16),
+      this.chromeMaterial
+    );
+    upperCollar.position.y = upperCollarY;
+    stand.add(upperCollar);
+
+    const wingBolt = this._createWingScrew();
+    wingBolt.position.set(0.024, upperCollarY, 0);
+    stand.add(wingBolt);
+
+    // 3 Symmetrical Double-Braced Legs (spaced at exact 120° intervals)
+    for (let i = 0; i < 3; i++) {
+      const legAngle = baseAngle + (i * Math.PI * 2) / 3;
+      const cosA = Math.cos(legAngle);
+      const sinA = Math.sin(legAngle);
+
+      // Orthogonal lateral vector for parallel double-braced bars
+      const perpX = -sinA;
+      const perpZ = cosA;
+      const barSpacing = 0.0065; // ±6.5mm lateral separation for heavy-duty dual bars
+
+      // Foot resting flat on the riser floor at y = 0
+      const footPos = new THREE.Vector3(cosA * tripodRadius, 0.014, sinA * tripodRadius);
+
+      // Upper collar hinge point
+      const upperHinge = new THREE.Vector3(cosA * 0.022, upperCollarY, sinA * 0.022);
+
+      // Dual parallel chrome leg bars running from upper collar to foot
+      const legOffset1 = new THREE.Vector3(perpX * barSpacing, 0, perpZ * barSpacing);
+      const legOffset2 = new THREE.Vector3(-perpX * barSpacing, 0, -perpZ * barSpacing);
+
+      addStrut(
+        new THREE.Vector3().copy(upperHinge).add(legOffset1),
+        new THREE.Vector3().copy(footPos).add(legOffset1),
+        0.0055,
+        this.chromeMaterial
+      );
+      addStrut(
+        new THREE.Vector3().copy(upperHinge).add(legOffset2),
+        new THREE.Vector3().copy(footPos).add(legOffset2),
+        0.0055,
+        this.chromeMaterial
+      );
+
+      // Lower collar hinge point
+      const lowerHinge = new THREE.Vector3(cosA * 0.021, lowerCollarY, sinA * 0.021);
+
+      // Strut attaches between the two bars at the midpoint of the main leg
+      const midLegPoint = new THREE.Vector3().copy(upperHinge).add(footPos).multiplyScalar(0.50);
+      addStrut(lowerHinge, midLegPoint, 0.005, this.chromeMaterial);
+
+      // Chrome foot knuckle bracket uniting the dual bars at the bottom
+      const footBracket = new THREE.Mesh(
+        new THREE.BoxGeometry(0.020, 0.018, 0.020),
+        this.chromeMaterial
+      );
+      footBracket.position.set(footPos.x, footPos.y + 0.012, footPos.z);
+      footBracket.rotation.y = -legAngle;
+      stand.add(footBracket);
+
+      // Heavy molded ribbed rubber foot resting firmly on the floor at y = 0
+      const foot = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.022, 0.026, 14),
+        this.rubberMaterial
+      );
+      foot.position.copy(footPos);
+      foot.castShadow = true;
+      stand.add(foot);
+    }
+
     // Height Adjustment Clamp with Chrome T-bolt Wing Screw
-    const clampGeom = new THREE.CylinderGeometry(0.026, 0.026, 0.04, 16);
-    const clamp = new THREE.Mesh(clampGeom, this.blackMetalMaterial);
+    const clampGeom = new THREE.CylinderGeometry(0.022, 0.022, 0.038, 16);
+    const clamp = new THREE.Mesh(clampGeom, this.chromeMaterial);
     clamp.position.y = 0.58;
     stand.add(clamp);
 
-    const wingScrew = this._createWingScrew();
-    wingScrew.position.set(0.028, 0.58, 0);
-    wingScrew.rotation.z = Math.PI / 2;
-    stand.add(wingScrew);
+    const mastWingScrew = this._createWingScrew();
+    mastWingScrew.position.set(0.026, 0.58, 0);
+    mastWingScrew.rotation.z = Math.PI / 2;
+    stand.add(mastWingScrew);
 
-    // 3. Upper Telescoping Mast (Chrome) - ends flush at cross-bar clamp, zero protrusion between congas
-    const upperMastGeom = new THREE.CylinderGeometry(0.015, 0.015, 0.16, 16);
+    // 2. Upper Telescoping Mast (Chrome)
+    const upperMastGeom = new THREE.CylinderGeometry(0.013, 0.013, 0.16, 16);
     const upperMast = new THREE.Mesh(upperMastGeom, this.chromeMaterial);
     upperMast.position.y = 0.62;
     upperMast.castShadow = true;
