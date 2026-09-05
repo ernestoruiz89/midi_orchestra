@@ -27,11 +27,11 @@ To create a production build:
 npm run build
 ```
 
-## Inspiration
+## Inspiration and acknowledgments
 
-This project is inspired by [MIDI2JAM2](https://github.com/wyskoj/midis2jam2) by Wyskoj, especially its idea of visualizing a MIDI performance as a band or orchestra and the expressiveness of its animations.
+This project is inspired by [midis2jam2](https://github.com/wyskoj/midis2jam2) by Wyskoj and draws on some of its ideas, including visualizing MIDI tracks as a 3D band or orchestra, animating instruments in sync with the music, and showing instruments as they become active during a performance. Credit for these reference ideas goes to midis2jam2 and its contributors.
 
-MIDI Orchestra is an independent web implementation and does not reuse MIDI2JAM2 code. Its audio engine uses Web Audio and SpessaSynth to run directly in the browser.
+MIDI Orchestra adapts these ideas for an independent web implementation. Its audio engine uses Web Audio and SpessaSynth to run directly in the browser.
 
 ## License
 
