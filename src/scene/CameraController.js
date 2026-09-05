@@ -637,31 +637,18 @@ export class CameraController {
       this.raycaster.setFromCamera(this.mouse, this.camera);
       const intersects = this.raycaster.intersectObjects(this.scene.children, true);
 
-      if (intersects.length > 0) {
-        // Trace hit object upward to find parent instrument group
-        let hitObj = intersects[0].object;
+      for (const hit of intersects) {
+        let hitObj = hit.object;
+        let instrumentKey = null;
+        let visible = true;
         while (hitObj && hitObj !== this.scene) {
-          if (hitObj.name === 'piano_body' || (hitObj.position && hitObj.position.x < -3.5)) {
-            this.setPreset('piano');
-            return;
-          }
-          if (hitObj.position && hitObj.position.x > 2.0 && hitObj.position.x < 3.5) {
-            this.setPreset('guitar');
-            return;
-          }
-          if (hitObj.position && hitObj.position.x >= 3.5) {
-            this.setPreset('trumpet');
-            return;
-          }
-          if (hitObj.position && hitObj.position.z < -0.8 && Math.abs(hitObj.position.x) < 1.8) {
-            this.setPreset('drums');
-            return;
-          }
-          if (hitObj.position && hitObj.position.x < -1.8 && hitObj.position.x >= -3.5) {
-            this.setPreset('bass');
-            return;
-          }
+          visible &&= hitObj.visible;
+          instrumentKey ||= hitObj.userData.instrumentKey;
           hitObj = hitObj.parent;
+        }
+        if (visible && instrumentKey && this.presets[instrumentKey]) {
+          this.setPreset(instrumentKey);
+          return;
         }
       }
     });

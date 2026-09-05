@@ -60,7 +60,7 @@ export class Stage {
     this.effectsEnabled = quality !== 'low';
     this.dustParticles.visible = this.effectsEnabled;
     this.spotlights.forEach(spot => {
-      spot.light.castShadow = quality === 'high';
+      spot.light.castShadow = quality === 'high' && !this.mobilePerformanceMode;
       spot.light.shadow.mapSize.set(1024, 1024);
       if (!spot.light.castShadow && spot.light.shadow.map) {
         spot.light.shadow.map.dispose();
@@ -202,6 +202,8 @@ export class Stage {
       const intensity = cfg.intensity !== undefined ? cfg.intensity : 45;
       const penumbra = cfg.penumbra !== undefined ? cfg.penumbra : 0.4;
       const spotLight = new THREE.SpotLight(cfg.color, intensity, 18, Math.PI / 5, penumbra, 1.2);
+      // Keep animated beam meshes, but mobile surfaces use the shared washes.
+      spotLight.visible = !this.mobilePerformanceMode;
       spotLight.position.set(0, -0.25, 0);
       spotLight.castShadow = !this.mobilePerformanceMode;
       spotLight.shadow.mapSize.width = this.mobilePerformanceMode ? 512 : 1024;

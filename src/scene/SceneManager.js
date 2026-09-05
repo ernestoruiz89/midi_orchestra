@@ -1,32 +1,8 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { Stage } from './Stage.js';
-import { Piano3D } from './Piano3D.js';
-import { DrumKit3D } from './DrumKit3D.js';
-import { Guitar3D } from './Guitar3D.js';
-import { AcousticGuitar3D } from './AcousticGuitar3D.js';
-import { Bass3D } from './Bass3D.js';
-import { Trumpet3D } from './Trumpet3D.js';
-import { Saxophone3D } from './Saxophone3D.js';
-import { FrenchHorn3D } from './FrenchHorn3D.js';
-import { Clarinet3D } from './Clarinet3D.js';
-import { Cabasa3D } from './Cabasa3D.js';
-import { Tambourine3D } from './Tambourine3D.js';
-import { Maracas3D } from './Maracas3D.js';
-import { Guiro3D } from './Guiro3D.js';
-import { Whistle3D } from './Whistle3D.js';
-import { Triangle3D } from './Triangle3D.js';
-import { BongoCongas3D } from './BongoCongas3D.js';
-import { Timbales3D } from './Timbales3D.js';
-import { Violin3D } from './Violin3D.js';
-import { Cello3D } from './Cello3D.js';
-import { DoubleBass3D } from './DoubleBass3D.js';
-import { Flute3D } from './Flute3D.js';
-import { Xylophone3D } from './Xylophone3D.js';
-import { Synth3D } from './Synth3D.js';
-import { Harp3D } from './Harp3D.js';
-import { Harmonica3D } from './Harmonica3D.js';
-import { Accordion3D } from './Accordion3D.js';
+import { instrumentFactories } from './InstrumentFactory.js';
+import { InstrumentDetail, releaseInstrument } from './InstrumentDetail.js';
 import { CameraController } from './CameraController.js';
 
 /**
@@ -81,199 +57,9 @@ export class SceneManager {
     this.stage = new Stage(this.scene, { mobilePerformanceMode: this.isMobilePerformanceMode });
     this.setQuality(this.quality, false);
 
-    // Primary instruments
-    this.piano = new Piano3D(this.scene, { tier: 1, hasStand: true });
-    this.drums = new DrumKit3D(this.scene);
-    this.guitar = new Guitar3D(this.scene, { index: 1 });
-    this.guitar.group.position.set(1.65, 1.25, 0.95);
-    this.acousticGuitar = new AcousticGuitar3D(this.scene, { index: 1 });
-    this.acousticGuitar.group.position.set(1.05, 1.17, 1.45);
-    this.bass = new Bass3D(this.scene);
-    this.doubleBass = new DoubleBass3D(this.scene);
-    this.trumpet = new Trumpet3D(this.scene);
-    this.frenchHorn = new FrenchHorn3D(this.scene);
-    this.sax = new Saxophone3D(this.scene);
-    this.clarinet = new Clarinet3D(this.scene);
-    this.violin = new Violin3D(this.scene);
-    this.cello = new Cello3D(this.scene);
-    this.flute = new Flute3D(this.scene);
-    this.xylophone = new Xylophone3D(this.scene);
-    this.xylophone.group.rotation.copy(this.piano.group.rotation);
-    this.cabasa = new Cabasa3D(this.scene);
-    this.tambourine = new Tambourine3D(this.scene);
-    this.maracas = new Maracas3D(this.scene);
-    this.guiro = new Guiro3D(this.scene);
-    this.whistle = new Whistle3D(this.scene);
-    this.triangle = new Triangle3D(this.scene);
-    this.congas = new BongoCongas3D(this.scene);
-    this.timbales = new Timbales3D(this.scene);
-    this.synth = new Synth3D(this.scene, { tier: 1, hasStand: true });
-    this.synth.group.rotation.copy(this.piano.group.rotation);
-    this.harp = new Harp3D(this.scene);
-    this.harmonica = new Harmonica3D(this.scene);
-    this.accordion = new Accordion3D(this.scene);
-
-    // Duplicate instruments (MIDIJam multi-track band duplication)
-    // 4 Stratocasters stacked diagonally across stage right
-    this.guitar_2 = new Guitar3D(this.scene, { index: 2 });
-    this.guitar_2.group.position.set(1.90, 1.15, 0.65);
-    this.guitar_2.group.visible = false;
-
-    this.guitar_3 = new Guitar3D(this.scene, { index: 3 });
-    this.guitar_3.group.position.set(2.15, 1.05, 0.35);
-    this.guitar_3.group.visible = false;
-
-    this.guitar_4 = new Guitar3D(this.scene, { index: 4 });
-    this.guitar_4.group.position.set(2.40, 0.95, 0.05);
-    this.guitar_4.group.visible = false;
-
-    // Acoustic guitars occupy a separate front-right position so an acoustic
-    // track can coexist with an electric guitar without hiding either one.
-    this.acousticGuitar_2 = new AcousticGuitar3D(this.scene, { index: 2 });
-    this.acousticGuitar_2.group.position.set(1.28, 1.08, 1.20);
-    this.acousticGuitar_2.group.visible = false;
-
-    this.acousticGuitar_3 = new AcousticGuitar3D(this.scene, { index: 3 });
-    this.acousticGuitar_3.group.position.set(1.50, 0.99, 0.95);
-    this.acousticGuitar_3.group.visible = false;
-
-    this.acousticGuitar_4 = new AcousticGuitar3D(this.scene, { index: 4 });
-    this.acousticGuitar_4.group.position.set(1.72, 0.90, 0.70);
-    this.acousticGuitar_4.group.visible = false;
-
-    this.trumpet_2 = new Trumpet3D(this.scene);
-    this.trumpet_2.group.position.set(4.85, 1.40, 0.75);
-    this.trumpet_2.group.rotation.copy(this.trumpet.group.rotation);
-    this.trumpet_2.brassMaterial.color.setHex(0xd0d8e4); // Chrome/Silver Trumpet
-    this.trumpet_2.group.visible = false;
-
-    this.sax_2 = new Saxophone3D(this.scene);
-    this.sax_2.group.position.set(3.85, 1.25, 2.35);
-    this.sax_2.group.rotation.copy(this.sax.group.rotation);
-    this.sax_2.brassMaterial.color.setHex(0xc2c8d2); // Vintage Nickel Alto Sax
-    this.sax_2.group.visible = false;
-
-    this.violin_2 = new Violin3D(this.scene);
-    this.violin_2.group.position.set(-5.1, 1.30, -2.6);
-    this.violin_2.group.rotation.set(0.12, Math.PI * 0.18, -0.06);
-    this.violin_2.varnishMaterial.color.setHex(0x421d0d); // Dark Antique Violin
-    this.violin_2.group.visible = false;
-
-    this.cello_2 = new Cello3D(this.scene);
-    this.cello_2.group.position.set(-3.7, 1.15, -1.6);
-    this.cello_2.group.rotation.set(0.14, Math.PI * 0.18, -0.05);
-    this.cello_2.varnishMaterial.color.setHex(0x522210); // Darker vintage varnish
-    this.cello_2.group.visible = false;
-
-    this.doubleBass_2 = new DoubleBass3D(this.scene);
-    this.doubleBass_2.group.position.set(-3.1, 1.25, -0.35);
-    this.doubleBass_2.group.rotation.set(0.12, Math.PI * 0.16, -0.04);
-    this.doubleBass_2.varnishMaterial.color.setHex(0x421808); // Dark antique varnish
-    this.doubleBass_2.group.visible = false;
-
-    this.flute_2 = new Flute3D(this.scene);
-    this.flute_2.group.position.set(2.3, 1.30, 2.4);
-    this.flute_2.group.rotation.copy(this.flute.group.rotation);
-    this.flute_2.silverMaterial.color.setHex(0xe8b898); // Rose Gold Concert Flute
-    this.flute_2.group.visible = false;
-
-    this.bass_2 = new Bass3D(this.scene);
-    this.bass_2.group.position.set(-2.9, 0.95, -1.0);
-    this.bass_2.group.rotation.y = 0.38;
-    this.bass_2.bodyMaterial.color.setHex(0x1a1a20); // Matte Black Precision Bass
-    this.bass_2.group.visible = false;
-
-    this.synth_2 = new Synth3D(this.scene, { tier: 2, hasStand: false });
-    this.synth_2.group.position.copy(this.synth.group.position);
-    this.synth_2.group.rotation.copy(this.synth.group.rotation);
-    this.synth_2.group.visible = false;
-
-    this.synth_3 = new Synth3D(this.scene, { tier: 3, hasStand: false });
-    this.synth_3.group.position.copy(this.synth.group.position);
-    this.synth_3.group.rotation.copy(this.synth.group.rotation);
-    this.synth_3.group.visible = false;
-
-    this.synth_4 = new Synth3D(this.scene, { tier: 4, hasStand: false });
-    this.synth_4.group.position.copy(this.synth.group.position);
-    this.synth_4.group.rotation.copy(this.synth.group.rotation);
-    this.synth_4.group.visible = false;
-
-    this.piano_2 = new Piano3D(this.scene, { tier: 2, hasStand: false });
-    this.piano_2.group.position.copy(this.piano.group.position);
-    this.piano_2.group.rotation.y = this.piano.group.rotation.y;
-    this.piano_2.group.visible = false;
-
-    this.piano_3 = new Piano3D(this.scene, { tier: 3, hasStand: false });
-    this.piano_3.group.position.copy(this.piano.group.position);
-    this.piano_3.group.rotation.y = this.piano.group.rotation.y;
-    this.piano_3.group.visible = false;
-
-    this.piano_4 = new Piano3D(this.scene, { tier: 4, hasStand: false });
-    this.piano_4.group.position.copy(this.piano.group.position);
-    this.piano_4.group.rotation.y = this.piano.group.rotation.y;
-    this.piano_4.group.visible = false;
-
-    this.xylophone_2 = new Xylophone3D(this.scene);
-    this.xylophone_2.group.position.set(0.9, 0.95, 2.6);
-    this.xylophone_2.group.rotation.copy(this.xylophone.group.rotation);
-    this.xylophone_2.group.visible = false;
-
-    this.allInstruments = {
-      piano: this.piano,
-      drums: this.drums,
-      guitar: this.guitar,
-      acousticGuitar: this.acousticGuitar,
-      bass: this.bass,
-      doubleBass: this.doubleBass,
-      trumpet: this.trumpet,
-      frenchHorn: this.frenchHorn,
-      sax: this.sax,
-      clarinet: this.clarinet,
-      violin: this.violin,
-      cello: this.cello,
-      flute: this.flute,
-      xylophone: this.xylophone,
-      synth: this.synth,
-      cabasa: this.cabasa,
-      tambourine: this.tambourine,
-      maracas: this.maracas,
-      guiro: this.guiro,
-      whistle: this.whistle,
-      triangle: this.triangle,
-      congas: this.congas,
-      timbales: this.timbales,
-      harp: this.harp,
-      harmonica: this.harmonica,
-      accordion: this.accordion,
-      piano_2: this.piano_2,
-      piano_3: this.piano_3,
-      piano_4: this.piano_4,
-      guitar_2: this.guitar_2,
-      guitar_3: this.guitar_3,
-      guitar_4: this.guitar_4,
-      acousticGuitar_2: this.acousticGuitar_2,
-      acousticGuitar_3: this.acousticGuitar_3,
-      acousticGuitar_4: this.acousticGuitar_4,
-      bass_2: this.bass_2,
-      doubleBass_2: this.doubleBass_2,
-      trumpet_2: this.trumpet_2,
-      sax_2: this.sax_2,
-      violin_2: this.violin_2,
-      cello_2: this.cello_2,
-      flute_2: this.flute_2,
-      xylophone_2: this.xylophone_2,
-      synth_2: this.synth_2,
-      synth_3: this.synth_3,
-      synth_4: this.synth_4
-    };
-
-    // Keep the original height of every model unless a specialized stacked
-    // layout supplies an explicit tier height.
-    this.instrumentHomeTransforms = new Map(
-      Object.entries(this.allInstruments).map(([key, instrument]) => [key, {
-        y: instrument.group.position.y
-      }])
-    );
+    this.allInstruments = {};
+    this.instrumentHomeTransforms = new Map();
+    this.instrumentDetails = new Map();
     this._instrumentLayoutSignature = null;
 
     this.cameraController = new CameraController(
@@ -284,19 +70,6 @@ export class SceneManager {
     this.visibleInstrumentNames = new Set();
     this.cameraController.onPresetChange = () => this._applyInstrumentVisibility();
 
-    // Immediately initialize exact camera presets for every instrument at home position
-    Object.entries(this.allInstruments).forEach(([key, instrument]) => {
-      instrument.group.updateWorldMatrix(true, true);
-      const box = new THREE.Box3().setFromObject(instrument.group);
-      const size = box.getSize(new THREE.Vector3());
-      this.cameraController.updateInstrumentPreset(
-        key,
-        instrument.group.position,
-        size,
-        instrument.group,
-        instrument.group.position
-      );
-    });
 
     // Clock
     this.clock = new THREE.Clock();
@@ -313,6 +86,31 @@ export class SceneManager {
 
   _getInstrumentFamily(key) {
     return key.replace(/_\d+$/, '');
+  }
+
+  syncAssignedInstruments(instrumentNames) {
+    const assigned = new Set(instrumentNames.filter(key => Object.hasOwn(instrumentFactories, key)));
+    for (const [key, instrument] of Object.entries(this.allInstruments)) {
+      if (assigned.has(key)) continue;
+      releaseInstrument(instrument, this.scene);
+      delete this.allInstruments[key];
+      this.instrumentDetails.delete(key);
+      this.instrumentHomeTransforms.delete(key);
+    }
+    for (const key of assigned) {
+      if (this.allInstruments[key]) continue;
+      const instrument = instrumentFactories[key](this.scene);
+      instrument.group.userData.instrumentKey = key;
+      instrument.group.visible = false;
+      if (this.isMobilePerformanceMode) {
+        instrument.group.traverse(object => {
+          if (object.isLight) object.visible = false;
+        });
+      }
+      this.allInstruments[key] = instrument;
+      this.instrumentHomeTransforms.set(key, { y: instrument.group.position.y });
+      this.instrumentDetails.set(key, new InstrumentDetail(instrument.group));
+    }
   }
 
   setQuality(quality, persist = true) {
@@ -550,14 +348,16 @@ export class SceneManager {
    * instrument temporarily disappears during a rest.
    */
   layoutInstruments(activeInstrumentNames, prominenceByInstrument = {}, animate = true) {
+    this.syncAssignedInstruments(activeInstrumentNames || []);
     const activeKeys = [...new Set(activeInstrumentNames || [])]
       .filter(key => this.allInstruments[key]);
     const signature = [...activeKeys]
       .sort()
       .map(key => `${key}:${prominenceByInstrument[key] || 0}`)
       .join('|');
-    if (!signature || signature === this._instrumentLayoutSignature) return;
+    if (signature === this._instrumentLayoutSignature) return;
     this._instrumentLayoutSignature = signature;
+    if (!activeKeys.length) return;
 
     const units = this._buildLayoutUnits(activeKeys, prominenceByInstrument);
     const placements = new Map();
@@ -911,6 +711,13 @@ export class SceneManager {
     frontWash.shadow.mapSize.height = this.isMobilePerformanceMode ? 1024 : 2048;
     frontWash.shadow.bias = -0.0005;
     this.scene.add(frontWash);
+    if (this.isMobilePerformanceMode) {
+      frontWash.color.setHex(0xffe8d5);
+      frontWash.intensity = 2.2;
+      const rimLight = new THREE.DirectionalLight(0x94baff, 1.0);
+      rimLight.position.set(-6, 5, -4);
+      this.scene.add(rimLight);
+    }
   }
 
   // Dynamically show or hide 3D instruments based on MIDI song assignment
@@ -1064,6 +871,18 @@ export class SceneManager {
     }
 
     // Render frame
+    // Re-evaluate fine detail at 5 Hz, not for every animation tick.
+    if (!this._nextDetailUpdate || timestamp >= this._nextDetailUpdate) {
+      this.scene.updateMatrixWorld(true);
+      const preset = this.cameraController.currentPreset;
+      for (const [key, detail] of this.instrumentDetails) {
+        if (detail.group.visible) {
+          const focused = preset === key || preset?.startsWith(`${key}_`);
+          detail.update(this.camera, this.container.clientHeight, focused);
+        }
+      }
+      this._nextDetailUpdate = timestamp + 200;
+    }
     this.renderer.render(this.scene, this.camera);
   }
 }

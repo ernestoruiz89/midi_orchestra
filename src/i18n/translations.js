@@ -10,7 +10,7 @@ export const translations = {
       low: 'Low', medium: 'Medium', high: 'High',
       lowDescription: 'Best performance: reduced resolution, 30 FPS, no shadows, light cones or ambient particles.',
       mediumDescription: 'Balanced: sharper image, one main shadow and subtle ambient effects.',
-      highDescription: 'More detail: higher resolution and full stage shadows. Requires a faster phone.',
+      highDescription: 'More detail: higher resolution and a sharper main shadow. Requires a faster phone.',
       saved: 'Applied immediately and saved on this device. Audio quality is unchanged.'
     },
     nav: {
@@ -266,7 +266,7 @@ export const translations = {
       low: 'Baja', medium: 'Media', high: 'Alta',
       lowDescription: 'Mayor rendimiento: resolución reducida, 30 FPS, sin sombras, conos de luz ni partículas ambientales.',
       mediumDescription: 'Equilibrada: imagen más nítida, una sombra principal y efectos ambientales sutiles.',
-      highDescription: 'Más detalle: mayor resolución y todas las sombras del escenario. Requiere un celular más potente.',
+      highDescription: 'Más detalle: mayor resolución y una sombra principal más definida. Requiere un celular más potente.',
       saved: 'Se aplica al instante y se guarda en este dispositivo. La calidad del audio se mantiene.'
     },
     nav: {
