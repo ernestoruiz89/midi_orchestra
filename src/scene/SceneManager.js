@@ -718,6 +718,8 @@ export class SceneManager {
       rimLight.position.set(-6, 5, -4);
       this.scene.add(rimLight);
     }
+    this.frontWashBaseColor = frontWash.color.clone();
+    this.frontWashBaseIntensity = frontWash.intensity;
   }
 
   // Dynamically show or hide 3D instruments based on MIDI song assignment
@@ -860,7 +862,12 @@ export class SceneManager {
 
     // Update 3D components
     this.cameraController.update(delta);
-    this.stage.update(delta, visData);
+    this.stage.update(delta, visData, window.app?.midiPlayer);
+    if (this.isMobilePerformanceMode) {
+      const energy = this.stage.lightShowEnabled ? this.stage.musicEnergy : 0;
+      this.frontWash.color.copy(this.frontWashBaseColor).lerp(this.stage.showColor, energy * 0.25);
+      this.frontWash.intensity = this.frontWashBaseIntensity * (1 + energy * 0.15);
+    }
 
     // Update only visible instruments for peak performance
     for (const key in this.allInstruments) {

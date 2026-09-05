@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import gsap from 'gsap';
 
 /**
  * Stage builds the concert hall environment: reflective stage floor,
@@ -18,6 +17,14 @@ export class Stage {
     this.dustParticles = null;
     this.lightShowEnabled = false;  // Light animation toggle
     this.lightShowTime = 0;         // Accumulated time for light animation
+    this.musicEnergy = 0;
+    this.showColor = new THREE.Color(0xffdeb1);
+    this.showAccent = new THREE.Color(0x9bcee2);
+    this.showPalettes = [
+      [new THREE.Color(0xffdeb1), new THREE.Color(0x9bcee2)],
+      [new THREE.Color(0xc2b6e8), new THREE.Color(0x92d8d0)],
+      [new THREE.Color(0xefbdb6), new THREE.Color(0xffdfac)]
+    ];
 
     this._buildMaterials();
     this._buildStageFloor();
@@ -66,7 +73,7 @@ export class Stage {
         spot.light.shadow.map.dispose();
         spot.light.shadow.map = null;
       }
-      spot.beam.visible = this.effectsEnabled && this.lightShowEnabled && spot.light.intensity > 0;
+      spot.beam.visible = this.effectsEnabled && this.lightShowEnabled && spot.active;
     });
   }
 
@@ -219,16 +226,25 @@ export class Stage {
       spotGroup.add(spotLight);
 
       // Volumetric Faux-Light Beam Cone
-      const beamGeom = new THREE.ConeGeometry(1.6, 7.5, 24, 1, true);
+      const beamGeom = new THREE.ConeGeometry(1.35, 7.5, 24, 8, true);
       beamGeom.translate(0, -3.75, 0);
+      // Additive vertex shading fades the ends instead of a hard solid cone.
+      const beamColors = new Float32Array(beamGeom.attributes.position.count * 3);
+      for (let i = 0; i < beamGeom.attributes.position.count; i++) {
+        const t = THREE.MathUtils.clamp(-beamGeom.attributes.position.getY(i) / 7.5, 0, 1);
+        const fade = Math.sin(Math.PI * t) * 0.65;
+        beamColors.set([fade, fade, fade], i * 3);
+      }
+      beamGeom.setAttribute('color', new THREE.BufferAttribute(beamColors, 3));
 
       const beamMat = new THREE.MeshBasicMaterial({
         color: cfg.color,
         transparent: true,
-        opacity: 0.18,
+        opacity: 0,
+        vertexColors: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
-        side: THREE.DoubleSide
+        side: THREE.FrontSide
       });
 
       const beamMesh = new THREE.Mesh(beamGeom, beamMat);
@@ -246,6 +262,8 @@ export class Stage {
         target: targetObj,
         baseColor: cfg.color,
         baseIntensity: intensity,
+        active: false,
+        notePulse: 0,
         name: cfg.name
       });
     });
@@ -329,7 +347,11 @@ export class Stage {
         const isVisible = Array.isArray(inst)
           ? inst.some(name => activeFamilies.has(name))
           : activeFamilies.has(inst);
-        spot.light.intensity = isVisible ? spot.baseIntensity : 0;
+        spot.active = isVisible;
+        if (!isVisible) {
+          spot.light.intensity = 0;
+          spot.notePulse = 0;
+        }
         // Beam cones only visible when Light Show is enabled AND instrument is active
         spot.beam.visible = this.effectsEnabled && this.lightShowEnabled && isVisible;
       }
@@ -374,96 +396,88 @@ export class Stage {
   }
 
   pulseInstrumentSpotlight(instrumentName, velocity = 0.8) {
-    const spot = this.spotlights.find(s => s.name.includes(instrumentName));
-    if (!spot || spot.light.intensity === 0) return;
-
-    gsap.killTweensOf(spot.light);
-    gsap.killTweensOf(spot.beam.material);
-
-    const targetIntensity = spot.baseIntensity * (1.0 + velocity * 1.5);
-    const targetOpacity = Math.min(0.6, 0.2 + velocity * 0.4);
-
-    gsap.timeline()
-      .to(spot.light, { intensity: targetIntensity, duration: 0.04 })
-      .to(spot.light, { intensity: spot.baseIntensity, duration: 0.35, ease: 'power2.out' });
-
-    gsap.timeline()
-      .to(spot.beam.material, { opacity: targetOpacity, duration: 0.04 })
-      .to(spot.beam.material, { opacity: 0.18, duration: 0.35, ease: 'power2.out' });
+    const spot = this.spotlights.find(s => s.name === instrumentName + '_spot');
+    if (!spot?.active) return;
+    // A single envelope owns each light; dense notes cannot stack tweens.
+    spot.notePulse = Math.max(spot.notePulse, THREE.MathUtils.clamp(velocity, 0, 1));
   }
 
-  /**
-   * Toggle the animated light show on/off.
-   * When enabled, spotlights cycle colors, breathe intensity and gently sway.
-   * @returns {boolean} new state
-   */
   toggleLightShow() {
     this.lightShowEnabled = !this.lightShowEnabled;
-
-    if (this.lightShowEnabled) {
-      // Show beam cones for spots that have their light on
+    if (!this.lightShowEnabled) {
+      this.musicEnergy = 0;
       this.spotlights.forEach(spot => {
-        if (this.effectsEnabled && spot.light.intensity > 0) {
-          spot.beam.visible = true;
-        }
-      });
-    } else {
-      // Reset every spotlight back to its original static state and hide beams
-      this.spotlights.forEach(spot => {
-        const c = new THREE.Color(spot.baseColor);
-        spot.light.color.copy(c);
-        spot.light.intensity = spot.light.intensity > 0 ? spot.baseIntensity : 0;
-        spot.beam.material.color.copy(c);
-        spot.beam.material.opacity = 0.18;
+        spot.light.color.setHex(spot.baseColor);
+        spot.light.intensity = spot.active ? spot.baseIntensity : 0;
+        spot.beam.material.color.setHex(spot.baseColor);
+        spot.beam.material.opacity = 0;
         spot.beam.visible = false;
-        spot.group.rotation.x = 0;
-        spot.group.rotation.z = 0;
+        spot.group.rotation.set(0, 0, 0);
       });
     }
-
     return this.lightShowEnabled;
   }
 
-  update(delta, visualizerData = null) {
-    // 1. Animate Atmospheric Dust Particles
+  update(delta, visualizerData = null, transport = {}) {
     if (this.dustParticles?.visible) {
       const pos = this.dustParticles.geometry.attributes.position.array;
-      const count = pos.length / 3;
       const time = performance.now() * 0.0005;
-
-      for (let i = 0; i < count; i++) {
-        pos[i * 3 + 1] += Math.sin(time + i) * 0.005;
-        pos[i * 3] += Math.cos(time + i) * 0.003;
+      for (let i = 0; i < pos.length / 3; i++) {
+        pos[i * 3 + 1] += Math.sin(time + i) * delta * 0.12;
+        pos[i * 3] += Math.cos(time + i) * delta * 0.08;
       }
       this.dustParticles.geometry.attributes.position.needsUpdate = true;
     }
 
-    // 2. Animated Light Show (when enabled)
-    if (this.lightShowEnabled) {
-      this.lightShowTime += delta;
-      const t = this.lightShowTime;
-
-      this.spotlights.forEach((spot, i) => {
-        if (!spot.beam.visible) return;
-
-        // Color cycling: each spot has its own phase offset
-        const hue = ((t * 0.12) + (i * 0.125)) % 1.0;
-        const color = new THREE.Color().setHSL(hue, 0.9, 0.55);
-        spot.light.color.copy(color);
-        spot.beam.material.color.copy(color);
-
-        // Intensity breathing
-        const breathe = 0.7 + 0.3 * Math.sin(t * 2.5 + i * 1.2);
-        spot.light.intensity = spot.baseIntensity * breathe;
-
-        // Beam opacity pulsing
-        spot.beam.material.opacity = 0.12 + 0.10 * Math.sin(t * 3.0 + i * 0.9);
-
-        // Gentle fixture sway (small rotation of the whole spotlight group)
-        spot.group.rotation.x = Math.sin(t * 0.8 + i * 1.5) * 0.04;
-        spot.group.rotation.z = Math.cos(t * 0.6 + i * 1.1) * 0.03;
-      });
+    const playing = Boolean(transport.isPlaying);
+    const bpm = Math.max(30, Number(transport.bpm) || 120);
+    const beat = (Number(transport.currentTime) || 0) * bpm / 60;
+    const noteEnergy = this.spotlights.reduce((peak, spot) => Math.max(peak, spot.notePulse), 0);
+    let amplitude = 0;
+    if (playing && visualizerData?.length) {
+      // Frequency values are dB. Average linear amplitude avoids noisy peaks.
+      for (const db of visualizerData) {
+        if (Number.isFinite(db)) amplitude += Math.pow(10, db / 20);
+      }
+      amplitude = THREE.MathUtils.clamp(amplitude / visualizerData.length * 6, 0, 1);
     }
+    const targetEnergy = playing ? Math.max(amplitude, noteEnergy * 0.6) : 0;
+    const energyResponse = 1 - Math.exp(-delta / (targetEnergy > this.musicEnergy ? 0.12 : 0.55));
+    this.musicEnergy = THREE.MathUtils.lerp(this.musicEnergy, targetEnergy, energyResponse);
 
+    // Paired colors progress together over musical phrases, not random timers.
+    const phrase = beat / 32;
+    const paletteIndex = Math.floor(phrase) % this.showPalettes.length;
+    const palette = this.showPalettes[paletteIndex];
+    const next = this.showPalettes[(paletteIndex + 1) % this.showPalettes.length];
+    const blend = THREE.MathUtils.smoothstep(phrase % 1, 0.75, 1);
+    this.showColor.lerpColors(palette[0], next[0], blend);
+    this.showAccent.lerpColors(palette[1], next[1], blend);
+    const pulse = Math.pow((1 + Math.cos(beat * Math.PI * 2)) / 2, 3);
+    const smooth = 1 - Math.exp(-delta / 0.18);
+
+    this.spotlights.forEach((spot, i) => {
+      spot.notePulse *= Math.exp(-delta / 0.3);
+      const show = this.lightShowEnabled && spot.active;
+      const energy = this.musicEnergy;
+      if (show) {
+        const color = i % 2 ? this.showAccent : this.showColor;
+        spot.light.color.lerp(color, smooth);
+        spot.beam.material.color.copy(spot.light.color);
+      }
+      const intensity = spot.active
+        ? spot.baseIntensity * (1 + (show ? energy * (0.2 + pulse * 0.3) : 0) + spot.notePulse * 0.3)
+        : 0;
+      spot.light.intensity = THREE.MathUtils.lerp(spot.light.intensity, intensity, smooth);
+      const opacity = show && this.effectsEnabled
+        ? energy * (0.012 + 0.018 * pulse + 0.025 * spot.notePulse)
+        : 0;
+      spot.beam.material.opacity = THREE.MathUtils.lerp(spot.beam.material.opacity, opacity, smooth);
+      spot.beam.visible = show && this.effectsEnabled && spot.beam.material.opacity > 0.001;
+      const sway = show ? energy : 0;
+      const direction = spot.group.position.x < 0 ? -1 : 1;
+      spot.group.rotation.x = THREE.MathUtils.lerp(spot.group.rotation.x, Math.sin(beat * Math.PI / 8) * 0.015 * sway, smooth);
+      spot.group.rotation.z = THREE.MathUtils.lerp(spot.group.rotation.z, Math.sin(beat * Math.PI / 16) * 0.02 * sway * direction, smooth);
+    });
   }
 }
