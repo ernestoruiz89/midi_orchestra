@@ -928,6 +928,11 @@ export class UIManager {
     // Automatically show only instruments present in loaded song
     this.midiPlayer.onActiveInstrumentsChanged = (activeList) => {
       this._applyActiveInstruments(activeList);
+      this.sceneManager.updatePianoMidiPrograms(this.midiPlayer.trackInfos);
+    };
+    this.midiPlayer.onTrackUpdate = (tracks) => {
+      this._renderTracksTable();
+      this.sceneManager.updatePianoMidiPrograms(tracks);
     };
 
     // MIDIs2Jam2-style stage density: the dock keeps every assigned track

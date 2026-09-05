@@ -4,6 +4,7 @@ import { Stage } from './Stage.js';
 import { instrumentFactories } from './InstrumentFactory.js';
 import { InstrumentDetail, releaseInstrument } from './InstrumentDetail.js';
 import { CameraController } from './CameraController.js';
+import { GM_PROGRAM_MAP } from '../audio/SoundEngine.js';
 
 /**
  * SceneManager orchestrates the Three.js 3D world, lighting, rendering loop,
@@ -110,6 +111,17 @@ export class SceneManager {
       this.allInstruments[key] = instrument;
       this.instrumentHomeTransforms.set(key, { y: instrument.group.position.y });
       this.instrumentDetails.set(key, new InstrumentDetail(instrument.group));
+    }
+  }
+
+  updatePianoMidiPrograms(trackInfos = []) {
+    for (const track of trackInfos) {
+      if (!String(track.instanceId || '').startsWith('piano')) continue;
+      const piano = this.allInstruments[track.instanceId];
+      if (!piano?.setMidiProgramName) continue;
+      const soundfontName = GM_PROGRAM_MAP[track.programNumber]?.sf || 'Acoustic Grand Piano';
+      const name = soundfontName.split(/_+/).filter(Boolean).map(word => word[0].toUpperCase() + word.slice(1)).join(' ');
+      piano.setMidiProgramName(name, track.programNumber, track.channel);
     }
   }
 

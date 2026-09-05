@@ -26,6 +26,10 @@ export class Piano3D {
     this.keyMeshes = {};
     this.pedalTongue = null;
     this.activeNoteCount = 0;
+    this.displayCanvas = null;
+    this.displayContext = null;
+    this.displayTexture = null;
+    this.midiProgramLabel = 'CONCERT GRAND 88';
 
     this._buildMaterials();
     this._buildKeyboardChassis();
@@ -166,6 +170,8 @@ export class Piano3D {
     canvas.width = 512;
     canvas.height = 128;
     const ctx = canvas.getContext('2d');
+    this.displayCanvas = canvas;
+    this.displayContext = ctx;
 
     // Deep OLED dark navy background
     ctx.fillStyle = '#040914';
@@ -182,10 +188,10 @@ export class Piano3D {
     ctx.font = 'bold 16px "Courier New", monospace';
     ctx.fillText('MIDI CH: 01   TEMPO: 120   TRANS: 0', 16, 24);
 
-    // Main Preset Name
+    // Main MIDI preset name (updated when the assigned track is known).
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 36px "Segoe UI", sans-serif';
-    ctx.fillText('01: CONCERT GRAND 88', 16, 68);
+    ctx.fillText(`01: ${this.midiProgramLabel}`, 16, 68);
 
     // Subtitle / Settings
     ctx.fillStyle = '#00ffcc';
@@ -204,7 +210,36 @@ export class Piano3D {
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.minFilter = THREE.LinearFilter;
+    this.displayTexture = texture;
     return texture;
+  }
+
+  setMidiProgramName(name, programNumber = null, channel = null) {
+    const label = String(name || 'CONCERT GRAND 88').toUpperCase().slice(0, 24);
+    this.midiProgramLabel = label;
+    const ctx = this.displayContext;
+    const canvas = this.displayCanvas;
+    if (!ctx || !canvas) return;
+    ctx.fillStyle = '#040914';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(0, 200, 255, 0.03)';
+    for (let y = 0; y < 128; y += 4) ctx.fillRect(0, y, 512, 2);
+    ctx.fillStyle = '#4da6ff';
+    ctx.font = 'bold 16px "Courier New", monospace';
+    const midiChannel = Number.isInteger(channel) ? String(channel + 1).padStart(2, '0') : '01';
+    ctx.fillText(`MIDI CH: ${midiChannel}   PROGRAM: ${Number.isInteger(programNumber) ? String(programNumber + 1).padStart(3, '0') : '---'}`, 16, 24);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px "Segoe UI", sans-serif';
+    ctx.fillText(`01: ${label}`, 16, 68);
+    ctx.fillStyle = '#00ffcc';
+    ctx.font = '18px "Segoe UI", sans-serif';
+    ctx.fillText('GENERAL MIDI PRESET  |  DYNAMIC STEREO', 16, 104);
+    ctx.fillStyle = '#102236';
+    ctx.fillRect(426, 18, 70, 42); ctx.fillRect(426, 68, 70, 42);
+    ctx.fillStyle = '#00ffaa';
+    ctx.fillRect(428, 22, 50, 14); ctx.fillRect(428, 40, 44, 14);
+    ctx.fillRect(428, 72, 56, 14); ctx.fillRect(428, 90, 52, 14);
+    if (this.displayTexture) this.displayTexture.needsUpdate = true;
   }
 
   _createBadgeTexture() {
