@@ -725,45 +725,213 @@ export class Piano3D {
     const pedalZ = 0.22;
     pedalGroup.position.set(pedalX, 0, pedalZ);
 
-    // Heavy-duty cast iron / rubber base housing
-    const baseGeom = new THREE.BoxGeometry(0.082, 0.034, 0.21);
-    const base = new THREE.Mesh(baseGeom, this.chassisDarkMaterial);
-    base.position.set(0, 0.017, 0);
-    base.castShadow = true;
-    pedalGroup.add(base);
+    // 1. High-Density Heavy Non-Slip Rubber Base Pad
+    // Sits flat on the floor with beveled perimeter and heel pad extension
+    const baseWidth = 0.102;
+    const baseLength = 0.27;
+    const basePadGeom = new THREE.BoxGeometry(baseWidth, 0.006, baseLength);
+    const basePad = new THREE.Mesh(basePadGeom, this.rubberMaterial);
+    basePad.position.set(0, 0.003, 0.015);
+    basePad.castShadow = true;
+    basePad.receiveShadow = true;
+    pedalGroup.add(basePad);
 
-    // Non-slip grooved rubber base pad
-    const padGeom = new THREE.BoxGeometry(0.088, 0.005, 0.216);
-    const pad = new THREE.Mesh(padGeom, this.rubberMaterial);
-    pad.position.set(0, 0.0025, 0);
-    pedalGroup.add(pad);
+    // Molded rubber side grip treads along the base
+    for (let i = -3; i <= 3; i++) {
+      const ribGeom = new THREE.BoxGeometry(baseWidth + 0.006, 0.004, 0.008);
+      const rib = new THREE.Mesh(ribGeom, this.rubberMaterial);
+      rib.position.set(0, 0.004, 0.015 + i * 0.032);
+      pedalGroup.add(rib);
+    }
 
-    // Mirror-Chrome Solid Brass Pedal Lever Tongue
+    // Textured Heel Rest Pad at front of base plate
+    const heelPlateGeom = new THREE.BoxGeometry(baseWidth - 0.012, 0.003, 0.055);
+    const heelPlate = new THREE.Mesh(heelPlateGeom, this.rubberMaterial);
+    heelPlate.position.set(0, 0.007, 0.115);
+    pedalGroup.add(heelPlate);
+
+    // 2. Sculpted Die-Cast Metal Pedal Enclosure (Dark Gunmetal Powder-Coat)
+    // Rear Casing Body (houses pivot, spring, and cable port)
+    const rearHousingWidth = 0.084;
+    const rearHousingLength = 0.125;
+    const rearHousingHeight = 0.042;
+    const rearHousingGeom = new THREE.BoxGeometry(rearHousingWidth, rearHousingHeight, rearHousingLength);
+    const rearHousing = new THREE.Mesh(rearHousingGeom, this.chassisDarkMaterial);
+    rearHousing.position.set(0, rearHousingHeight / 2 + 0.004, -0.055);
+    rearHousing.castShadow = true;
+    pedalGroup.add(rearHousing);
+
+    // Beveled Sloped Top Hood on rear casing
+    const hoodGeom = new THREE.BoxGeometry(rearHousingWidth - 0.008, 0.010, rearHousingLength - 0.02);
+    const hood = new THREE.Mesh(hoodGeom, this.panelSurfaceMaterial);
+    hood.position.set(0, rearHousingHeight + 0.004, -0.058);
+    hood.rotation.x = -0.06;
+    pedalGroup.add(hood);
+
+    // Brushed Gold / Silver Metallic Brand Badge ("PIANO / SUSTAIN")
+    const badgeGeom = new THREE.BoxGeometry(0.044, 0.002, 0.022);
+    const badge = new THREE.Mesh(badgeGeom, this.goldBadgeMaterial);
+    badge.position.set(0, rearHousingHeight + 0.009, -0.058);
+    badge.rotation.x = -0.06;
+    pedalGroup.add(badge);
+
+    // 3. Front U-Channel Guide Walls (form the open well where the lever moves)
+    const wallWidth = 0.012;
+    const wallHeight = 0.022;
+    const wallLength = 0.105;
+    [-0.036, 0.036].forEach((wx) => {
+      const wallGeom = new THREE.BoxGeometry(wallWidth, wallHeight, wallLength);
+      const wall = new THREE.Mesh(wallGeom, this.chassisDarkMaterial);
+      wall.position.set(wx, wallHeight / 2 + 0.004, 0.055);
+      wall.castShadow = true;
+      pedalGroup.add(wall);
+
+      // Chrome cap trim on side rail
+      const capGeom = new THREE.BoxGeometry(wallWidth + 0.002, 0.003, wallLength);
+      const cap = new THREE.Mesh(capGeom, this.chromeMaterial);
+      cap.position.set(wx, wallHeight + 0.005, 0.055);
+      pedalGroup.add(cap);
+    });
+
+    // Acoustic Damping Felt Cushion inside the channel floor
+    const feltBedGeom = new THREE.BoxGeometry(0.052, 0.004, wallLength);
+    const feltBedMat = new THREE.MeshStandardMaterial({
+      color: 0x6e1218, // Deep burgundy acoustic damper felt
+      roughness: 0.90,
+      metalness: 0.0
+    });
+    const feltBed = new THREE.Mesh(feltBedGeom, feltBedMat);
+    feltBed.position.set(0, 0.008, 0.055);
+    pedalGroup.add(feltBed);
+
+    // 4. Internal Mechanics: Transverse Chrome Pivot Pin & Recoil Spring
+    const pivotPinGeom = new THREE.CylinderGeometry(0.004, 0.004, 0.058, 12);
+    pivotPinGeom.rotateZ(Math.PI / 2);
+    const pivotPin = new THREE.Mesh(pivotPinGeom, this.chromeMaterial);
+    pivotPin.position.set(0, 0.026, 0.002);
+    pedalGroup.add(pivotPin);
+
+    // Chrome End Bushing Nuts on pivot pin
+    [-0.030, 0.030].forEach((px) => {
+      const nutGeom = new THREE.CylinderGeometry(0.006, 0.006, 0.004, 12);
+      nutGeom.rotateZ(Math.PI / 2);
+      const nut = new THREE.Mesh(nutGeom, this.chromeMaterial);
+      nut.position.set(px, 0.026, 0.002);
+      pedalGroup.add(nut);
+    });
+
+    // Visible Heavy-Duty Coiled Steel Recoil Spring under pivot
+    const springGeom = new THREE.CylinderGeometry(0.007, 0.007, 0.016, 12);
+    const spring = new THREE.Mesh(springGeom, this.chromeMaterial);
+    spring.position.set(0, 0.016, -0.014);
+    pedalGroup.add(spring);
+
+    // 5. Mirror-Polished Chrome Pedal Lever Tongue with Ergonomic Curved Lip
     const pivot = new THREE.Group();
-    pivot.position.set(0, 0.024, -0.045);
+    // Pivot axis positioned inside the housing throat
+    pivot.position.set(0, 0.026, 0.002);
 
-    const tongueGeom = new THREE.BoxGeometry(0.034, 0.014, 0.145);
-    tongueGeom.translate(0, 0, 0.072); // Pivot at rear, extends forward
-    const tongue = new THREE.Mesh(tongueGeom, this.chromeMaterial);
-    tongue.castShadow = true;
-    pivot.add(tongue);
+    const leverGroup = new THREE.Group();
 
-    // Initial poise angle (slightly tilted up)
-    pivot.rotation.x = -0.12;
+    // A. Main Neck / Arm (connecting pivot to foot paddle)
+    const neckGeom = new THREE.BoxGeometry(0.034, 0.011, 0.065);
+    const neck = new THREE.Mesh(neckGeom, this.chromeMaterial);
+    neck.position.set(0, 0, 0.032);
+    neck.castShadow = true;
+    leverGroup.add(neck);
+
+    // B. Ergonomic Flared Foot Paddle (wide tread plate extending forward)
+    const paddleGeom = new THREE.BoxGeometry(0.048, 0.010, 0.088);
+    const paddle = new THREE.Mesh(paddleGeom, this.chromeMaterial);
+    paddle.position.set(0, 0.003, 0.100);
+    paddle.castShadow = true;
+    leverGroup.add(paddle);
+
+    // C. Sculpted Raised Front Toe Lip (Classic Yamaha / Steinway upturned curve)
+    const lipGeom = new THREE.CylinderGeometry(0.010, 0.010, 0.048, 16, 1, false, 0, Math.PI);
+    lipGeom.rotateZ(Math.PI / 2);
+    const lip = new THREE.Mesh(lipGeom, this.chromeMaterial);
+    lip.position.set(0, 0.010, 0.144);
+    lip.castShadow = true;
+    leverGroup.add(lip);
+
+    // D. Longitudinal Black Rubber Anti-Slip Grip Tread Strips on top of pedal
+    [-0.014, 0, 0.014].forEach((tx) => {
+      const treadGeom = new THREE.BoxGeometry(0.0045, 0.0025, 0.072);
+      const tread = new THREE.Mesh(treadGeom, this.rubberMaterial);
+      tread.position.set(tx, 0.009, 0.100);
+      leverGroup.add(tread);
+    });
+
+    // E. Molded Under-Pedal Rubber Damper Bumper
+    const bumperGeom = new THREE.BoxGeometry(0.026, 0.005, 0.030);
+    const bumper = new THREE.Mesh(bumperGeom, this.rubberMaterial);
+    bumper.position.set(0, -0.005, 0.090);
+    leverGroup.add(bumper);
+
+    pivot.add(leverGroup);
+
+    // Initial poise angle (elevated upward ~8.6 deg)
+    pivot.rotation.x = -0.15;
     pedalGroup.add(pivot);
     this.pedalTongue = pivot;
 
-    // Coiled Damper Audio Cable running from pedal to rear piano jack
-    const p1 = new THREE.Vector3(pedalX, 0.025, pedalZ - 0.10);
-    const p2 = new THREE.Vector3(pedalX + 0.12, 0.20, 0.05);
-    const p3 = new THREE.Vector3(pedalX + 0.08, 0.50, -0.08);
-    const p4 = new THREE.Vector3(0.14, 0.78 + (0.088 * 0.55), -0.34 / 2);
-    const curve = new THREE.CatmullRomCurve3([p1, p2, p3, p4]);
-    const cableGeom = new THREE.TubeGeometry(curve, 32, 0.0035, 8, false);
+    // 6. Rear Strain Relief Boot (Ribbed Conical Rubber Grommet)
+    const bootGeom = new THREE.CylinderGeometry(0.005, 0.009, 0.026, 12);
+    bootGeom.rotateX(Math.PI / 2);
+    const boot = new THREE.Mesh(bootGeom, this.rubberMaterial);
+    boot.position.set(0, 0.020, -0.125);
+    pedalGroup.add(boot);
+
+    pedalGroup.castShadow = true;
+    this.group.add(pedalGroup);
+
+    // 7. Realistic Flexible Audio Cable with Professional Stage Routing
+    // Exits rear boot -> drops with gravity to floor -> snakes neatly toward X-stand ->
+    // climbs rear tubular stand leg (held by cable strap) -> curves into Damper Jack port!
+    const standLegX = 0.35;
+    const cablePoints = [
+      new THREE.Vector3(pedalX, 0.020, pedalZ - 0.138),                 // Exit strain relief boot
+      new THREE.Vector3(pedalX + 0.018, 0.012, pedalZ - 0.180),        // Drop naturally toward stage floor
+      new THREE.Vector3(pedalX + 0.055, 0.010, pedalZ - 0.240),        // Smooth curve along floor
+      new THREE.Vector3(standLegX - 0.050, 0.012, -0.080),             // Lead to base of rear stand leg
+      new THREE.Vector3(standLegX - 0.010, 0.040, -0.065),             // Begin climb up the leg
+      new THREE.Vector3(standLegX, 0.180, -0.030),                     // Follow incline of rear X-stand leg
+      new THREE.Vector3(standLegX, 0.390, 0.010),                      // Secured by cable strap at cross joint
+      new THREE.Vector3(0.25, 0.640, -0.070),                          // Graceful curve toward keyboard underside
+      new THREE.Vector3(0.14, 0.810, -0.155),                          // Aligning straight into damper jack
+      new THREE.Vector3(0.14, 0.828, -0.170)                           // Damper Jack port center
+    ];
+    const cableCurve = new THREE.CatmullRomCurve3(cablePoints);
+    const cableGeom = new THREE.TubeGeometry(cableCurve, 48, 0.0032, 8, false);
     const cable = new THREE.Mesh(cableGeom, this.rubberMaterial);
+    cable.castShadow = true;
     this.group.add(cable);
 
-    this.group.add(pedalGroup);
+    // Cable Fastening Strap (Velcro / Plastic Tie) on the stand leg
+    const strapGeom = new THREE.CylinderGeometry(0.018, 0.018, 0.020, 14);
+    const strap = new THREE.Mesh(strapGeom, this.rubberMaterial);
+    strap.position.set(standLegX, 0.390, 0.010);
+    strap.rotation.x = -0.44;
+    this.group.add(strap);
+
+    // 1/4" Phone Jack Metal Plug Body at Piano Back Panel
+    const plugGroup = new THREE.Group();
+    plugGroup.position.set(0.14, 0.828, -0.170);
+
+    const plugBarrelGeom = new THREE.CylinderGeometry(0.006, 0.006, 0.028, 14);
+    plugBarrelGeom.rotateX(Math.PI / 2);
+    const plugBarrel = new THREE.Mesh(plugBarrelGeom, this.chromeMaterial);
+    plugBarrel.position.z = 0.014;
+    plugGroup.add(plugBarrel);
+
+    const plugBootGeom = new THREE.CylinderGeometry(0.0045, 0.006, 0.014, 12);
+    plugBootGeom.rotateX(Math.PI / 2);
+    const plugBoot = new THREE.Mesh(plugBootGeom, this.rubberMaterial);
+    plugBoot.position.z = 0.032;
+    plugGroup.add(plugBoot);
+
+    this.group.add(plugGroup);
   }
 
   /**
@@ -876,9 +1044,9 @@ export class Piano3D {
     if (this.pedalTongue && this.activeNoteCount === 0) {
       gsap.killTweensOf(this.pedalTongue.rotation);
       gsap.to(this.pedalTongue.rotation, {
-        x: -0.12,
+        x: -0.15,
         duration: 0.12,
-        ease: 'power2.out'
+        ease: 'back.out(1.4)'
       });
     }
   }
