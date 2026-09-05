@@ -301,6 +301,7 @@ export class BongoCongas3D {
 
     const wingBolt = this._createWingScrew();
     wingBolt.position.set(0.024, upperCollarY, 0);
+    wingBolt.rotation.z = Math.PI / 2;
     stand.add(wingBolt);
 
     // 3 Symmetrical Double-Braced Legs (spaced at exact 120° intervals)

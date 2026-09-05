@@ -123,6 +123,13 @@ export class Timbales3D {
       metalness: 0.02
     });
 
+    // 7. Black Powder-Coated Metal (rims, brackets, stand base)
+    this.blackMetalMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1a1a1c,
+      roughness: 0.32,
+      metalness: 0.85
+    });
+
     // 7. Brass Brand Badge
     this.badgeMaterial = new THREE.MeshStandardMaterial({
       color: 0xc8a850,
@@ -196,9 +203,10 @@ export class Timbales3D {
     // Bottom base end cap resting flat on floor (y = 0)
     const bottomCap = new THREE.Mesh(
       new THREE.CylinderGeometry(0.019, 0.019, 0.014, 16),
-      this.blackMetalMaterial
+      this.rubberMaterial
     );
     bottomCap.position.y = 0.007;
+    bottomCap.castShadow = true;
     stand.add(bottomCap);
 
     // Lower Strut Spreader Collar (Chrome)
@@ -219,6 +227,7 @@ export class Timbales3D {
 
     const wingBolt = this._createWingScrew();
     wingBolt.position.set(0.024, upperCollarY, 0);
+    wingBolt.rotation.z = Math.PI / 2;
     stand.add(wingBolt);
 
     // 3 Symmetrical Double-Braced Legs (spaced at exact 120° intervals)
