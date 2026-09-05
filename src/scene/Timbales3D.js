@@ -78,38 +78,121 @@ export class Timbales3D {
   /*  MATERIALS                                                         */
   /* ------------------------------------------------------------------ */
 
+  _createStudioEnvMap() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    // Studio lighting environment (Equirectangular gradient)
+    const grad = ctx.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0.00, '#353e4c'); // soft zenith ambient
+    grad.addColorStop(0.35, '#222732'); // upper stage
+    grad.addColorStop(0.48, '#657285'); // horizon light rim
+    grad.addColorStop(0.52, '#1c2028'); // horizon ground line
+    grad.addColorStop(0.70, '#12151b'); // stage floor
+    grad.addColorStop(1.00, '#0a0c10'); // ground
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 512, 256);
+
+    const addSoftbox = (x, y, w, h, col, alpha) => {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, Math.max(w, h));
+      g.addColorStop(0.0, col);
+      g.addColorStop(0.4, 'rgba(230, 240, 255, ' + (0.75 * alpha) + ')');
+      g.addColorStop(0.8, 'rgba(150, 175, 205, ' + (0.2 * alpha) + ')');
+      g.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x - w, y - h, w * 2, h * 2);
+    };
+    addSoftbox(256, 75, 150, 55, '#ffffff', 1.0);
+    addSoftbox(90, 85, 80, 40, '#eaf2ff', 0.85);
+    addSoftbox(420, 80, 90, 45, '#f2f6ff', 0.9);
+
+    // Chrome horizon specular band
+    const horiz = ctx.createLinearGradient(0, 116, 0, 136);
+    horiz.addColorStop(0.0, 'rgba(255, 255, 255, 0)');
+    horiz.addColorStop(0.5, 'rgba(235, 245, 255, 0.6)');
+    horiz.addColorStop(1.0, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = horiz;
+    ctx.fillRect(0, 116, 512, 20);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    return texture;
+  }
+
+  _createBrushedSteelTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    // Base steel grey gradient (tones of metallic grey, distinctly grey)
+    const sGrad = ctx.createLinearGradient(0, 0, 512, 0);
+    sGrad.addColorStop(0.00, '#586270');
+    sGrad.addColorStop(0.18, '#6c7785');
+    sGrad.addColorStop(0.35, '#98a2b0'); // specular steel highlight
+    sGrad.addColorStop(0.50, '#586270');
+    sGrad.addColorStop(0.68, '#788492');
+    sGrad.addColorStop(0.85, '#586270');
+    sGrad.addColorStop(1.00, '#586270');
+    ctx.fillStyle = sGrad;
+    ctx.fillRect(0, 0, 512, 256);
+
+    // Fine horizontal brushed grain lines
+    for (let y = 0; y < 256; y += 1.5) {
+      const alpha = 0.04 + (Math.sin(y * 11.3) * 0.03) + (Math.cos(y * 23.7) * 0.02);
+      const isDark = (Math.floor(y * 7) % 3 === 0);
+      ctx.fillStyle = isDark ? `rgba(30, 38, 48, ${alpha * 1.5})` : `rgba(220, 230, 245, ${alpha})`;
+      ctx.fillRect(0, y, 512, 1);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    return texture;
+  }
+
   _buildMaterials() {
-    // 1. Smoked Black Chrome / Black Nickel for Timbale Shells
-    this.shellMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0x363940,
-      roughness: 0.14,
-      metalness: 0.94,
-      clearcoat: 0.95,
-      clearcoatRoughness: 0.05
+    this.envMap = this._createStudioEnvMap();
+    this.brushedSteelTexture = this._createBrushedSteelTexture();
+
+    // 1. Polished Stainless Steel / Grey for Timbale Shells (Clásico estilo Tito Puente / LP Prestige)
+    this.shellMaterial = new THREE.MeshStandardMaterial({
+      map: this.brushedSteelTexture,
+      color: 0x6e7886, // Sleek metallic steel grey
+      roughness: 0.22,
+      metalness: 0.92,
+      envMap: this.envMap,
+      envMapIntensity: 1.25
     });
 
-    // 2. Mirror-Polished Bright Chrome for Stand, Rims, Tension Hardware
-    this.chromeMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0xe2e8f0,
+    // 2. Mirror-Polished Bright Chrome for Stand, Rims, Tension Hardware, Ribs
+    this.chromeMaterial = new THREE.MeshStandardMaterial({
+      color: 0x98a4b2, // Silver chrome with grey metallic body
       roughness: 0.10,
-      metalness: 0.98,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.04
+      metalness: 0.96,
+      envMap: this.envMap,
+      envMapIntensity: 1.35
     });
 
     // 3. Smooth White Mylar Drumhead (Authentic Remo Ambassador style)
     this.drumheadMaterial = new THREE.MeshStandardMaterial({
-      color: 0xf2f4f7,
-      roughness: 0.38,
-      metalness: 0.04
+      color: 0xf4f6f9,
+      roughness: 0.40,
+      metalness: 0.02
     });
 
-    // 4. Dark Satin Gunmetal / Graphite Steel for Mambo Cowbell & Agogô Bells
-    this.blackBellMaterial = new THREE.MeshStandardMaterial({
-      color: 0x3c4048,
-      roughness: 0.28,
-      metalness: 0.82
+    // 4. Polished Grey Steel / Chrome for Mambo Cowbell & Agogô Bells (Above Timbales)
+    this.bellMaterial = new THREE.MeshStandardMaterial({
+      map: this.brushedSteelTexture,
+      color: 0x4e5864, // Distinctive metallic graphite/steel grey
+      roughness: 0.18,
+      metalness: 0.94,
+      envMap: this.envMap,
+      envMapIntensity: 1.30
     });
+    this.blackBellMaterial = this.bellMaterial; // Alias for all bell and mount block usages
 
     // 5. Open Bell Cavity Interior Material
     this.bellCavityMaterial = new THREE.MeshBasicMaterial({
@@ -396,7 +479,7 @@ export class Timbales3D {
     const ribOffsets = [-0.035, 0.0, 0.035];
     ribOffsets.forEach(ry => {
       const ribGeom = new THREE.TorusGeometry(radius + 0.002, 0.0035, 8, 32);
-      const rib = new THREE.Mesh(ribGeom, this.shellMaterial);
+      const rib = new THREE.Mesh(ribGeom, this.chromeMaterial);
       rib.rotation.x = Math.PI / 2;
       rib.position.y = ry;
       parentGroup.add(rib);

@@ -353,7 +353,7 @@ export class Stage {
     const spotMap = {
       piano_spot: ['piano', 'synth'],
       bass_spot: ['bass', 'doubleBass'],
-      drum_spot: ['drums', 'xylophone', 'cabasa'],
+      drum_spot: ['drums', 'xylophone', 'cabasa', 'timbales', 'bongoCongas', 'tambourine', 'triangle', 'maracas', 'guiro', 'whistle'],
       guitar_spot: ['guitar', 'acousticGuitar'],
       trumpet_spot: ['trumpet', 'sax', 'frenchHorn'],
       violin_spot: 'violin',
@@ -389,7 +389,7 @@ export class Stage {
     const spotFamilies = {
       piano_spot: ['piano', 'synth'],
       bass_spot: ['bass', 'doubleBass'],
-      drum_spot: ['drums', 'xylophone', 'cabasa'],
+      drum_spot: ['drums', 'xylophone', 'cabasa', 'timbales', 'bongoCongas', 'tambourine', 'triangle', 'maracas', 'guiro', 'whistle'],
       guitar_spot: ['guitar', 'acousticGuitar'],
       trumpet_spot: ['trumpet', 'sax', 'frenchHorn'],
       violin_spot: ['violin'],

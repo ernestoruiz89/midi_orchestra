@@ -277,42 +277,58 @@ export class Violin3D {
     });
     bodyGroup.add(fHoleGroup);
 
-    // 5. Aubert Mirecourt Carved Maple Bridge (Puente Francés)
+    // 5. Aubert Mirecourt Carved Maple Bridge (Puente Francés de Concierto)
+    // Stands upright perpendicular to the soundboard belly at y = -0.010
     const bridgeGroup = new THREE.Group();
-    bridgeGroup.position.set(0, -0.010, 0.024);
+    bridgeGroup.position.set(0, -0.010, 0.0245);
 
-    // Crown: curved top arch supporting the 4 strings
-    const crownGeom = new THREE.CylinderGeometry(0.046, 0.046, 0.004, 16, 1, false, Math.PI * 0.25, Math.PI * 0.5);
-    crownGeom.rotateZ(Math.PI);
-    const crown = new THREE.Mesh(crownGeom, this.bridgeMaterial);
-    crown.scale.set(0.48, 0.30, 1.0);
-    crown.position.set(0, 0.026, 0);
-    bridgeGroup.add(crown);
+    const bridgeShape = new THREE.Shape();
+    // 2D profile of violin bridge: x is width across strings, y is height standing up in Z
+    bridgeShape.moveTo(-0.020, 0);
+    bridgeShape.lineTo(-0.020, 0.0035);
+    bridgeShape.bezierCurveTo(-0.018, 0.0050, -0.016, 0.0065, -0.015, 0.0075);
+    bridgeShape.bezierCurveTo(-0.016, 0.0085, -0.019, 0.0095, -0.019, 0.0115);
+    bridgeShape.bezierCurveTo(-0.018, 0.0135, -0.015, 0.0145, -0.011, 0.0155);
+    // Arched crown where 4 strings rest (convex curve)
+    bridgeShape.bezierCurveTo(-0.005, 0.0168, 0.005, 0.0168, 0.011, 0.0155);
+    bridgeShape.bezierCurveTo(0.015, 0.0145, 0.018, 0.0135, 0.019, 0.0115);
+    bridgeShape.bezierCurveTo(0.019, 0.0095, 0.016, 0.0085, 0.015, 0.0075);
+    bridgeShape.bezierCurveTo(0.016, 0.0065, 0.018, 0.0050, 0.020, 0.0035);
+    bridgeShape.lineTo(0.020, 0);
+    bridgeShape.lineTo(0.008, 0);
+    // Foot arch (arch between the two feet)
+    bridgeShape.bezierCurveTo(0.005, 0.0035, -0.005, 0.0035, -0.008, 0);
+    bridgeShape.closePath();
 
-    // Main bridge body plate
-    const bridgePlate = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.028, 0.004), this.bridgeMaterial);
-    bridgePlate.position.set(0, 0.014, 0);
-    bridgePlate.castShadow = true;
-    bridgeGroup.add(bridgePlate);
+    // Heart cutout hole (corazón del puente)
+    const heartPath = new THREE.Path();
+    heartPath.absarc(0, 0.0095, 0.0022, 0, Math.PI * 2, true);
+    bridgeShape.holes.push(heartPath);
 
-    // Center heart cutout & side kidneys (decorative dark carvings)
-    const bridgeCutout1 = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.005, 8), this.darkCavityMaterial);
-    bridgeCutout1.position.set(0, 0.017, 0);
-    bridgeCutout1.rotation.x = Math.PI / 2;
-    bridgeGroup.add(bridgeCutout1);
+    // Kidney cutout holes (riñones del puente)
+    const leftKidney = new THREE.Path();
+    leftKidney.absellipse(-0.0115, 0.0075, 0.0022, 0.0016, 0, Math.PI * 2, true, 0);
+    bridgeShape.holes.push(leftKidney);
 
-    [-0.014, 0.014].forEach(bx => {
-      const kidney = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.009, 0.005), this.darkCavityMaterial);
-      kidney.position.set(bx, 0.013, 0);
-      bridgeGroup.add(kidney);
+    const rightKidney = new THREE.Path();
+    rightKidney.absellipse(0.0115, 0.0075, 0.0022, 0.0016, 0, Math.PI * 2, true, 0);
+    bridgeShape.holes.push(rightKidney);
+
+    const bridgeGeom = new THREE.ExtrudeGeometry(bridgeShape, {
+      depth: 0.0028,
+      bevelEnabled: true,
+      bevelThickness: 0.0004,
+      bevelSize: 0.0004,
+      bevelSegments: 2
     });
+    bridgeGeom.center();
+    bridgeGeom.rotateX(Math.PI / 2);
+    // Translate so feet rest at local z = 0 (on top of soundboard) and crown reaches z = +0.0168
+    bridgeGeom.translate(0, 0, 0.0085);
 
-    // 2 Arched Bridge Feet resting on soundboard
-    [-0.015, 0.015].forEach(fx => {
-      const foot = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.004, 0.0045), this.bridgeMaterial);
-      foot.position.set(fx, 0.001, 0);
-      bridgeGroup.add(foot);
-    });
+    const bridgeMesh = new THREE.Mesh(bridgeGeom, this.bridgeMaterial);
+    bridgeMesh.castShadow = true;
+    bridgeGroup.add(bridgeMesh);
 
     bodyGroup.add(bridgeGroup);
 
@@ -467,44 +483,105 @@ export class Violin3D {
   _buildStrings() {
     this.strings = [];
 
-    // String specifications: [G3, D4, A4, E5]
-    const stringData = [
-      { name: 'G3', gauge: 0.0015, color: 0xe0d6c0, xBridge: -0.0125, xNut: -0.0085, z: 0.046 }, // Warm Silver wound
-      { name: 'D4', gauge: 0.0012, color: 0xd8dde4, xBridge: -0.0042, xNut: -0.0028, z: 0.049 }, // Aluminum wound
-      { name: 'A4', gauge: 0.0010, color: 0xe8ecf2, xBridge: 0.0042, xNut: 0.0028, z: 0.049 },  // Synthetic aluminum
-      { name: 'E5', gauge: 0.00075, color: 0xf6f0d8, xBridge: 0.0125, xNut: 0.0085, z: 0.046 }  // Gold steel wire
+    // String specifications: [G3 (55), D4 (62), A4 (69), E5 (76)]
+    // Calibrated classical violin gauges and realistic metallic alloy colors:
+    const stringSpecs = [
+      { name: 'G3', gauge: 0.00078, color: 0xdcd2bc, xNut: -0.0075, xBridge: -0.0110, xTail: -0.0110, zBridge: 0.0400, pegIdx: 0 }, // Pure silver wound
+      { name: 'D4', gauge: 0.00062, color: 0xd8dde5, xNut: -0.0025, xBridge: -0.0037, xTail: -0.0037, zBridge: 0.0413, pegIdx: 1 }, // Aluminum wound synthetic core
+      { name: 'A4', gauge: 0.00048, color: 0xe8ecf2, xNut:  0.0025, xBridge:  0.0037, xTail:  0.0037, zBridge: 0.0413, pegIdx: 2 }, // Aluminum wound perlon
+      { name: 'E5', gauge: 0.00036, color: 0xf5eed5, xNut:  0.0075, xBridge:  0.0110, xTail:  0.0110, zBridge: 0.0400, pegIdx: 3 }  // Solid gold/carbon steel wire
     ];
 
-    stringData.forEach((sd, i) => {
-      const geom = new THREE.CylinderGeometry(sd.gauge, sd.gauge, 0.58, 8);
+    // Reference anchor points:
+    const yBridge = -0.010;
+    const yNut = 0.392;
+    const zNut = 0.0315;
+
+    const yTail = -0.067;
+    const zTail = 0.0320;
+
+    const pegHeights = [0.410, 0.427, 0.445, 0.462]; // Y in group for pegs 0..3
+    const pegX = [-0.010, 0.010, -0.010, 0.010];
+    const zPeg = 0.014;
+
+    const vUp = new THREE.Vector3(0, 1, 0);
+
+    stringSpecs.forEach((sd, s) => {
       const mat = new THREE.MeshStandardMaterial({
         color: sd.color,
-        metalness: 0.95,
-        roughness: 0.12,
+        metalness: 0.90,
+        roughness: 0.22,
         emissive: new THREE.Color(0x000000),
         emissiveIntensity: 0.0
       });
-      const strMesh = new THREE.Mesh(geom, mat);
 
-      // Spanning from tailpiece bridge crown through nut to pegbox
-      strMesh.position.set(sd.xBridge, 0.135, sd.z);
+      // 1. Main Playing Span (Nut to Bridge - vibrating length)
+      const pBridge = new THREE.Vector3(sd.xBridge, yBridge, sd.zBridge);
+      const pNut = new THREE.Vector3(sd.xNut, yNut, zNut);
+      const dirPlay = new THREE.Vector3().subVectors(pNut, pBridge);
+      const lenPlay = dirPlay.length();
+      const midPlay = new THREE.Vector3().addVectors(pBridge, pNut).multiplyScalar(0.5);
+
+      const playGeom = new THREE.CylinderGeometry(sd.gauge, sd.gauge, lenPlay, 8);
+      const strMesh = new THREE.Mesh(playGeom, mat);
+      strMesh.position.copy(midPlay);
+      strMesh.quaternion.setFromUnitVectors(vUp, dirPlay.normalize());
+      strMesh.castShadow = true;
       this.group.add(strMesh);
+
+      // 2. Afterlength (Bridge to Tailpiece Fine-Tuner)
+      const pTail = new THREE.Vector3(sd.xTail, yTail, zTail);
+      const dirAfter = new THREE.Vector3().subVectors(pBridge, pTail);
+      const lenAfter = dirAfter.length();
+      const midAfter = new THREE.Vector3().addVectors(pTail, pBridge).multiplyScalar(0.5);
+
+      const afterGeom = new THREE.CylinderGeometry(sd.gauge, sd.gauge, lenAfter, 8);
+      const afterMesh = new THREE.Mesh(afterGeom, mat);
+      afterMesh.position.copy(midAfter);
+      afterMesh.quaternion.setFromUnitVectors(vUp, dirAfter.normalize());
+      afterMesh.castShadow = true;
+      this.group.add(afterMesh);
+
+      // 3. Pegbox Span (Nut to Tuning Peg inside pegbox)
+      const pPeg = new THREE.Vector3(pegX[sd.pegIdx], pegHeights[sd.pegIdx], zPeg);
+      const dirPeg = new THREE.Vector3().subVectors(pPeg, pNut);
+      const lenPeg = dirPeg.length();
+      const midPeg = new THREE.Vector3().addVectors(pNut, pPeg).multiplyScalar(0.5);
+
+      const pegGeom = new THREE.CylinderGeometry(sd.gauge, sd.gauge, lenPeg, 8);
+      const pegMesh = new THREE.Mesh(pegGeom, mat);
+      pegMesh.position.copy(midPeg);
+      pegMesh.quaternion.setFromUnitVectors(vUp, dirPeg.normalize());
+      this.group.add(pegMesh);
+
+      // Calculate bow contact point at y = 0.025
+      const tBow = (0.025 - yBridge) / (yNut - yBridge);
+      const bowContactX = sd.xBridge + tBow * (sd.xNut - sd.xBridge);
+      const bowContactZ = sd.zBridge + tBow * (zNut - sd.zBridge);
 
       this.strings.push({
         mesh: strMesh,
         material: mat,
-        defaultX: sd.xBridge,
-        defaultZ: sd.z,
-        vibrationAmp: 0
+        defaultX: midPlay.x,
+        defaultZ: midPlay.z,
+        bowContactX: bowContactX,
+        bowContactZ: bowContactZ,
+        xBridge: sd.xBridge,
+        zBridge: sd.zBridge,
+        xNut: sd.xNut,
+        zNut: zNut,
+        vibrationAmp: 0,
+        vibrationSpeed: 55 + s * 14,
+        phase: Math.random() * Math.PI * 2
       });
     });
 
     // High-visibility left-hand finger marker on ebony fingerboard
-    const markerGeom = new THREE.SphereGeometry(0.0045, 12, 12);
+    const markerGeom = new THREE.SphereGeometry(0.0035, 12, 12);
     const markerMat = new THREE.MeshStandardMaterial({
       color: 0x00f0ff,
       emissive: 0x00f0ff,
-      emissiveIntensity: 2.2
+      emissiveIntensity: 2.5
     });
     this.fingerMarker = new THREE.Mesh(markerGeom, markerMat);
     this.fingerMarker.scale.set(1.0, 0.6, 1.0);
@@ -578,8 +655,8 @@ export class Violin3D {
 
     bowGroup.add(frogGroup);
 
-    // Initial hovering position: contact zone at y = 0.025, resting height at z = 0.065
-    bowGroup.position.set(0, 0.025, 0.065);
+    // Initial hovering position: contact zone at y = 0.025, resting height at z = 0.048
+    bowGroup.position.set(0, 0.025, 0.048);
     bowGroup.rotation.x = 0.08; // slight 4.5 deg natural tilt towards fingerboard
     this.group.add(bowGroup);
     this.bowGroup = bowGroup;
@@ -636,23 +713,26 @@ export class Violin3D {
 
     // Target bow alignment for the active string
     const str = this.strings[bestString];
-    this.bowTargetX = str.defaultX;
-    // Contact depth: hair rests directly on string crown (z = 0.046 to 0.049)
-    this.bowTargetZ = str.defaultZ + 0.0006;
+    this.bowTargetX = str.bowContactX;
+    // Contact depth: hair rests directly on string crown (z ≈ 0.039 - 0.041)
+    this.bowTargetZ = str.bowContactZ + 0.0006;
 
     // 4. Initial String Excitation Glow
     if (str) {
       str.material.emissive.setHex(0x00f0ff);
       str.material.emissiveIntensity = 1.8 * vel;
-      str.vibrationAmp = 0.0035 * vel;
+      str.vibrationAmp = 0.0018 * vel;
     }
 
     // 5. Left-Hand Finger Position Indicator on Fingerboard
     if (this.fingerMarker && minDiff > 0) {
       const semitones = Math.min(24, minDiff);
-      // Realistic acoustic string stop distance: y goes from nut (0.385) towards bridge
+      // Realistic acoustic string stop distance: y goes from nut (0.392) towards bridge (-0.010)
       const fingerY = 0.370 - (semitones * 0.0125);
-      this.fingerMarker.position.set(str.defaultX, fingerY, 0.034);
+      const tFinger = (fingerY - (-0.010)) / (0.392 - (-0.010));
+      const fingerX = str.xBridge + tFinger * (str.xNut - str.xBridge);
+      const fingerZ = str.zBridge + tFinger * (str.zNut - str.zBridge) + 0.0012;
+      this.fingerMarker.position.set(fingerX, fingerY, fingerZ);
       this.fingerMarker.visible = true;
       this.fingerMarker.material.emissiveIntensity = 2.8 * vel;
       this.fingerBaseY = fingerY;
@@ -680,7 +760,7 @@ export class Violin3D {
     if (this.activeNote && (this.activeNote.midiPitch === midiPitch || force)) {
       this.activeNote.active = false;
       // Lift bow slightly into ready rest position above strings
-      this.bowTargetZ = 0.065;
+      this.bowTargetZ = 0.048;
 
       if (this.fingerMarker) {
         gsap.killTweensOf(this.fingerMarker.material);
@@ -738,7 +818,7 @@ export class Violin3D {
       // RIGID SAFETY FLOOR: Bow can NEVER penetrate below string clearance level
       this.bowGroup.position.x = this.bowCurrentX;
       this.bowGroup.position.y = 0.025;
-      this.bowGroup.position.z = Math.max(0.046, this.bowCurrentZ);
+      this.bowGroup.position.z = Math.max(0.038, this.bowCurrentZ);
 
       // Bow orientations:
       this.bowGroup.rotation.x = 0.08; // subtle 4.5 deg natural tilt towards fingerboard
@@ -764,10 +844,10 @@ export class Violin3D {
       }
     } else {
       // Note released: gracefully return bow towards rest height
-      this.bowCurrentZ = THREE.MathUtils.lerp(this.bowCurrentZ, 0.065, dt * 8.0);
+      this.bowCurrentZ = THREE.MathUtils.lerp(this.bowCurrentZ, 0.048, dt * 8.0);
       this.bowGroup.position.x = this.bowCurrentX;
       this.bowGroup.position.y = 0.025;
-      this.bowGroup.position.z = Math.max(0.046, this.bowCurrentZ);
+      this.bowGroup.position.z = Math.max(0.038, this.bowCurrentZ);
       this.bowGroup.rotation.x = 0.08;
       this.bowGroup.rotation.y = 0.0;
       this.bowWristTurn = THREE.MathUtils.lerp(this.bowWristTurn, 0, dt * 6.0);
