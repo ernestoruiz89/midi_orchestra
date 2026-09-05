@@ -1,6 +1,7 @@
 {
   "name": "midi-orchestra",
   "version": "1.0.0",
+  "license": "MIT",
   "description": "MIDI Orchestra - 3D Virtual Musical Orchestra & MIDI Player with Three.js and Tone.js",
   "type": "module",
   "scripts": {

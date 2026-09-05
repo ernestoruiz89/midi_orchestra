@@ -33,6 +33,12 @@ This project is inspired by [MIDI2JAM2](https://github.com/wyskoj/midis2jam2) by
 
 MIDI Orchestra is an independent web implementation and does not reuse MIDI2JAM2 code. Its audio engine uses Web Audio and SpessaSynth to run directly in the browser.
 
+## License
+
+MIDI Orchestra's original source code is released under the [MIT License](LICENSE).
+
+Third-party dependencies, sound banks, and demo music remain subject to their respective licenses and rights; they are not relicensed under MIT.
+
 ## Audio credits and licenses
 
 The bundled GeneralUser GS sound bank retains its license in [GENERALUSER-LICENSE.txt](public/soundfonts/GENERALUSER-LICENSE.txt). The bundled SpessaSynth processor for Web Audio retains its Apache 2.0 license in [SPESSASYNTH-LICENSE.txt](public/audio/SPESSASYNTH-LICENSE.txt).

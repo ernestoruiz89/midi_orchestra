@@ -237,6 +237,27 @@ export class UIManager {
   }
 
   _bindCameraToolbar() {
+    // Keep each instrument's numbered instances together, in numeric order.
+    // Move the actual buttons so keyboard focus follows the visual order too.
+    const cameraGroups = new Map();
+    this.dom.camButtons.forEach(button => {
+      const type = button.dataset.preset.replace(/_\d+$/, '');
+      if (!cameraGroups.has(type)) cameraGroups.set(type, []);
+      cameraGroups.get(type).push(button);
+    });
+    const cameraButtons = [...this.dom.camButtons];
+    const lastCameraButton = cameraButtons[cameraButtons.length - 1];
+    const toolbar = lastCameraButton?.parentNode;
+    const afterCameras = lastCameraButton?.nextSibling;
+    for (const buttons of cameraGroups.values()) {
+      buttons.sort((a, b) => {
+        const instance = button => Number(button.dataset.preset.match(/_(\d+)$/)?.[1] || 1);
+        return instance(a) - instance(b);
+      });
+      buttons.forEach(button => toolbar.insertBefore(button, afterCameras));
+    }
+    this.dom.camButtons = document.querySelectorAll('.cam-btn[data-preset]');
+
     if (this.dom.btnDirectorMode) {
       this.dom.btnDirectorMode.addEventListener('click', () => {
         const active = this.sceneManager.cameraController.toggleDirectorMode();

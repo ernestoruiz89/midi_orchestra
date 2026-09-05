@@ -244,6 +244,20 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+  max-width: calc(100% - 32px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.camera-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.camera-toolbar > .cam-btn,
+.camera-toolbar > .toolbar-label {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .toolbar-label {
@@ -289,8 +303,9 @@ body {
 /* ==================== FREE CAM HINT ==================== */
 .free-cam-hint {
   position: absolute;
-  top: 88px;
+  top: 140px;
   left: 16px;
+  max-width: calc(100% - 32px);
   background: rgba(10, 10, 15, 0.6);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -492,6 +507,60 @@ body {
   0%, 100% { box-shadow: 0 0 8px rgba(255, 200, 0, 0.3); }
   33% { box-shadow: 0 0 16px rgba(255, 0, 200, 0.5); }
   66% { box-shadow: 0 0 16px rgba(0, 200, 255, 0.5); }
+}
+
+.project-links {
+  position: absolute;
+  left: max(16px, env(safe-area-inset-left));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.coffee-link {
+  color: var(--accent-gold);
+}
+
+.github-link:hover,
+.github-link:focus-visible {
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+}
+
+.github-link:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 3px;
+}
+
+@media (max-width: 1340px) {
+  .project-links {
+    left: max(8px, env(safe-area-inset-left));
+    bottom: calc(max(8px, env(safe-area-inset-bottom)) + 104px);
+    flex-direction: row;
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .project-links {
+    bottom: calc(max(6px, env(safe-area-inset-bottom)) + 66px);
+  }
 }
 
 /* ==================== PLAYBACK TOOLBAR ==================== */
