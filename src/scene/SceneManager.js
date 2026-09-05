@@ -715,6 +715,9 @@ export class SceneManager {
       frontWash.color.setHex(0xffe8d5);
       frontWash.intensity = 2.2;
       const rimLight = new THREE.DirectionalLight(0x94baff, 1.0);
+      this.rimLight = rimLight;
+      this.rimLightBaseColor = rimLight.color.clone();
+      this.rimLightBaseIntensity = rimLight.intensity;
       rimLight.position.set(-6, 5, -4);
       this.scene.add(rimLight);
     }
@@ -864,9 +867,14 @@ export class SceneManager {
     this.cameraController.update(delta);
     this.stage.update(delta, visData, window.app?.midiPlayer);
     if (this.isMobilePerformanceMode) {
-      const energy = this.stage.lightShowEnabled ? this.stage.musicEnergy : 0;
-      this.frontWash.color.copy(this.frontWashBaseColor).lerp(this.stage.showColor, energy * 0.25);
-      this.frontWash.intensity = this.frontWashBaseIntensity * (1 + energy * 0.15);
+      // Animate the two existing washes, including low quality without cones.
+      // Keep the neutral fill unchanged so the instruments remain readable.
+      const energy = this.stage.lightShowEnabled ? Math.sqrt(this.stage.musicEnergy) : 0;
+      const pulse = this.stage.showPulse;
+      this.frontWash.color.copy(this.frontWashBaseColor).lerp(this.stage.showColor, energy * 0.8);
+      this.frontWash.intensity = this.frontWashBaseIntensity * (1 + energy * (0.2 + pulse * 0.45));
+      this.rimLight.color.copy(this.rimLightBaseColor).lerp(this.stage.showAccent, energy * 0.95);
+      this.rimLight.intensity = this.rimLightBaseIntensity * (1 + energy * (0.6 + pulse * 0.8));
     }
 
     // Update only visible instruments for peak performance

@@ -18,12 +18,13 @@ export class Stage {
     this.lightShowEnabled = false;  // Light animation toggle
     this.lightShowTime = 0;         // Accumulated time for light animation
     this.musicEnergy = 0;
+    this.showPulse = 0;
     this.showColor = new THREE.Color(0xffdeb1);
     this.showAccent = new THREE.Color(0x9bcee2);
     this.showPalettes = [
-      [new THREE.Color(0xffdeb1), new THREE.Color(0x9bcee2)],
-      [new THREE.Color(0xc2b6e8), new THREE.Color(0x92d8d0)],
-      [new THREE.Color(0xefbdb6), new THREE.Color(0xffdfac)]
+      [new THREE.Color(0xffbb70), new THREE.Color(0x55caff)],
+      [new THREE.Color(0xb58aff), new THREE.Color(0x48dfc4)],
+      [new THREE.Color(0xff809e), new THREE.Color(0xffce70)]
     ];
 
     this._buildMaterials();
@@ -455,22 +456,24 @@ export class Stage {
     this.showAccent.lerpColors(palette[1], next[1], blend);
     const pulse = Math.pow((1 + Math.cos(beat * Math.PI * 2)) / 2, 3);
     const smooth = 1 - Math.exp(-delta / 0.18);
+    this.showPulse = THREE.MathUtils.lerp(this.showPulse, pulse, smooth);
 
     this.spotlights.forEach((spot, i) => {
       spot.notePulse *= Math.exp(-delta / 0.3);
       const show = this.lightShowEnabled && spot.active;
-      const energy = this.musicEnergy;
+      // Lift quiet passages without adding a constant glow during silence.
+      const energy = Math.sqrt(this.musicEnergy);
       if (show) {
         const color = i % 2 ? this.showAccent : this.showColor;
         spot.light.color.lerp(color, smooth);
         spot.beam.material.color.copy(spot.light.color);
       }
       const intensity = spot.active
-        ? spot.baseIntensity * (1 + (show ? energy * (0.2 + pulse * 0.3) : 0) + spot.notePulse * 0.3)
+        ? spot.baseIntensity * (1 + (show ? energy * (0.35 + this.showPulse * 0.65) : 0) + spot.notePulse * 0.3)
         : 0;
       spot.light.intensity = THREE.MathUtils.lerp(spot.light.intensity, intensity, smooth);
       const opacity = show && this.effectsEnabled
-        ? energy * (0.012 + 0.018 * pulse + 0.025 * spot.notePulse)
+        ? energy * (0.025 + 0.035 * this.showPulse + 0.03 * spot.notePulse)
         : 0;
       spot.beam.material.opacity = THREE.MathUtils.lerp(spot.beam.material.opacity, opacity, smooth);
       spot.beam.visible = show && this.effectsEnabled && spot.beam.material.opacity > 0.001;
