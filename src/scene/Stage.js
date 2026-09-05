@@ -30,17 +30,17 @@ export class Stage {
   }
 
   _buildMaterials() {
-    // Glossy Reflective Stage Wood Floor
+    // Charcoal deck with diffuse reflection so it separates from the backdrop.
     this.floorMaterial = new THREE.MeshStandardMaterial({
-      color: 0x141416,
-      roughness: 0.25,
-      metalness: 0.4
+      color: 0x353840,
+      roughness: 0.6,
+      metalness: 0.12
     });
 
     this.stageTrimMaterial = new THREE.MeshStandardMaterial({
-      color: 0x222226,
-      roughness: 0.5,
-      metalness: 0.3
+      color: 0x48434a,
+      roughness: 0.55,
+      metalness: 0.18
     });
 
     this.trussMaterial = new THREE.MeshStandardMaterial({

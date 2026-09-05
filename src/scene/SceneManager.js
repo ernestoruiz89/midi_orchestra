@@ -694,16 +694,16 @@ export class SceneManager {
   }
 
   _setupGlobalLighting() {
-    // Ambient concert hall lighting
-    const ambientLight = new THREE.AmbientLight(0x1a1a2e, 1.2);
+    // Neutral fill keeps dark instruments readable without extra light passes.
+    const ambientLight = new THREE.AmbientLight(0xb9c4d4, 0.65);
     this.scene.add(ambientLight);
 
-    // Subtle Hemisphere Light for natural bounce
-    const hemiLight = new THREE.HemisphereLight(0x3a3a5e, 0x111116, 0.8);
+    // Soft sky light and warm floor bounce also illuminate unlit surfaces.
+    const hemiLight = new THREE.HemisphereLight(0xdbe9ff, 0x716254, 1.1);
     this.scene.add(hemiLight);
 
     // Front stage wash light
-    const frontWash = new THREE.DirectionalLight(0x7099ff, 1.2);
+    const frontWash = new THREE.DirectionalLight(0xc6d7ff, 1.4);
     this.frontWash = frontWash;
     frontWash.position.set(0, 8, 12);
     frontWash.castShadow = true;
