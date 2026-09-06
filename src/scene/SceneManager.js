@@ -53,6 +53,7 @@ export class SceneManager {
     this.renderer.domElement.dataset.performanceProfile = this.isMobilePerformanceMode ? 'mobile' : 'desktop';
 
     // Build scene elements
+    this.scene.userData.sceneManager = this;
     this._setupGlobalLighting();
 
     this.stage = new Stage(this.scene, { mobilePerformanceMode: this.isMobilePerformanceMode });
@@ -318,7 +319,7 @@ export class SceneManager {
   _constrainPlacementsToStage(units, placements) {
     // Keep a margin inside the 20 x 12 stage deck. The front limit also keeps
     // every performer behind the floor monitors at z = 2.4.
-    const limits = { left: -9.35, right: 9.35, back: -5.55, front: 1.75 };
+    const limits = { left: -9.35, right: 9.35, back: -5.55, front: 2.20 };
 
     units.forEach((unit) => {
       const placement = placements.get(unit.id);
@@ -386,76 +387,142 @@ export class SceneManager {
     const guiroUnits = remaining.filter(unit => unit.family === 'guiro');
     const whistleUnits = remaining.filter(unit => unit.family === 'whistle');
 
-    const placePercussion = () => {
-      // 1. Timbales: Left behind drums on the riser platform
-      timbalesUnits.forEach((unit, idx) => {
-        placements.set(unit.id, {
-          x: -1.65 - idx * 0.40,
-          z: -1.15 - idx * 0.35,
-          y: 0.20
+    const placePercussion = (hasDrums = true) => {
+      if (hasDrums) {
+        // 1. Timbales: Left wing behind drums on the riser platform
+        timbalesUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: -1.55 - idx * 0.30,
+            z: -1.15 - idx * 0.25,
+            y: 0.20
+          });
         });
-      });
 
-      // 2. Bongó y Congas: Right behind drums on the riser platform
-      congasUnits.forEach((unit, idx) => {
-        placements.set(unit.id, {
-          x: 1.65 + idx * 0.40,
-          z: -1.15 - idx * 0.35,
-          y: 0.20
+        // 2. Bongó y Congas: Right wing behind drums on the riser platform
+        congasUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: 1.55 + idx * 0.30,
+            z: -1.15 - idx * 0.25,
+            y: 0.20
+          });
         });
-      });
 
-      // 3. Left wing (hi-hat / crash side) floating auxiliary percussion
-      cabasaUnits.forEach((unit, idx) => {
-        placements.set(unit.id, {
-          x: -1.35 - idx * 0.28,
-          z: 0.65 + idx * 0.15,
-          y: 1.05
+        // 3. Left wing (hi-hat / crash side) floating auxiliary percussion
+        cabasaUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: -1.35 - idx * 0.28,
+            z: 0.65 + idx * 0.15,
+            y: 1.05
+          });
         });
-      });
 
-      tambourineUnits.forEach((unit, idx) => {
-        placements.set(unit.id, {
-          x: -1.65 - idx * 0.28,
-          z: 0.15 + idx * 0.15,
-          y: 1.15
+        tambourineUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: -1.65 - idx * 0.28,
+            z: 0.15 + idx * 0.15,
+            y: 1.15
+          });
         });
-      });
 
-      // Triangle placed forward-left in open air, completely clear of cymbals
-      triangleUnits.forEach((unit, idx) => {
-        placements.set(unit.id, {
-          x: -1.28 - idx * 0.25,
-          z: 1.05 + idx * 0.15,
-          y: 1.28
+        // Triangle placed forward-left in open air, completely clear of cymbals
+        triangleUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: -1.28 - idx * 0.25,
+            z: 1.05 + idx * 0.15,
+            y: 1.28
+          });
         });
-      });
 
-      // 4. Right wing (ride / floor tom side) floating auxiliary percussion
-      maracasUnits.forEach((unit, idx) => {
-        placements.set(unit.id, {
-          x: 1.35 + idx * 0.28,
-          z: 0.65 + idx * 0.15,
-          y: 1.05
+        // 4. Right wing (ride / floor tom side) floating auxiliary percussion
+        maracasUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: 1.35 + idx * 0.28,
+            z: 0.65 + idx * 0.15,
+            y: 1.05
+          });
         });
-      });
 
-      guiroUnits.forEach((unit, idx) => {
-        placements.set(unit.id, {
-          x: 1.65 + idx * 0.28,
-          z: 0.15 + idx * 0.15,
-          y: 1.12
+        guiroUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: 1.65 + idx * 0.28,
+            z: 0.15 + idx * 0.15,
+            y: 1.12
+          });
         });
-      });
 
-      // Whistle placed forward-right in open air, completely clear of cymbals
-      whistleUnits.forEach((unit, idx) => {
-        placements.set(unit.id, {
-          x: 1.28 + idx * 0.25,
-          z: 1.05 + idx * 0.15,
-          y: 1.28
+        // Whistle placed forward-right in open air, completely clear of cymbals
+        whistleUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: 1.28 + idx * 0.25,
+            z: 1.05 + idx * 0.15,
+            y: 1.28
+          });
         });
-      });
+      } else {
+        // No drum kit: Percussion takes center stage on the tarima ("no reservar ese espacio")!
+        const hasBothPerc = timbalesUnits.length > 0 && congasUnits.length > 0;
+        timbalesUnits.forEach((unit, idx) => {
+          const baseX = hasBothPerc ? -0.85 : 0.0;
+          placements.set(unit.id, {
+            x: baseX - idx * 0.35,
+            z: -0.20 - idx * 0.25,
+            y: 0.20
+          });
+        });
+
+        congasUnits.forEach((unit, idx) => {
+          const baseX = hasBothPerc ? 0.85 : 0.0;
+          placements.set(unit.id, {
+            x: baseX + idx * 0.35,
+            z: -0.20 - idx * 0.25,
+            y: 0.20
+          });
+        });
+
+        // Floating percussion frames the central percussion section
+        cabasaUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: -1.45 - idx * 0.25,
+            z: 0.15 + idx * 0.15,
+            y: 1.05
+          });
+        });
+        tambourineUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: -1.75 - idx * 0.25,
+            z: -0.35 + idx * 0.15,
+            y: 1.15
+          });
+        });
+        triangleUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: -1.35 - idx * 0.25,
+            z: 0.65 + idx * 0.15,
+            y: 1.28
+          });
+        });
+        maracasUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: 1.45 + idx * 0.25,
+            z: 0.15 + idx * 0.15,
+            y: 1.05
+          });
+        });
+        guiroUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: 1.75 + idx * 0.25,
+            z: -0.35 + idx * 0.15,
+            y: 1.12
+          });
+        });
+        whistleUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: 1.35 + idx * 0.25,
+            z: 0.65 + idx * 0.15,
+            y: 1.28
+          });
+        });
+      }
     };
 
     const melodicUnits = remaining.filter(unit => !percussionFamilies.includes(unit.family));
@@ -505,19 +572,19 @@ export class SceneManager {
     const orderedSecondaryGuitars = secondaryGuitars.sort(byProminence);
     const orderedWinds = [...winds].sort(byProminence);
 
-    const placeGuitarSections = (align, edgeX) => {
+    const placeGuitarSections = (align, edgeX, frontEdge = 1.65) => {
       const primaryIsAcoustic = orderedPrimaryGuitars[0]?.family === 'acousticGuitar';
       const primaryLayout = this._placeInstrumentCascade(orderedPrimaryGuitars, placements, {
         ...(primaryIsAcoustic ? acousticCascadeOptions : electricCascadeOptions),
         align,
         edgeX,
-        frontEdge: 1.65
+        frontEdge
       });
       const secondaryLayout = this._placeInstrumentCascade(orderedSecondaryGuitars, placements, {
         ...(primaryIsAcoustic ? electricCascadeOptions : acousticCascadeOptions),
         align,
         edgeX,
-        frontEdge: orderedPrimaryGuitars.length ? primaryLayout.backEdge - 0.2 : 1.65
+        frontEdge: orderedPrimaryGuitars.length ? primaryLayout.backEdge - 0.2 : frontEdge
       });
 
       return {
@@ -549,14 +616,14 @@ export class SceneManager {
     );
 
     if (drumUnit) {
-      // The drum kit is the anchor: moved forward on the riser towards +Z
-      placements.set(drumUnit.id, { x: 0, z: 0.20, y: 0.20 });
-      placePercussion();
+      // The drum kit is the anchor: centered on the tarima safely inside its boundaries
+      placements.set(drumUnit.id, { x: 0, z: -0.15, y: 0.20 });
+      placePercussion(true);
       const leftEdge = -(drumUnit.width / 2 + 0.55);
       const rightEdge = drumUnit.width / 2 + 0.55;
       // Position electric bass beside the drum riser with clean clearance for its tripod stand.
       const bassCornerEdge = -(drumUnit.width / 2 + 0.35);
-      const bassLayout = placeBasses('right', bassCornerEdge, 2.2);
+      const bassLayout = placeBasses('right', bassCornerEdge, 2.0);
       const keyboardEdge = leftEdge;
       const keyboardFront = basses.length ? bassLayout.backEdge - 0.2 : 1.65;
 
@@ -577,7 +644,7 @@ export class SceneManager {
 
       // Position guitar stack on stage-right beside the riser with clean clearance.
       const guitarCornerEdge = drumUnit.width / 2 + 0.35;
-      const guitarLayout = placeGuitarSections('left', guitarCornerEdge);
+      const guitarLayout = placeGuitarSections('left', guitarCornerEdge, 1.75);
       const windsFront = guitarLayout.hasInstruments ? guitarLayout.backEdge - 0.2 : 1.65;
       const windLayout = placeWinds('left', rightEdge, windsFront);
       this._placeInstrumentSection(rightAuxiliaries, placements, {
@@ -585,7 +652,9 @@ export class SceneManager {
         frontEdge: Math.min(guitarLayout.backEdge, windLayout.backEdge) - 0.2
       });
     } else {
-      placePercussion();
+      // No drum kit: DO NOT reserve central space ("no reservar ese espacio")!
+      // Other instruments should occupy and cover the central stage area.
+      placePercussion(false);
       const leftItems = [...basses, ...keyboards, ...strings, ...leftAuxiliaries];
       const rightItems = [...guitars, ...winds, ...rightAuxiliaries];
       const bassWidth = this._measureSectionWidth(basses, 3.75, 0.3);
@@ -606,11 +675,11 @@ export class SceneManager {
         this._measureSectionWidth(rightAuxiliaries)
       );
       const hasBothSides = leftItems.length > 0 && rightItems.length > 0;
-      const leftEdge = hasBothSides ? -0.45 : leftWidth / 2 - (keyboards.length ? 0.8 : 0);
-      const rightEdge = hasBothSides ? 0.45 : -rightWidth / 2;
-      const bassLayout = placeBasses('right', leftEdge);
+      const leftEdge = hasBothSides ? -0.35 : leftWidth / 2 - (keyboards.length ? 0.8 : 0);
+      const rightEdge = hasBothSides ? 0.35 : -rightWidth / 2;
+      const bassLayout = placeBasses('right', leftEdge, 1.85);
       const keyboardEdge = leftEdge;
-      const keyboardFront = basses.length ? bassLayout.backEdge - 0.2 : 1.65;
+      const keyboardFront = basses.length ? bassLayout.backEdge - 0.2 : 1.85;
 
       const keyboardLayout = this._placeInstrumentSection(keyboards, placements, {
         align: 'right', edgeX: keyboardEdge, frontEdge: keyboardFront,
@@ -618,18 +687,18 @@ export class SceneManager {
       });
       const stringLayout = this._placeInstrumentSection(strings, placements, {
         align: 'right', edgeX: keyboardEdge,
-        frontEdge: keyboards.length ? keyboardLayout.backEdge - 0.2 : 1.65
+        frontEdge: keyboards.length ? keyboardLayout.backEdge - 0.2 : 1.85
       });
       this._placeInstrumentSection(leftAuxiliaries, placements, {
         align: 'right', edgeX: keyboardEdge,
         frontEdge: Math.min(keyboardLayout.backEdge, stringLayout.backEdge) - 0.2
       });
 
-      const guitarLayout = placeGuitarSections('left', rightEdge);
+      const guitarLayout = placeGuitarSections('left', rightEdge, 1.85);
       const windLayout = placeWinds(
         'left',
         rightEdge,
-        guitarLayout.hasInstruments ? guitarLayout.backEdge - 0.2 : 1.65
+        guitarLayout.hasInstruments ? guitarLayout.backEdge - 0.2 : 1.85
       );
       this._placeInstrumentSection(rightAuxiliaries, placements, {
         align: 'left', edgeX: rightEdge,
@@ -643,14 +712,13 @@ export class SceneManager {
     const layoutBounds = new THREE.Box3();
 
     // 1. Pass 1: Compute candidate target positions and identify which instruments sit on the drum riser platform.
-    // Dynamically expand the drum riser platform so that any instrument placed on it has its full stand,
-    // legs, feet, and sustain pedals completely and solidly inside the platform ("totalmente adentro").
+    // Constrain instruments on the tarima strictly within its original fixed bounds ("que no salgan").
     const riserPercussion = ['drums', 'timbales', 'congas', 'cabasa', 'tambourine', 'maracas', 'guiro', 'whistle', 'triangle'];
-    const riserMargin = 0.42; // Generous safety margin from the deck edges
-    let riserMinX = -2.40;
-    let riserMaxX = 2.40;
-    let riserMinZ = -2.35;
-    let riserMaxZ = 1.45;
+    const riserMargin = 0.12; // Safety margin from the deck edges so feet/stands sit solidly inside
+    const riserMinX = -2.40;
+    const riserMaxX = 2.40;
+    const riserMinZ = -2.35;
+    const riserMaxZ = 1.45;
     const riserInstruments = new Set();
     const computedTargets = new Map();
 
@@ -661,33 +729,45 @@ export class SceneManager {
       unit.keys.forEach((key) => {
         const instrument = this.allInstruments[key];
         const home = this.instrumentHomeTransforms.get(key);
-        const isRiserPercussion = riserPercussion.includes(this._getInstrumentFamily(key));
+        const family = this._getInstrumentFamily(key);
+        const isRiserPercussion = riserPercussion.includes(family);
+        const onRiserByCoords = placement.z <= 1.35 && placement.x >= -2.30 && placement.x <= 2.30;
+        const isRiserInstrument = isRiserPercussion || onRiserByCoords;
         const riserElevation = isRiserPercussion
           ? 0
-          : this.getStageFloorElevation(placement.x, placement.z);
+          : (onRiserByCoords ? 0.20 : this.getStageFloorElevation(placement.x, placement.z));
         const baseY = (placement.y !== undefined ? placement.y : home.y) + riserElevation;
         const targetPos = new THREE.Vector3(placement.x, baseY, placement.z);
-        computedTargets.set(key, targetPos);
 
-        if (baseY >= 0.15 || isRiserPercussion) {
+        if (isRiserInstrument) {
           riserInstruments.add(key);
 
-          // Calculate world bounding box shifted to targetPos
+          // Clamping pass: Guarantee that any instrument placed on the tarima
+          // NEVER sticks out of the tarima ("que los instrumentos que se pongan dentro no salgan")
           instrument.group.updateWorldMatrix(true, true);
           const box = new THREE.Box3().setFromObject(instrument.group);
-          const currentPos = instrument.group.position;
-          const shift = targetPos.clone().sub(currentPos);
-          box.translate(shift);
+          const size = box.getSize(new THREE.Vector3());
+          const halfWidth = Math.max(0.20, size.x * 0.5);
+          const halfDepth = Math.max(0.20, size.z * 0.5);
 
-          riserMinX = Math.min(riserMinX, box.min.x - riserMargin);
-          riserMaxX = Math.max(riserMaxX, box.max.x + riserMargin);
-          riserMinZ = Math.min(riserMinZ, box.min.z - riserMargin);
-          riserMaxZ = Math.max(riserMaxZ, box.max.z + riserMargin);
+          const minSafeX = riserMinX + riserMargin + halfWidth;
+          const maxSafeX = riserMaxX - riserMargin - halfWidth;
+          const minSafeZ = riserMinZ + riserMargin + halfDepth;
+          const maxSafeZ = riserMaxZ - riserMargin - halfDepth;
+
+          if (minSafeX <= maxSafeX) {
+            targetPos.x = THREE.MathUtils.clamp(targetPos.x, minSafeX, maxSafeX);
+          }
+          if (minSafeZ <= maxSafeZ) {
+            targetPos.z = THREE.MathUtils.clamp(targetPos.z, minSafeZ, maxSafeZ);
+          }
         }
+
+        computedTargets.set(key, targetPos);
       });
     });
 
-    // Update Stage's drum riser platform dimensions to fully enclose all instruments placed on it
+    // Tarima maintains its original fixed dimensions (never grows)
     if (this.stage && typeof this.stage.updateRiserBounds === 'function') {
       this.stage.updateRiserBounds(riserMinX, riserMaxX, riserMinZ, riserMaxZ);
     }
@@ -702,22 +782,35 @@ export class SceneManager {
         const instrument = this.allInstruments[key];
         const targetPosition = computedTargets.get(key) || new THREE.Vector3(placement.x, 0, placement.z);
 
-        // For instruments on the floor, ensure they maintain clean clearance outside the updated riser perimeter
+        // For instruments on the floor, ensure they maintain clean clearance without being thrown sideways
         if (!riserInstruments.has(key)) {
           instrument.group.updateWorldMatrix(true, true);
           const box = new THREE.Box3().setFromObject(instrument.group);
-          const shift = targetPosition.clone().sub(instrument.group.position);
-          box.translate(shift);
+          const size = box.getSize(new THREE.Vector3());
+          const halfWidth = Math.max(0.20, size.x * 0.5);
+          const halfDepth = Math.max(0.20, size.z * 0.5);
 
-          if (box.max.x > riserMinX - 0.15 && box.min.x < riserMaxX + 0.15 &&
-              box.max.z > riserMinZ - 0.15 && box.min.z < riserMaxZ + 0.15) {
-            const halfWidth = (box.max.x - box.min.x) / 2;
+          // If the instrument is in front of the tarima (front area of the stage):
+          // Maintain clean forward clearance in Z so rear feet don't clip the front edge of the tarima (Z = 1.45).
+          // Do NOT push it sideways to X = +/- 3.5! Keep it covering the central stage area!
+          if (targetPosition.z > 1.20) {
+            targetPosition.z = Math.max(targetPosition.z, riserMaxZ + halfDepth + 0.12);
+          } else {
+            // If the instrument is beside the tarima (Z <= 1.20, e.g. beside drum kit):
+            // Maintain clean lateral clearance outside the side edges of the tarima.
             if (targetPosition.x < 0) {
-              targetPosition.x = riserMinX - halfWidth - 0.28;
+              targetPosition.x = Math.min(targetPosition.x, riserMinX - halfWidth - 0.20);
             } else {
-              targetPosition.x = riserMaxX + halfWidth + 0.28;
+              targetPosition.x = Math.max(targetPosition.x, riserMaxX + halfWidth + 0.20);
             }
           }
+        }
+
+        const currentFloorElevation = riserInstruments.has(key)
+          ? 0.20
+          : this.getStageFloorElevation(targetPosition.x, targetPosition.z);
+        if (typeof instrument.setFloorElevation === 'function') {
+          instrument.setFloorElevation(currentFloorElevation);
         }
 
         instrument.group.updateWorldMatrix(true, true);

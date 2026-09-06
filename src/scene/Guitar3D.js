@@ -23,6 +23,7 @@ export class Guitar3D {
     this.fretMarkers = [];
     // Strings 0 to 5: Low E (grave) on TOP to High E (fina) on BOTTOM
     this.stringTuningMidi = [40, 45, 50, 55, 59, 64]; // E2, A2, D3, G3, B3, E4
+    this.floorElevation = 0;
 
     this._buildMaterials();
 
@@ -122,57 +123,87 @@ export class Guitar3D {
       roughness: 0.82,
       metalness: 0.02
     });
+
+    // Cast studio chrome stand base plate (matching violin, saxophone, and flute stands)
+    this.standBaseMaterial = new THREE.MeshStandardMaterial({
+      color: 0xd8d8d8,
+      roughness: 0.14,
+      metalness: 0.92
+    });
   }
 
   _buildGuitarStand() {
     const stand = new THREE.Group();
 
-    // A compact weighted disc avoids the visual tangle produced by several
-    // overlapping tripod legs when electric guitars share the same section.
+    // A compact weighted disc in the same studio chrome language as violin, sax, and flute stands.
     const base = new THREE.Mesh(
       new THREE.CylinderGeometry(0.14, 0.16, 0.04, 32),
-      this.standPaddingMaterial
+      this.standBaseMaterial
     );
-    base.position.y = 0.02;
+    base.position.y = 0.021;
     base.castShadow = true;
     base.receiveShadow = true;
     stand.add(base);
 
     const mast = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.014, 0.017, 1, 12),
+      new THREE.CylinderGeometry(0.014, 0.017, 1, 16),
       this.chromeMaterial
     );
     mast.castShadow = true;
     stand.add(mast);
 
     const cradle = new THREE.Group();
-    // Tilting the yoke downward to the right (-0.32 rad) mirrors the lower bout's
-    // descent in playing pose so both padded arms securely support the body.
-    cradle.rotation.z = -0.32;
+    // Tilt angle (+0.095 rad / ~5.4°) precisely matches the upward slope
+    // of the guitar's lower bout in playing pose so both padded arms contact
+    // and support the body symmetrically with zero gap.
+    cradle.rotation.z = 0.095;
+
+    // Forward bracket connecting mast to cradle crossbar
+    const bracket = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.011, 0.011, 0.065, 12),
+      this.chromeMaterial
+    );
+    bracket.rotation.x = Math.PI / 2;
+    bracket.position.set(0, 0, 0.0325);
+    bracket.castShadow = true;
+    cradle.add(bracket);
+
+    // Horizontal crossbar supporting the two cradle prongs
+    const armX = 0.075;
     const cradleBar = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.012, 0.012, 0.32, 10),
+      new THREE.CylinderGeometry(0.010, 0.010, (armX + 0.02) * 2, 12),
       this.chromeMaterial
     );
     cradleBar.rotation.z = Math.PI / 2;
-    cradleBar.position.z = -0.055;
+    cradleBar.position.set(0, 0, 0.065);
+    cradleBar.castShadow = true;
     cradle.add(cradleBar);
 
-    [-0.14, 0.14].forEach((x) => {
+    // Two padded support arms extending forward under the guitar's lower bout
+    [-armX, armX].forEach((x) => {
+      const armGroup = new THREE.Group();
+      armGroup.position.set(x, 0, 0.065);
+      armGroup.rotation.x = -0.12; // gentle upward tilt cupping the body
+
+      const armLength = 0.078;
       const paddedArm = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.018, 0.018, 0.16, 12),
+        new THREE.CylinderGeometry(0.012, 0.012, armLength, 12),
         this.standPaddingMaterial
       );
       paddedArm.rotation.x = Math.PI / 2;
-      paddedArm.position.set(x, 0.025, 0.015);
-      cradle.add(paddedArm);
+      paddedArm.position.set(0, 0, armLength * 0.5);
+      paddedArm.castShadow = true;
+      armGroup.add(paddedArm);
 
       const stop = new THREE.Mesh(
-        new THREE.SphereGeometry(0.024, 12, 8),
+        new THREE.SphereGeometry(0.015, 14, 10),
         this.standPaddingMaterial
       );
-      stop.scale.set(0.8, 1.15, 0.8);
-      stop.position.set(x, 0.025, 0.095);
-      cradle.add(stop);
+      stop.position.set(0, 0, armLength);
+      stop.castShadow = true;
+      armGroup.add(stop);
+
+      cradle.add(armGroup);
     });
 
     stand.add(cradle);
@@ -183,19 +214,37 @@ export class Guitar3D {
     this._syncGuitarStand();
   }
 
+  _getFloorElevation() {
+    const sceneMgr = this.scene?.userData?.sceneManager || window.app?.sceneManager;
+    if (sceneMgr && typeof sceneMgr.getStageFloorElevation === 'function') {
+      return sceneMgr.getStageFloorElevation(this.group.position.x, this.group.position.z);
+    }
+    return this.floorElevation ?? 0;
+  }
+
+  setFloorElevation(elevation) {
+    this.floorElevation = elevation;
+    this._syncGuitarStand();
+  }
+
   _syncGuitarStand() {
     if (!this.standGroup) return;
 
-    const floorY = 0.04;
-    const cradleY = Math.max(0.42, this.group.position.y - 0.035);
-    const mastHeight = cradleY - floorY;
+    const floorElevation = this._getFloorElevation();
+    const baseDiscThickness = 0.04;
+    // Lower contour of guitar body sits at Y = -0.115 at center.
+    // Placing cradleWorldY at this.group.position.y - 0.107 brings both padded arms
+    // into simultaneous, seamless contact with the lower bout with 0 mm gap.
+    const cradleWorldY = Math.max(floorElevation + 0.35, this.group.position.y - 0.107);
+    const cradleLocalY = cradleWorldY - floorElevation;
+    const mastHeight = Math.max(0.15, cradleLocalY - baseDiscThickness);
 
-    // Cancel the instrument's changing vertical placement so the feet remain
-    // at world y=0 while the cradle follows the lower edge of the guitar.
-    this.standGroup.position.y = -this.group.position.y;
+    // Stand is centered at X = +0.08 and set back at Z = -0.095 so the vertical mast
+    // remains completely clear behind the body with clean air clearance.
+    this.standGroup.position.set(0.08, floorElevation - this.group.position.y, -0.095);
     this.standMast.scale.y = mastHeight;
-    this.standMast.position.set(0, floorY + mastHeight * 0.5, -0.055);
-    this.standCradle.position.y = cradleY;
+    this.standMast.position.set(0, baseDiscThickness + mastHeight * 0.5, 0);
+    this.standCradle.position.set(0, cradleLocalY, 0);
   }
 
   _buildGuitarBody() {
@@ -441,26 +490,6 @@ export class Guitar3D {
     switchTip.position.set(0.038, -0.20, 0.009);
     switchTip.rotation.z = -0.45;
     this.guitarModel.add(switchTip);
-
-    // 6. Football Jack Plate
-    const jackPlate = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.018, 0.018, 0.003, 16),
-      this.chromeMaterial
-    );
-    jackPlate.scale.set(0.65, 1.35, 1.0);
-    jackPlate.position.set(0.090, -0.26, 0.001);
-    jackPlate.rotation.z = 0.55;
-    jackPlate.rotation.x = 0.35;
-    this.guitarModel.add(jackPlate);
-
-    const jackNut = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.005, 0.005, 0.004, 6),
-      this.chromeMaterial
-    );
-    jackNut.position.set(0.090, -0.26, 0.003);
-    jackNut.rotation.z = 0.55;
-    jackNut.rotation.x = 0.35;
-    this.guitarModel.add(jackNut);
   }
 
   _buildNeckAndHeadstock() {

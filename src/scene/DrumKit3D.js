@@ -23,6 +23,13 @@ const HIHAT_OPEN_Y = 0.038;
 const HIHAT_PEDAL_UP_ANGLE = -0.16;
 const HIHAT_PEDAL_DOWN_ANGLE = -0.04;
 
+const KICK_PEDAL_UP_ANGLE = 0.22;
+const KICK_PEDAL_DOWN_ANGLE = -0.06;
+const KICK_CHAIN_UP_ANGLE = -0.22;
+const KICK_CHAIN_DOWN_ANGLE = 0.05;
+const BEATER_REST_ANGLE = 0.75;
+const BEATER_STRIKE_ANGLE = -0.09;
+
 /**
  * DrumKit3D: 100% Authentic MIDIJam Concert Drum Kit
  * - Zero intersection / zero clipping: each drum and cymbal has clean physical air clearance.
@@ -52,6 +59,8 @@ export class DrumKit3D {
     this.pieceTargetTangents = {};
     this.pieceSticks = {};
     this.beaterPivot = null;
+    this.kickFootboard = null;
+    this.kickChain = null;
     this.preparedStrikes = new Map();
     this.stickSelectionState = new Map();
 
@@ -145,6 +154,27 @@ export class DrumKit3D {
       color: 0x18181c,
       roughness: 0.55,
       metalness: 0.2
+    });
+
+    // Satin Brushed Cast Aluminum for Footboards
+    this.footboardMaterial = new THREE.MeshStandardMaterial({
+      color: 0xdde2ea,
+      metalness: 0.88,
+      roughness: 0.20
+    });
+
+    // Dark Inset Grip & Accent Material for Pedals
+    this.pedalAccentMaterial = new THREE.MeshStandardMaterial({
+      color: 0x22252a,
+      metalness: 0.60,
+      roughness: 0.45
+    });
+
+    // High-Density White Acoustic Felt for Kick Beater Face
+    this.beaterFeltMaterial = new THREE.MeshStandardMaterial({
+      color: 0xf2eee7,
+      roughness: 0.78,
+      metalness: 0.02
     });
 
     // Pre-create 'MIDI' drumhead textures
@@ -260,14 +290,16 @@ export class DrumKit3D {
   }
 
   /**
-   * 20"x16" Bass Drum: Dead-center, aligned parallel with the front platform edge
+   * 20"x16" Bass Drum: Centered, grounded with authentic spurs on the floor
+   * and high-end professional kick pedal with animated footboard & beater.
    */
   _buildBassDrum() {
     const radius = 0.43;
     const depth = 0.40;
+    const bassY = 0.46; // Center height: bottom hoop hovers 1.4cm above riser floor
 
     const bassGroup = new THREE.Group();
-    bassGroup.position.set(0, 0.50, -depth / 2);
+    bassGroup.position.set(0, bassY, -depth / 2);
     bassGroup.rotation.y = 0;
 
     // Shell cylinder running along Z axis
@@ -277,7 +309,7 @@ export class DrumKit3D {
     shell.castShadow = true;
     bassGroup.add(shell);
 
-    // Front & Back Chrome/White Hoops
+    // Front & Back Chrome Hoops
     [-depth / 2, depth / 2].forEach(z => {
       const hoop = new THREE.Mesh(
         new THREE.TorusGeometry(radius + 0.012, 0.016, 12, 36),
@@ -322,30 +354,35 @@ export class DrumKit3D {
 
     this.drumHeads.kick = frontHead;
     this.drumHeads.kickFront = frontHead;
-    this.drumRecoilNodes.kick = { node: bassGroup, baseY: bassGroup.position.y };
+    this.drumRecoilNodes.kick = {
+      node: bassGroup,
+      baseY: bassGroup.position.y,
+      baseZ: bassGroup.position.z
+    };
 
-    // Telescoping Front Spurs / Legs
+    // Telescoping Heavy-Duty Front Spurs (Legs firmly grounded on riser floor at Y = 0)
     [-1, 1].forEach(side => {
-      const xOffset = side * radius;
-
-      // Heavy-duty cast chrome bracket on bass drum shell
+      // Cast chrome mounting bracket on shell
+      const bracketPos = new THREE.Vector3(side * (radius + 0.005), -0.08, depth * 0.22);
       const bracket = new THREE.Mesh(
         new THREE.BoxGeometry(0.028, 0.038, 0.024),
         this.chromeMaterial
       );
-      bracket.position.set(side * (radius + 0.005), -0.12, depth * 0.22);
+      bracket.position.copy(bracketPos);
       bassGroup.add(bracket);
 
       const wingBolt = new THREE.Mesh(
         new THREE.BoxGeometry(0.024, 0.006, 0.006),
         this.chromeMaterial
       );
-      wingBolt.position.set(side * (radius + 0.020), -0.12, depth * 0.22);
+      wingBolt.position.set(side * (radius + 0.020), -0.08, depth * 0.22);
       bassGroup.add(wingBolt);
 
-      // Spur leg rod connecting bracket down to floor (y = -0.368 in bassGroup = y = 0.012 on floor)
-      const footPos = new THREE.Vector3(side * (radius + 0.16), -0.368, depth * 0.40);
-      const bracketPos = new THREE.Vector3(side * (radius + 0.005), -0.12, depth * 0.22);
+      // In bassGroup coordinates, the floor is at y = -bassY.
+      // Rubber foot height is 0.024, so rubber foot center is at y = -bassY + 0.012.
+      // That places the bottom flat surface of the rubber foot exactly on the floor (Y = 0 in world).
+      const floorY = -bassY + 0.012;
+      const footPos = new THREE.Vector3(side * (radius + 0.18), floorY, depth * 0.38);
       const spurVec = new THREE.Vector3().subVectors(footPos, bracketPos);
       const spurLen = spurVec.length();
 
@@ -358,9 +395,9 @@ export class DrumKit3D {
       spur.castShadow = true;
       bassGroup.add(spur);
 
-      // Molded heavy black rubber foot resting flat on the riser floor
+      // Molded heavy black rubber foot resting flat on the floor
       const foot = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.016, 0.022, 0.024, 12),
+        new THREE.CylinderGeometry(0.016, 0.022, 0.024, 14),
         this.blackTrimMaterial
       );
       foot.position.copy(footPos);
@@ -368,122 +405,368 @@ export class DrumKit3D {
       bassGroup.add(foot);
     });
 
-    // Front kick pedal centered on the resonant head, resting flat on the floor
+    // -------------------------------------------------------------
+    // High-End Professional Bass Drum Pedal Assembly
+    // Resting flat on the riser floor (y = -bassY in bassGroup, Y = 0 in world)
+    // -------------------------------------------------------------
     const pedalGroup = new THREE.Group();
-    pedalGroup.position.set(0, -0.368, depth / 2 + 0.08);
+    pedalGroup.position.set(0, -bassY, depth / 2 + 0.02);
+    bassGroup.add(pedalGroup);
+
+    // 1. Solid Cast Metal Baseplate on floor
+    const baseplateLen = 0.30;
+    const baseplateWidth = 0.13;
+
+    // Heavy rubber floor grip mat under baseplate
+    const baseRubber = new THREE.Mesh(
+      new THREE.BoxGeometry(baseplateWidth + 0.008, 0.004, baseplateLen + 0.008),
+      this.blackTrimMaterial
+    );
+    baseRubber.position.set(0, 0.002, 0.11);
+    pedalGroup.add(baseRubber);
 
     const basePlate = new THREE.Mesh(
-      new THREE.BoxGeometry(0.18, 0.024, 0.34),
+      new THREE.BoxGeometry(baseplateWidth, 0.010, baseplateLen),
       this.chromeMaterial
     );
-    basePlate.position.set(0, 0.012, 0.02);
-    basePlate.rotation.x = 0.08;
+    basePlate.position.set(0, 0.009, 0.11);
     basePlate.castShadow = true;
     pedalGroup.add(basePlate);
 
-    // Raised heel and toe sections make the footboard read as a machined
-    // pedal rather than a floating rectangular slab.
-    const heelBlock = new THREE.Mesh(
-      new THREE.BoxGeometry(0.16, 0.028, 0.065),
-      this.chromeMaterial
-    );
-    heelBlock.position.set(0, 0.034, -0.115);
-    heelBlock.rotation.x = 0.08;
-    pedalGroup.add(heelBlock);
-
-    const toePad = new THREE.Mesh(
-      new THREE.BoxGeometry(0.14, 0.018, 0.105),
-      this.chromeMaterial
-    );
-    toePad.position.set(0, 0.052, 0.112);
-    toePad.rotation.x = 0.08;
-    toePad.castShadow = true;
-    pedalGroup.add(toePad);
-
-    const toeGrip = new THREE.Mesh(
-      new THREE.BoxGeometry(0.125, 0.008, 0.052),
-      this.blackTrimMaterial
-    );
-    toeGrip.position.set(0, 0.066, 0.13);
-    toeGrip.rotation.x = 0.08;
-    pedalGroup.add(toeGrip);
-
-    // Helper for the square/round side-frame members. It keeps all members
-    // aligned between their real endpoints while preserving the pedal's
-    // compact proportions.
-    const addPedalBeam = (start, end, radius = 0.008, material = this.chromeMaterial) => {
-      const direction = new THREE.Vector3().subVectors(end, start);
-      const beam = new THREE.Mesh(
-        new THREE.CylinderGeometry(radius, radius, direction.length(), 8),
-        material
-      );
-      beam.position.copy(start).add(end).multiplyScalar(0.5);
-      beam.quaternion.setFromUnitVectors(
-        new THREE.Vector3(0, 1, 0),
-        direction.normalize()
-      );
-      beam.castShadow = true;
-      pedalGroup.add(beam);
-      return beam;
-    };
-
+    // Cast stabilizing side rails along baseplate edges
     [-1, 1].forEach(side => {
-      const x = side * 0.073;
-      // Rear upright and forward brace form the two triangular side frames.
-      addPedalBeam(new THREE.Vector3(x, 0.035, -0.115), new THREE.Vector3(x, 0.225, -0.075));
-      addPedalBeam(new THREE.Vector3(x, 0.045, 0.105), new THREE.Vector3(x, 0.225, -0.075), 0.006);
-      const frameCap = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.014, 0.014, 0.022, 10),
-        this.chromeMaterial
+      const rail = new THREE.Mesh(
+        new THREE.BoxGeometry(0.008, 0.008, baseplateLen),
+        this.pedalAccentMaterial
       );
-      frameCap.rotation.z = Math.PI / 2;
-      frameCap.position.set(x, 0.225, -0.075);
-      pedalGroup.add(frameCap);
+      rail.position.set(side * (baseplateWidth / 2 - 0.004), 0.014, 0.11);
+      pedalGroup.add(rail);
     });
 
-    // Heel hinge and the upper axle run across both side frames.
-    const hinge = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.014, 0.014, 0.15, 12),
+    // 2. Heavy-Duty Hoop Clamp (Locks pedal securely to front bass drum hoop)
+    const hoopClamp = new THREE.Mesh(
+      new THREE.BoxGeometry(0.052, 0.022, 0.045),
       this.chromeMaterial
     );
-    hinge.rotation.z = Math.PI / 2;
-    hinge.position.set(0, 0.045, -0.115);
-    pedalGroup.add(hinge);
+    hoopClamp.position.set(0, 0.018, -0.015);
+    pedalGroup.add(hoopClamp);
 
+    const clampJawRubber = new THREE.Mesh(
+      new THREE.BoxGeometry(0.048, 0.006, 0.038),
+      this.blackTrimMaterial
+    );
+    clampJawRubber.position.set(0, 0.007, -0.015);
+    pedalGroup.add(clampJawRubber);
+
+    const clampWingBolt = new THREE.Mesh(
+      new THREE.BoxGeometry(0.032, 0.008, 0.008),
+      this.chromeMaterial
+    );
+    clampWingBolt.position.set(0.034, 0.018, -0.015);
+    pedalGroup.add(clampWingBolt);
+
+    // 3. Dual Upright Frame Towers (Support axle, cam, beater & spring)
+    const towerHeight = 0.19;
+    const axleZ = 0.020;
+    const axleY = towerHeight + 0.014;
+
+    [-0.052, 0.052].forEach(tx => {
+      // Main vertical pillar
+      const tower = new THREE.Mesh(
+        new THREE.BoxGeometry(0.016, towerHeight, 0.018),
+        this.chromeMaterial
+      );
+      tower.position.set(tx, towerHeight / 2 + 0.014, axleZ);
+      tower.castShadow = true;
+      pedalGroup.add(tower);
+
+      // Diagonal rear brace from tower down to baseplate
+      const braceStart = new THREE.Vector3(tx, 0.014, 0.075);
+      const braceEnd = new THREE.Vector3(tx, towerHeight * 0.80, axleZ);
+      const braceDir = new THREE.Vector3().subVectors(braceEnd, braceStart);
+      const brace = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.005, 0.005, braceDir.length(), 8),
+        this.chromeMaterial
+      );
+      brace.position.copy(braceStart).add(braceEnd).multiplyScalar(0.5);
+      brace.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), braceDir.clone().normalize());
+      pedalGroup.add(brace);
+
+      // Polished top bearing housing cap
+      const cap = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.014, 0.014, 0.024, 12),
+        this.chromeMaterial
+      );
+      cap.rotation.z = Math.PI / 2;
+      cap.position.set(tx, axleY, axleZ);
+      pedalGroup.add(cap);
+    });
+
+    // 4. Main Drive Axle & Accelerator Cam
     const axle = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.018, 0.018, 0.19, 12),
+      new THREE.CylinderGeometry(0.008, 0.008, 0.136, 14),
       this.chromeMaterial
     );
     axle.rotation.z = Math.PI / 2;
-    axle.position.set(0, 0.225, -0.075);
+    axle.position.set(0, axleY, axleZ);
     pedalGroup.add(axle);
 
+    // Concentric drive cam on center of axle
     const cam = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.034, 0.034, 0.052, 12),
+      new THREE.CylinderGeometry(0.020, 0.020, 0.022, 16),
       this.blackTrimMaterial
     );
     cam.rotation.z = Math.PI / 2;
-    cam.position.set(0, 0.225, -0.055);
+    cam.position.set(0, axleY, axleZ);
     pedalGroup.add(cam);
 
-    // Beater pivot and rod reaching up to strike center of drumhead
+    // 5. Lateral Spring Tension Assembly (on right tower)
+    const springGroup = new THREE.Group();
+    springGroup.position.set(0.064, axleY, axleZ);
+
+    const rockerArm = new THREE.Mesh(
+      new THREE.BoxGeometry(0.008, 0.034, 0.008),
+      this.chromeMaterial
+    );
+    rockerArm.position.set(0, 0.012, 0);
+    springGroup.add(rockerArm);
+
+    const spring = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.006, 0.006, 0.075, 12),
+      this.blackTrimMaterial
+    );
+    spring.position.set(0, -0.055, 0);
+    springGroup.add(spring);
+
+    const springNut = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.008, 0.008, 0.016, 12),
+      this.chromeMaterial
+    );
+    springNut.position.set(0, -0.100, 0);
+    springGroup.add(springNut);
+    pedalGroup.add(springGroup);
+
+    // 6. Die-Cast Heel Plate Assembly
+    const heelZ = 0.215;
+    const heelRubber = new THREE.Mesh(
+      new THREE.BoxGeometry(0.082, 0.004, 0.065),
+      this.blackTrimMaterial
+    );
+    heelRubber.position.set(0, 0.012, heelZ);
+    pedalGroup.add(heelRubber);
+
+    const heelPlate = new THREE.Mesh(
+      new THREE.BoxGeometry(0.078, 0.010, 0.060),
+      this.chromeMaterial
+    );
+    heelPlate.position.set(0, 0.019, heelZ);
+    pedalGroup.add(heelPlate);
+
+    const heelTread = new THREE.Mesh(
+      new THREE.BoxGeometry(0.058, 0.003, 0.038),
+      this.pedalAccentMaterial
+    );
+    heelTread.position.set(0, 0.025, heelZ);
+    pedalGroup.add(heelTread);
+
+    // Heel Plate Fixing Screws
+    [-0.022, 0.022].forEach(bx => {
+      const bolt = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.003, 0.003, 0.003, 8),
+        this.chromeMaterial
+      );
+      bolt.position.set(bx, 0.027, heelZ);
+      pedalGroup.add(bolt);
+    });
+
+    // Heel Hinge Upright Lugs & Axle Pin
+    const hingeZ = heelZ - 0.024;
+    [-0.032, 0.032].forEach(px => {
+      const post = new THREE.Mesh(
+        new THREE.BoxGeometry(0.011, 0.018, 0.016),
+        this.chromeMaterial
+      );
+      post.position.set(px, 0.028, hingeZ);
+      pedalGroup.add(post);
+    });
+
+    const hingePin = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.0045, 0.0045, 0.076, 10),
+      this.chromeMaterial
+    );
+    hingePin.rotation.z = Math.PI / 2;
+    hingePin.position.set(0, 0.030, hingeZ);
+    pedalGroup.add(hingePin);
+
+    // 7. ANIMATED FOOTBOARD (Pivots from heel: presses DOWN "de arriba hacia abajo")
+    const footboardPivot = new THREE.Group();
+    footboardPivot.position.set(0, 0.030, hingeZ);
+
+    // Sleek symmetrical industrial pedal plate (identical design language to hi-hat footboard)
+    const fl = 0.185;
+    const shape = new THREE.Shape();
+    const heelW = 0.026;
+    const midW = 0.036;
+    const toeW = 0.032;
+
+    shape.moveTo(-heelW, 0);
+    shape.lineTo(-heelW, 0.025);
+    shape.lineTo(-midW, fl * 0.65);
+    shape.lineTo(-toeW, fl * 0.90);
+    shape.quadraticCurveTo(-toeW * 0.55, fl, 0, fl + 0.005);
+    shape.quadraticCurveTo(toeW * 0.55, fl, toeW, fl * 0.90);
+    shape.lineTo(midW, fl * 0.65);
+    shape.lineTo(heelW, 0.025);
+    shape.lineTo(heelW, 0);
+    shape.closePath();
+
+    const extrudeSettings = {
+      steps: 1,
+      depth: 0.007,
+      bevelEnabled: true,
+      bevelThickness: 0.0025,
+      bevelSize: 0.002,
+      bevelSegments: 3
+    };
+
+    const footboardGeom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    footboardGeom.rotateX(-Math.PI / 2); // Extends along -Z towards the drum
+
+    const footboardMesh = new THREE.Mesh(footboardGeom, this.footboardMaterial);
+    footboardMesh.castShadow = true;
+    footboardPivot.add(footboardMesh);
+
+    // Machined Non-slip Traction Ridges on Footboard (matching hi-hat design)
+    for (let i = 0; i < 6; i++) {
+      const rz = -0.040 - i * 0.022;
+      const rw = 0.044 + (i * 0.0035);
+      const ridge = new THREE.Mesh(
+        new THREE.BoxGeometry(rw, 0.0035, 0.006),
+        this.pedalAccentMaterial
+      );
+      ridge.position.set(0, 0.011, rz);
+      footboardPivot.add(ridge);
+    }
+
+    // Machined Polished Center Stripe
+    const centerStripe = new THREE.Mesh(
+      new THREE.BoxGeometry(0.006, 0.003, 0.11),
+      this.pedalAccentMaterial
+    );
+    centerStripe.position.set(0, 0.011, -0.095);
+    footboardPivot.add(centerStripe);
+
+    // Chrome Toe Guard / Stopper Bracket
+    const toeStopper = new THREE.Mesh(
+      new THREE.BoxGeometry(0.036, 0.018, 0.006),
+      this.chromeMaterial
+    );
+    toeStopper.position.set(0, 0.014, -fl + 0.006);
+    toeStopper.rotation.x = 0.15;
+    footboardPivot.add(toeStopper);
+
+    // Chain Clevis Clamp at toe tip
+    const toeChainClevis = new THREE.Mesh(
+      new THREE.BoxGeometry(0.014, 0.012, 0.016),
+      this.chromeMaterial
+    );
+    toeChainClevis.position.set(0, 0.006, -fl);
+    footboardPivot.add(toeChainClevis);
+
+    // Double Roller Drive Chain connecting toe clevis up towards drive cam
+    const chainGroup = new THREE.Group();
+    chainGroup.position.set(0, 0.006, -fl);
+    const chainHeight = 0.125;
+
+    const chain = new THREE.Mesh(
+      new THREE.BoxGeometry(0.010, chainHeight, 0.006),
+      this.chromeMaterial
+    );
+    chain.position.set(0, chainHeight / 2, 0.008);
+    chainGroup.add(chain);
+
+    // Roller chain dark steel side link plates
+    [-0.0055, 0.0055].forEach(cx => {
+      const plate = new THREE.Mesh(
+        new THREE.BoxGeometry(0.0015, chainHeight - 0.004, 0.008),
+        this.pedalAccentMaterial
+      );
+      plate.position.set(cx, chainHeight / 2, 0.008);
+      chainGroup.add(plate);
+    });
+
+    chainGroup.rotation.x = KICK_CHAIN_UP_ANGLE;
+    footboardPivot.add(chainGroup);
+    this.kickChain = chainGroup;
+
+    // Natural rest angle: footboard elevated UP by ~12.6 deg (waiting for drummer's foot)
+    footboardPivot.rotation.x = KICK_PEDAL_UP_ANGLE;
+    pedalGroup.add(footboardPivot);
+    this.kickFootboard = footboardPivot;
+
+    // 8. DUAL-SURFACE REVERSIBLE BEATER (Clamped to center axle hub)
     const beaterPivot = new THREE.Group();
-    beaterPivot.position.set(0, 0.18, -0.04);
+    beaterPivot.position.set(0, axleY, axleZ);
 
-    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.26, 8), this.chromeMaterial);
-    rod.position.y = 0.13;
-    beaterPivot.add(rod);
+    // Solid Polished Chrome Shaft
+    const rodLen = 0.19;
+    const beaterRod = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.004, 0.004, rodLen, 10),
+      this.chromeMaterial
+    );
+    beaterRod.position.y = rodLen / 2;
+    beaterPivot.add(beaterRod);
 
-    const hammer = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.075, 0.065), this.blackTrimMaterial);
-    hammer.position.set(0, 0.26, 0);
-    hammer.rotation.x = -0.12;
-    beaterPivot.add(hammer);
+    // Adjustable Slide Counterweight Collar with Locking Screw
+    const counterweight = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.009, 0.009, 0.012, 12),
+      this.chromeMaterial
+    );
+    counterweight.position.y = rodLen * 0.55;
+    beaterPivot.add(counterweight);
 
-    // Ready rest angle
-    beaterPivot.rotation.x = 0.38;
+    const weightScrew = new THREE.Mesh(
+      new THREE.BoxGeometry(0.016, 0.004, 0.004),
+      this.chromeMaterial
+    );
+    weightScrew.position.set(0.008, rodLen * 0.55, 0);
+    beaterPivot.add(weightScrew);
 
+    // Dual-surface Reversible Beater Head
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, rodLen, 0);
+
+    // Cylindrical core body
+    const beaterCore = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.018, 0.018, 0.036, 16),
+      this.blackTrimMaterial
+    );
+    beaterCore.rotation.x = Math.PI / 2;
+    headGroup.add(beaterCore);
+
+    // High-Density White Acoustic Felt Striking Face (facing drumhead along -Z)
+    const feltImpactFace = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.017, 0.017, 0.008, 16),
+      this.beaterFeltMaterial
+    );
+    feltImpactFace.rotation.x = Math.PI / 2;
+    feltImpactFace.position.z = -0.018;
+    headGroup.add(feltImpactFace);
+
+    // Hard Plastic Punch Face (facing drummer along +Z)
+    const plasticFace = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.017, 0.017, 0.008, 16),
+      this.blackTrimMaterial
+    );
+    plasticFace.rotation.x = Math.PI / 2;
+    plasticFace.position.z = 0.018;
+    headGroup.add(plasticFace);
+
+    beaterPivot.add(headGroup);
+
+    // Natural rest angle: drawn back towards the drummer at ~43 deg (0.75 rad)
+    beaterPivot.rotation.x = BEATER_REST_ANGLE;
     pedalGroup.add(beaterPivot);
-    bassGroup.add(pedalGroup);
     this.beaterPivot = beaterPivot;
 
     this.group.add(bassGroup);
@@ -965,7 +1248,8 @@ export class DrumKit3D {
     standGroup.position.copy(hihatPos);
 
     // Grounded symmetrical tripod base (radius 0.24m, collar height 0.18m)
-    const tripodBase = this._createHardwareTripodBase(0.24, 0.18, -0.3);
+    // baseAngle = 2.15 rad rotates the 3 legs to clear the hi-hat pedal and stabilizer frame cleanly
+    const tripodBase = this._createHardwareTripodBase(0.24, 0.18, 2.15);
     standGroup.add(tripodBase);
 
     // Central Chrome Stand Outer Column
@@ -976,6 +1260,41 @@ export class DrumKit3D {
     lowerColumn.position.y = 0.22;
     lowerColumn.castShadow = true;
     standGroup.add(lowerColumn);
+
+    // Stand Base Collar & Spring Tension Housing at stand center (y = 0)
+    const baseCollar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.018, 0.018, 0.042, 16),
+      this.chromeMaterial
+    );
+    baseCollar.position.y = 0.028;
+    standGroup.add(baseCollar);
+
+    const pedalAngle = 0.72; // rad (~41 deg), pointing naturally towards drummer's left foot
+    const springHousing = new THREE.Group();
+    springHousing.rotation.y = pedalAngle;
+
+    const springCylinder = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.014, 0.014, 0.045, 14),
+      this.chromeMaterial
+    );
+    springCylinder.position.set(0, 0.038, 0.022);
+    springHousing.add(springCylinder);
+
+    const knurledDial = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.017, 0.017, 0.010, 16),
+      this.blackTrimMaterial
+    );
+    knurledDial.position.set(0, 0.062, 0.022);
+    springHousing.add(knurledDial);
+
+    const chainGuide = new THREE.Mesh(
+      new THREE.BoxGeometry(0.016, 0.018, 0.014),
+      this.chromeMaterial
+    );
+    chainGuide.position.set(0, 0.015, 0.022);
+    springHousing.add(chainGuide);
+
+    standGroup.add(springHousing);
 
     // Height Adjustment Clamp Collar & Memory Lock
     const collar = new THREE.Mesh(
@@ -1009,50 +1328,187 @@ export class DrumKit3D {
     pullRod.position.y = 0.42;
     standGroup.add(pullRod);
 
-    // 2. Foot Pedal Assembly (Sitting flat on the floor at y = 0)
-    const pedalBase = new THREE.Group();
-    pedalBase.position.set(0.05, 0, 0.09); // offset towards drummer
-    pedalBase.rotation.y = 0.35; // facing drummer
+    // 2. Heavy-Duty Die-Cast Foot Pedal Assembly
+    const heelDist = 0.29; // distance from stand center to heel
+    const heelX = Math.sin(pedalAngle) * heelDist;
+    const heelZ = Math.cos(pedalAngle) * heelDist;
 
-    // Heel plate flat on floor
-    const heelPlate = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.012, 0.06),
+    const pedalGroup = new THREE.Group();
+    pedalGroup.position.set(heelX, 0, heelZ);
+    pedalGroup.rotation.y = pedalAngle + Math.PI; // points back towards stand column
+    standGroup.add(pedalGroup);
+
+    // Stabilizer Twin Radius Rods linking heel plate to stand base
+    [-0.030, 0.030].forEach(rx => {
+      const rodLen = heelDist - 0.03;
+      const rod = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.0035, 0.0035, rodLen, 8),
+        this.chromeMaterial
+      );
+      rod.rotation.x = Math.PI / 2;
+      rod.position.set(rx, 0.008, rodLen / 2 + 0.015);
+      pedalGroup.add(rod);
+
+      const clampLug = new THREE.Mesh(
+        new THREE.BoxGeometry(0.010, 0.014, 0.014),
+        this.chromeMaterial
+      );
+      clampLug.position.set(rx, 0.010, rodLen + 0.015);
+      pedalGroup.add(clampLug);
+    });
+
+    // Die-cast Heel Plate Assembly
+    const heelPlateGroup = new THREE.Group();
+    const heelRubber = new THREE.Mesh(
+      new THREE.BoxGeometry(0.080, 0.004, 0.065),
       this.blackTrimMaterial
     );
-    heelPlate.position.set(0, 0.006, 0);
-    pedalBase.add(heelPlate);
+    heelRubber.position.set(0, 0.002, 0.015);
+    heelPlateGroup.add(heelRubber);
 
-    // Footboard pivot at heel
+    const heelMetal = new THREE.Mesh(
+      new THREE.BoxGeometry(0.076, 0.010, 0.060),
+      this.chromeMaterial
+    );
+    heelMetal.position.set(0, 0.008, 0.015);
+    heelPlateGroup.add(heelMetal);
+
+    const heelTread = new THREE.Mesh(
+      new THREE.BoxGeometry(0.056, 0.003, 0.038),
+      this.pedalAccentMaterial
+    );
+    heelTread.position.set(0, 0.014, 0.015);
+    heelPlateGroup.add(heelTread);
+
+    // Heel Plate Fixing Screws
+    [-0.022, 0.022].forEach(bx => {
+      const bolt = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.003, 0.003, 0.003, 8),
+        this.chromeMaterial
+      );
+      bolt.position.set(bx, 0.015, 0.015);
+      heelPlateGroup.add(bolt);
+    });
+
+    // Hinge Upright Posts & Axle Pin
+    [-0.032, 0.032].forEach(px => {
+      const post = new THREE.Mesh(
+        new THREE.BoxGeometry(0.011, 0.018, 0.016),
+        this.chromeMaterial
+      );
+      post.position.set(px, 0.016, 0.042);
+      heelPlateGroup.add(post);
+    });
+
+    const axlePin = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.0045, 0.0045, 0.076, 10),
+      this.chromeMaterial
+    );
+    axlePin.rotation.z = Math.PI / 2;
+    axlePin.position.set(0, 0.019, 0.042);
+    heelPlateGroup.add(axlePin);
+
+    pedalGroup.add(heelPlateGroup);
+
+    // Footboard Pivot at heel hinge
     const footboardPivot = new THREE.Group();
-    footboardPivot.position.set(0, 0.008, 0.03); // hinge point
+    footboardPivot.position.set(0, 0.019, 0.042);
 
-    const footboard = new THREE.Mesh(
-      new THREE.BoxGeometry(0.075, 0.010, 0.20),
-      this.blackTrimMaterial
+    // Sleek contoured pedal plate
+    const shape = new THREE.Shape();
+    const fl = 0.205; // footboard length
+    shape.moveTo(-0.026, 0);
+    shape.lineTo(-0.026, 0.03);
+    shape.lineTo(-0.037, fl * 0.65);
+    shape.lineTo(-0.033, fl * 0.90);
+    shape.quadraticCurveTo(-0.018, fl, 0, fl + 0.005);
+    shape.quadraticCurveTo(0.018, fl, 0.033, fl * 0.90);
+    shape.lineTo(0.037, fl * 0.65);
+    shape.lineTo(0.026, 0.03);
+    shape.lineTo(0.026, 0);
+    shape.closePath();
+
+    const extrudeSettings = {
+      steps: 1,
+      depth: 0.007,
+      bevelEnabled: true,
+      bevelThickness: 0.0025,
+      bevelSize: 0.002,
+      bevelSegments: 3
+    };
+
+    const footboardGeom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    footboardGeom.rotateX(Math.PI / 2);
+
+    const footboardMesh = new THREE.Mesh(footboardGeom, this.footboardMaterial);
+    footboardMesh.castShadow = true;
+    footboardPivot.add(footboardMesh);
+
+    // Machined Non-slip Traction Ridges
+    for (let i = 0; i < 6; i++) {
+      const rz = 0.05 + i * 0.024;
+      const rw = 0.044 + (i * 0.0035);
+      const ridge = new THREE.Mesh(
+        new THREE.BoxGeometry(rw, 0.0025, 0.006),
+        this.pedalAccentMaterial
+      );
+      ridge.position.set(0, 0.008, rz);
+      footboardPivot.add(ridge);
+    }
+
+    // Machined Center Stripe
+    const centerStripe = new THREE.Mesh(
+      new THREE.BoxGeometry(0.006, 0.002, 0.12),
+      this.pedalAccentMaterial
     );
-    footboard.position.set(0, 0.005, 0.10);
-    footboardPivot.add(footboard);
+    centerStripe.position.set(0, 0.008, 0.10);
+    footboardPivot.add(centerStripe);
 
-    // Chrome toe guard / pedal frame resting flat on floor
-    const pedalFrame = new THREE.Mesh(
-      new THREE.BoxGeometry(0.09, 0.014, 0.04),
+    // Chrome Toe Stopper Bracket
+    const toeStopper = new THREE.Mesh(
+      new THREE.BoxGeometry(0.036, 0.018, 0.006),
       this.chromeMaterial
     );
-    pedalFrame.position.set(0, 0.007, 0.21);
-    pedalBase.add(pedalFrame);
+    toeStopper.position.set(0, 0.014, fl - 0.006);
+    toeStopper.rotation.x = -0.15;
+    footboardPivot.add(toeStopper);
 
-    // Linkage connecting footboard toe to stand pull rod
-    const linkage = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.003, 0.003, 0.06, 6),
+    // Chain Clevis Clamp at toe tip
+    const chainClevis = new THREE.Mesh(
+      new THREE.BoxGeometry(0.014, 0.012, 0.016),
       this.chromeMaterial
     );
-    linkage.position.set(0, 0.035, 0.19);
-    pedalBase.add(linkage);
+    chainClevis.position.set(0, 0.004, fl);
+    footboardPivot.add(chainClevis);
+
+    // Roller Chain Linkage curving up to the pull rod guide
+    const chainGroup = new THREE.Group();
+    const linkCount = 7;
+    for (let i = 0; i < linkCount; i++) {
+      const t = i / (linkCount - 1);
+      const cy = 0.008 + Math.pow(t, 1.4) * 0.024;
+      const cz = fl + t * 0.025;
+      const link = new THREE.Mesh(
+        new THREE.BoxGeometry(0.008, 0.005, 0.006),
+        this.chromeMaterial
+      );
+      link.position.set(0, cy, cz);
+      chainGroup.add(link);
+
+      const pin = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.002, 0.002, 0.012, 6),
+        this.pedalAccentMaterial
+      );
+      pin.rotation.z = Math.PI / 2;
+      pin.position.set(0, cy, cz);
+      chainGroup.add(pin);
+    }
+    footboardPivot.add(chainGroup);
 
     // Default angle: closed (pedal held down)
     footboardPivot.rotation.x = HIHAT_PEDAL_DOWN_ANGLE;
-    pedalBase.add(footboardPivot);
-    standGroup.add(pedalBase);
+    pedalGroup.add(footboardPivot);
+    standGroup.add(pedalGroup);
     this.hihatPedalFootboard = footboardPivot;
 
     // 3. Cymbals Assembly atop Stand
@@ -1116,11 +1572,12 @@ export class DrumKit3D {
     standGroup.add(cymbalsGroup);
     this.group.add(standGroup);
 
-    // Hit target for drumstick strikes
+    // Hit target for drumstick strikes: playing area on the inner bow facing the drummer
+    const hihatStrikeOffset = new THREE.Vector3(0.12, 0, 0.03);
     this.pieceTargets.hihat = new THREE.Vector3(
-      hihatPos.x,
-      cymbalsHeight + HIHAT_CLOSED_Y + 0.020 + DRUMSTICK_CONTACT_CLEARANCE,
-      hihatPos.z
+      hihatPos.x + hihatStrikeOffset.x,
+      cymbalsHeight + HIHAT_CLOSED_Y + 0.007,
+      hihatPos.z + hihatStrikeOffset.z
     );
     this.pieceTargetTangents.hihat = new THREE.Vector3(1, 0, 0);
   }
@@ -1515,8 +1972,78 @@ export class DrumKit3D {
       piece = 'hihatClosed';
     }
 
-    // Foot-operated actions (Kick and Pedal Hi-Hat) do NOT use drumsticks!
-    if (piece === 'kick' || piece === 'hihatPedal') return;
+    // Foot-operated Kick does not use drumsticks
+    if (piece === 'kick') return;
+
+    // Pedal Hi-Hat (Note 44): foot action ONLY. Foot lifts in anticipation to prepare the downward stomp!
+    if (piece === 'hihatPedal') {
+      if (this.hihatCloseTimer) {
+        clearTimeout(this.hihatCloseTimer);
+        this.hihatCloseTimer = null;
+      }
+      if (this.hihatPedalFootboard) {
+        gsap.killTweensOf(this.hihatPedalFootboard.rotation);
+        gsap.to(this.hihatPedalFootboard.rotation, {
+          x: HIHAT_PEDAL_UP_ANGLE,
+          duration: 0.16,
+          ease: 'power2.out'
+        });
+      }
+      if (this.hihatTopPivot) {
+        gsap.killTweensOf(this.hihatTopPivot.position);
+        gsap.to(this.hihatTopPivot.position, {
+          y: HIHAT_OPEN_Y,
+          duration: 0.16,
+          ease: 'power2.out'
+        });
+      }
+      return;
+    }
+
+    // Open Hi-Hat (Note 46): foot lifts in anticipation so cymbals are open when struck!
+    if (piece === 'hihatOpen') {
+      if (this.hihatPedalFootboard) {
+        gsap.killTweensOf(this.hihatPedalFootboard.rotation);
+        gsap.to(this.hihatPedalFootboard.rotation, {
+          x: HIHAT_PEDAL_UP_ANGLE,
+          duration: 0.16,
+          ease: 'power2.out'
+        });
+      }
+      if (this.hihatTopPivot) {
+        gsap.killTweensOf(this.hihatTopPivot.position);
+        gsap.to(this.hihatTopPivot.position, {
+          y: HIHAT_OPEN_Y,
+          duration: 0.16,
+          ease: 'power2.out'
+        });
+      }
+    }
+
+    // Closed Hi-Hat (Note 42): if previously open, foot steps down to clamp cymbals shut before stick hits!
+    if (piece === 'hihatClosed' && this.hihatState === 'open') {
+      if (this.hihatCloseTimer) {
+        clearTimeout(this.hihatCloseTimer);
+        this.hihatCloseTimer = null;
+      }
+      this.hihatState = 'closed';
+      if (this.hihatPedalFootboard) {
+        gsap.killTweensOf(this.hihatPedalFootboard.rotation);
+        gsap.to(this.hihatPedalFootboard.rotation, {
+          x: HIHAT_PEDAL_DOWN_ANGLE,
+          duration: 0.12,
+          ease: 'power2.inOut'
+        });
+      }
+      if (this.hihatTopPivot) {
+        gsap.killTweensOf(this.hihatTopPivot.position);
+        gsap.to(this.hihatTopPivot.position, {
+          y: HIHAT_CLOSED_Y,
+          duration: 0.12,
+          ease: 'power2.inOut'
+        });
+      }
+    }
 
     // Closed and open hi-hat strikes share the physical 'hihat' stick
     const stickPiece = (piece === 'hihatClosed' || piece === 'hihatOpen') ? 'hihat' : piece;
@@ -1699,20 +2226,34 @@ export class DrumKit3D {
     }
     this.hihatState = 'closed';
 
-    // 1. Footboard snaps down with pedal stroke
+    // Check if pedal is already lifted/open (via onNotePrepare or previous open hit)
+    const currentAngle = this.hihatPedalFootboard ? this.hihatPedalFootboard.rotation.x : HIHAT_PEDAL_DOWN_ANGLE;
+    const isAlreadyOpen = currentAngle < (HIHAT_PEDAL_UP_ANGLE * 0.5);
+
+    const prepDuration = isAlreadyOpen ? 0 : 0.035;
+    const stompDuration = 0.045;
+
+    // 1. Footboard snaps down with pedal stroke (positive X rotation presses toe DOWN)
     if (this.hihatPedalFootboard) {
       gsap.killTweensOf(this.hihatPedalFootboard.rotation);
-      gsap.timeline()
-        .to(this.hihatPedalFootboard.rotation, {
-          x: HIHAT_PEDAL_DOWN_ANGLE - 0.02 * vel,
-          duration: 0.032,
-          ease: 'power4.in'
-        })
-        .to(this.hihatPedalFootboard.rotation, {
-          x: HIHAT_PEDAL_DOWN_ANGLE,
-          duration: 0.08,
-          ease: 'elastic.out(1, 0.4)'
+      const tl = gsap.timeline();
+      if (!isAlreadyOpen) {
+        tl.to(this.hihatPedalFootboard.rotation, {
+          x: HIHAT_PEDAL_UP_ANGLE,
+          duration: prepDuration,
+          ease: 'power1.out'
         });
+      }
+      tl.to(this.hihatPedalFootboard.rotation, {
+        x: HIHAT_PEDAL_DOWN_ANGLE + 0.025 * vel,
+        duration: stompDuration,
+        ease: 'power4.in'
+      })
+      .to(this.hihatPedalFootboard.rotation, {
+        x: HIHAT_PEDAL_DOWN_ANGLE,
+        duration: 0.09,
+        ease: 'elastic.out(1, 0.5)'
+      });
     }
 
     // 2. Top cymbal snaps down against bottom cymbal with metallic contact impact
@@ -1720,35 +2261,42 @@ export class DrumKit3D {
       gsap.killTweensOf(this.hihatTopPivot.position);
       gsap.killTweensOf(this.hihatTopPivot.rotation);
 
-      gsap.timeline()
-        .to(this.hihatTopPivot.position, {
-          y: HIHAT_CLOSED_Y,
-          duration: 0.032,
-          ease: 'power4.in'
-        })
-        .to(this.hihatTopPivot.position, {
-          y: HIHAT_CLOSED_Y + 0.0035 * vel,
-          duration: 0.030,
-          ease: 'power2.out'
-        })
-        .to(this.hihatTopPivot.position, {
-          y: HIHAT_CLOSED_Y,
-          duration: 0.045,
-          ease: 'power3.in'
+      const tl = gsap.timeline();
+      if (!isAlreadyOpen) {
+        tl.to(this.hihatTopPivot.position, {
+          y: HIHAT_OPEN_Y,
+          duration: prepDuration,
+          ease: 'power1.out'
         });
+      }
+      tl.to(this.hihatTopPivot.position, {
+        y: HIHAT_CLOSED_Y,
+        duration: stompDuration,
+        ease: 'power4.in'
+      })
+      .to(this.hihatTopPivot.position, {
+        y: HIHAT_CLOSED_Y + 0.004 * vel,
+        duration: 0.025,
+        ease: 'power2.out'
+      })
+      .to(this.hihatTopPivot.position, {
+        y: HIHAT_CLOSED_Y,
+        duration: 0.040,
+        ease: 'power3.in'
+      });
 
-      // Sharp metallic clamp/shudder, canceling wobble
-      gsap.timeline()
+      // Sharp metallic clamp/shudder on impact, canceling wobble
+      gsap.timeline({ delay: prepDuration })
         .to(this.hihatTopPivot.rotation, {
-          x: 0.030 * vel,
-          z: -0.012 * vel,
+          x: 0.035 * vel,
+          z: -0.015 * vel,
           duration: 0.025,
           ease: 'power3.out'
         })
         .to(this.hihatTopPivot.rotation, {
           x: 0,
           z: 0,
-          duration: 0.05,
+          duration: 0.06,
           ease: 'power2.out'
         });
     }
@@ -1892,6 +2440,7 @@ export class DrumKit3D {
   }
 
   _animateDrumRecoil(piece, vel) {
+    if (piece === 'kick') return; // Handled with horizontal punch recoil in _animateKick
     const recoil = this.drumRecoilNodes[piece];
     if (!recoil) return;
 
@@ -1992,12 +2541,73 @@ export class DrumKit3D {
   }
 
   _animateKick(vel) {
-    this._animateDrumRecoil('kick', vel);
+    // 1. Footboard snaps DOWN from rest (0.22) to pressed (-0.06) ("de arriba hacia abajo")
+    if (this.kickFootboard) {
+      gsap.killTweensOf(this.kickFootboard.rotation);
+      gsap.timeline()
+        .to(this.kickFootboard.rotation, {
+          x: KICK_PEDAL_DOWN_ANGLE, // downstroke
+          duration: 0.050,
+          ease: 'power3.in'
+        })
+        .to(this.kickFootboard.rotation, {
+          x: KICK_PEDAL_UP_ANGLE, // spring rebound back up
+          duration: 0.20,
+          ease: 'elastic.out(1.1, 0.4)'
+        });
+    }
+
+    if (this.kickChain) {
+      gsap.killTweensOf(this.kickChain.rotation);
+      gsap.timeline()
+        .to(this.kickChain.rotation, {
+          x: KICK_CHAIN_DOWN_ANGLE,
+          duration: 0.050,
+          ease: 'power3.in'
+        })
+        .to(this.kickChain.rotation, {
+          x: KICK_CHAIN_UP_ANGLE,
+          duration: 0.20,
+          ease: 'elastic.out(1.1, 0.4)'
+        });
+    }
+
+    // 2. Beater snaps forward from rest (+0.75) to head contact (-0.09)
     if (this.beaterPivot) {
       gsap.killTweensOf(this.beaterPivot.rotation);
       gsap.timeline()
-        .to(this.beaterPivot.rotation, { x: -0.15, duration: 0.045, ease: 'power3.in' })
-        .to(this.beaterPivot.rotation, { x: 0.38, duration: 0.12, ease: 'elastic.out(1, 0.4)' });
+        .to(this.beaterPivot.rotation, {
+          x: BEATER_STRIKE_ANGLE, // strike head flush
+          duration: 0.050,
+          ease: 'power3.in'
+        })
+        .to(this.beaterPivot.rotation, {
+          x: BEATER_REST_ANGLE, // spring rebound back to rest
+          duration: 0.22,
+          ease: 'elastic.out(1.1, 0.4)'
+        });
+    }
+
+    // 3. Horizontal punch recoil on the bass drum (in Z, NOT in Y!)
+    // Eliminates the floating feeling caused by vertical Y bouncing
+    const bassRecoil = this.drumRecoilNodes.kick;
+    if (bassRecoil && bassRecoil.node) {
+      const node = bassRecoil.node;
+      const baseZ = bassRecoil.baseZ ?? -0.20;
+      gsap.killTweensOf(node.position);
+      node.position.z = baseZ;
+      const punchDist = 0.012 * vel;
+      gsap.timeline()
+        .to(node.position, {
+          z: baseZ - punchDist,
+          duration: 0.035,
+          ease: 'power3.in'
+        })
+        .to(node.position, {
+          z: baseZ,
+          duration: 0.18,
+          ease: 'power2.out'
+        });
     }
 
     if (this.drumHeads.kickFront) {
@@ -2039,6 +2649,22 @@ export class DrumKit3D {
       if (this.hihatPedalFootboard) {
         gsap.killTweensOf(this.hihatPedalFootboard.rotation);
         this.hihatPedalFootboard.rotation.x = HIHAT_PEDAL_DOWN_ANGLE;
+      }
+      if (this.kickFootboard) {
+        gsap.killTweensOf(this.kickFootboard.rotation);
+        this.kickFootboard.rotation.x = KICK_PEDAL_UP_ANGLE;
+      }
+      if (this.kickChain) {
+        gsap.killTweensOf(this.kickChain.rotation);
+        this.kickChain.rotation.x = KICK_CHAIN_UP_ANGLE;
+      }
+      if (this.beaterPivot) {
+        gsap.killTweensOf(this.beaterPivot.rotation);
+        this.beaterPivot.rotation.x = BEATER_REST_ANGLE;
+      }
+      if (this.drumRecoilNodes.kick?.node) {
+        gsap.killTweensOf(this.drumRecoilNodes.kick.node.position);
+        this.drumRecoilNodes.kick.node.position.z = this.drumRecoilNodes.kick.baseZ ?? -0.20;
       }
 
       this.preparedStrikes.clear();

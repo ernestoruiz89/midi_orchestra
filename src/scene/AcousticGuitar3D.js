@@ -18,6 +18,7 @@ export class AcousticGuitar3D {
     this.fretYPositions = [];
     this.stringTuningMidi = [40, 45, 50, 55, 59, 64];
     this.strumDir = 1;
+    this.floorElevation = 0;
 
     this._buildMaterials();
     this._buildBody();
@@ -113,17 +114,24 @@ export class AcousticGuitar3D {
       roughness: 0.34,
       metalness: 0.08
     });
+
+    // Cast studio chrome stand base plate (matching violin, saxophone, and flute stands)
+    this.standBaseMaterial = new THREE.MeshStandardMaterial({
+      color: 0xd8d8d8,
+      roughness: 0.14,
+      metalness: 0.92
+    });
   }
 
   _buildGuitarStand() {
     const stand = new THREE.Group();
 
-    // Use the same clean weighted-base language as the electric guitars.
+    // Use the same clean chrome weighted-base language as violin, sax, flute, and electric guitars.
     const base = new THREE.Mesh(
       new THREE.CylinderGeometry(0.14, 0.16, 0.04, 32),
-      this.blackMaterial
+      this.standBaseMaterial
     );
-    base.position.y = 0.02;
+    base.position.y = 0.021;
     base.castShadow = true;
     base.receiveShadow = true;
     stand.add(base);
@@ -174,17 +182,34 @@ export class AcousticGuitar3D {
     this._syncGuitarStand();
   }
 
+  _getFloorElevation() {
+    const sceneMgr = this.scene?.userData?.sceneManager || window.app?.sceneManager;
+    if (sceneMgr && typeof sceneMgr.getStageFloorElevation === 'function') {
+      return sceneMgr.getStageFloorElevation(this.group.position.x, this.group.position.z);
+    }
+    return this.floorElevation ?? 0;
+  }
+
+  setFloorElevation(elevation) {
+    this.floorElevation = elevation;
+    this._syncGuitarStand();
+  }
+
   _syncGuitarStand() {
     if (!this.standGroup) return;
 
-    const floorY = 0.04;
-    const cradleY = Math.max(0.44, this.group.position.y - 0.355);
-    const mastHeight = cradleY - floorY;
+    const floorElevation = this._getFloorElevation();
+    const baseDiscThickness = 0.04;
+    const cradleWorldY = Math.max(floorElevation + 0.40, this.group.position.y - 0.355);
+    const cradleLocalY = cradleWorldY - floorElevation;
+    const mastHeight = Math.max(0.15, cradleLocalY - baseDiscThickness);
 
-    this.standGroup.position.y = -this.group.position.y;
+    // Cancel instrument vertical offset relative to the floor elevation beneath it,
+    // ensuring the base disc sits solidly on top of the stage floor or riser deck.
+    this.standGroup.position.y = floorElevation - this.group.position.y;
     this.standMast.scale.y = mastHeight;
-    this.standMast.position.set(0, floorY + mastHeight * 0.5, -0.08);
-    this.standCradle.position.y = cradleY;
+    this.standMast.position.set(0, baseDiscThickness + mastHeight * 0.5, -0.08);
+    this.standCradle.position.y = cradleLocalY;
   }
 
   _createSpruceTexture(color) {

@@ -423,55 +423,15 @@ export class Stage {
   }
 
   /**
-   * Dynamically adapts the drum riser platform (tarima de la batería) to safely enclose
-   * all instruments placed on it, ensuring every stand foot, leg, and pedal rests solidly inside.
+   * The drum riser platform (tarima de la batería) maintains its authentic, original fixed dimensions
+   * (width: 4.80m, depth: 3.80m). All instruments placed on it are strictly constrained to fit inside.
    */
   updateRiserBounds(minX, maxX, minZ, maxZ) {
-    // Preserve minimum standard drum riser proportions (width >= 4.80m, depth >= 3.80m)
-    const finalMinX = Math.min(this.defaultRiserBounds.minX, minX);
-    const finalMaxX = Math.max(this.defaultRiserBounds.maxX, maxX);
-    const finalMinZ = Math.min(this.defaultRiserBounds.minZ, minZ);
-    const finalMaxZ = Math.max(this.defaultRiserBounds.maxZ, maxZ);
-
-    this.riserBounds = { minX: finalMinX, maxX: finalMaxX, minZ: finalMinZ, maxZ: finalMaxZ };
-
-    const width = finalMaxX - finalMinX;
-    const depth = finalMaxZ - finalMinZ;
-    const centerX = (finalMinX + finalMaxX) / 2;
-    const centerZ = (finalMinZ + finalMaxZ) / 2;
-
-    if (this.drumRiser) {
-      this.drumRiser.geometry.dispose();
-      this.drumRiser.geometry = new THREE.BoxGeometry(width, this.riserHeight, depth);
-      this.drumRiser.position.set(centerX, this.riserHeight / 2, centerZ);
-    }
-
-    if (this.drumRiserFrontTrim) {
-      this.drumRiserFrontTrim.geometry.dispose();
-      this.drumRiserFrontTrim.geometry = new THREE.BoxGeometry(width, 0.02, 0.03);
-      this.drumRiserFrontTrim.position.set(centerX, this.riserHeight + 0.01, centerZ + depth / 2);
-    }
-
-    if (this.drumRiserLeftTrim) {
-      this.drumRiserLeftTrim.geometry.dispose();
-      this.drumRiserLeftTrim.geometry = new THREE.BoxGeometry(0.03, 0.02, depth);
-      this.drumRiserLeftTrim.position.set(centerX - width / 2, this.riserHeight + 0.01, centerZ);
-    }
-
-    if (this.drumRiserRightTrim) {
-      this.drumRiserRightTrim.geometry.dispose();
-      this.drumRiserRightTrim.geometry = new THREE.BoxGeometry(0.03, 0.02, depth);
-      this.drumRiserRightTrim.position.set(centerX + width / 2, this.riserHeight + 0.01, centerZ);
-    }
+    this.riserBounds = { ...this.defaultRiserBounds };
   }
 
   resetRiserBounds() {
-    this.updateRiserBounds(
-      this.defaultRiserBounds.minX,
-      this.defaultRiserBounds.maxX,
-      this.defaultRiserBounds.minZ,
-      this.defaultRiserBounds.maxZ
-    );
+    this.riserBounds = { ...this.defaultRiserBounds };
   }
 
   pulseInstrumentSpotlight(instrumentName, velocity = 0.8) {
