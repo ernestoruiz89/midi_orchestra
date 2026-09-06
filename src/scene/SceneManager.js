@@ -859,14 +859,32 @@ export class SceneManager {
     this.scene.add(hemiLight);
 
     // Front stage wash light
-    const frontWash = new THREE.DirectionalLight(0xc6d7ff, 1.4);
+    const frontWash = new THREE.DirectionalLight(0xc6d7ff, 1.45);
     this.frontWash = frontWash;
     frontWash.position.set(0, 8, 12);
     frontWash.castShadow = true;
     frontWash.shadow.mapSize.width = this.isMobilePerformanceMode ? 1024 : 2048;
     frontWash.shadow.mapSize.height = this.isMobilePerformanceMode ? 1024 : 2048;
-    frontWash.shadow.bias = -0.0005;
+    frontWash.shadow.camera.left = -9;
+    frontWash.shadow.camera.right = 9;
+    frontWash.shadow.camera.top = 8;
+    frontWash.shadow.camera.bottom = -8;
+    frontWash.shadow.camera.near = 1;
+    frontWash.shadow.camera.far = 40;
+    frontWash.shadow.camera.updateProjectionMatrix();
+    frontWash.shadow.bias = -0.0003;
+    frontWash.shadow.normalBias = 0.02;
     this.scene.add(frontWash);
+
+    // A subtle centered fill maintains readability on the front deck and monitor faces
+    // without washing out the floor contact and cast shadows.
+    const frontFill = new THREE.DirectionalLight(0xe4eaff, 0.22);
+    frontFill.name = 'stage_front_fill';
+    frontFill.position.set(0, 4.5, 8);
+    frontFill.target.position.set(0, 0, 3.35);
+    frontFill.castShadow = false;
+    this.scene.add(frontFill, frontFill.target);
+
     if (this.isMobilePerformanceMode) {
       frontWash.color.setHex(0xffe8d5);
       frontWash.intensity = 2.2;
@@ -874,7 +892,7 @@ export class SceneManager {
       this.rimLight = rimLight;
       this.rimLightBaseColor = rimLight.color.clone();
       this.rimLightBaseIntensity = rimLight.intensity;
-      rimLight.position.set(-6, 5, -4);
+      rimLight.position.set(0, 5, -4);
       this.scene.add(rimLight);
     }
     this.frontWashBaseColor = frontWash.color.clone();
@@ -955,7 +973,7 @@ export class SceneManager {
       violin: 'violin',
       cello: 'cello',
       flute: 'flute',
-      xylophone: 'piano',
+      xylophone: 'drum',
       synth: 'piano',
       cabasa: 'drum',
       tambourine: 'drum',
@@ -964,13 +982,14 @@ export class SceneManager {
       whistle: 'drum',
       triangle: 'drum',
       congas: 'drum',
+      bongoCongas: 'drum',
       timbales: 'drum',
       harp: 'harp',
       harmonica: 'harmonica',
       accordion: 'accordion'
     };
     const spotName = spotMap[baseInst] || 'piano';
-    this.stage.pulseInstrumentSpotlight(spotName, velocity);
+    this.stage.pulseInstrumentSpotlight(spotName, velocity, duration);
   }
 
   // Handle Note-Off for 3D Instruments (supporting duplicate instances)
