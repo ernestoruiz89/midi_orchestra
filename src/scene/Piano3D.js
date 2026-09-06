@@ -26,6 +26,7 @@ export class Piano3D {
     this.keyMeshes = {};
     this.pedalTongue = null;
     this.activeNoteCount = 0;
+    this.pressedWhiteColor = new THREE.Color(0x00b9d4);
     this.displayCanvas = null;
     this.displayContext = null;
     this.displayTexture = null;
@@ -177,11 +178,10 @@ export class Piano3D {
     ctx.fillStyle = '#040914';
     ctx.fillRect(0, 0, 512, 128);
 
-    // Subtle scanlines
+    // Fine display scanlines add the character of an OLED panel without
+    // covering the preset lettering.
     ctx.fillStyle = 'rgba(0, 200, 255, 0.03)';
-    for (let y = 0; y < 128; y += 4) {
-      ctx.fillRect(0, y, 512, 2);
-    }
+    for (let y = 0; y < 128; y += 4) ctx.fillRect(0, y, 512, 2);
 
     // Top status line
     ctx.fillStyle = '#4da6ff';
@@ -190,23 +190,13 @@ export class Piano3D {
 
     // Main MIDI preset name (updated when the assigned track is known).
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 36px "Segoe UI", sans-serif';
-    ctx.fillText(`01: ${this.midiProgramLabel}`, 16, 68);
+    ctx.font = 'bold 30px "Segoe UI", sans-serif';
+    ctx.fillText(this.midiProgramLabel, 16, 68);
 
     // Subtitle / Settings
     ctx.fillStyle = '#00ffcc';
     ctx.font = '18px "Segoe UI", sans-serif';
     ctx.fillText('DYNAMIC STEREO  |  REV: 28%  |  TOUCH: HEAVY', 16, 104);
-
-    // VU meter bars on the right
-    ctx.fillStyle = '#102236';
-    ctx.fillRect(426, 18, 70, 42);
-    ctx.fillRect(426, 68, 70, 42);
-    ctx.fillStyle = '#00ffaa';
-    ctx.fillRect(428, 22, 50, 14);
-    ctx.fillRect(428, 40, 44, 14);
-    ctx.fillRect(428, 72, 56, 14);
-    ctx.fillRect(428, 90, 52, 14);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.minFilter = THREE.LinearFilter;
@@ -229,16 +219,11 @@ export class Piano3D {
     const midiChannel = Number.isInteger(channel) ? String(channel + 1).padStart(2, '0') : '01';
     ctx.fillText(`MIDI CH: ${midiChannel}   PROGRAM: ${Number.isInteger(programNumber) ? String(programNumber + 1).padStart(3, '0') : '---'}`, 16, 24);
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 36px "Segoe UI", sans-serif';
-    ctx.fillText(`01: ${label}`, 16, 68);
+    ctx.font = 'bold 30px "Segoe UI", sans-serif';
+    ctx.fillText(label, 16, 68);
     ctx.fillStyle = '#00ffcc';
     ctx.font = '18px "Segoe UI", sans-serif';
     ctx.fillText('GENERAL MIDI PRESET  |  DYNAMIC STEREO', 16, 104);
-    ctx.fillStyle = '#102236';
-    ctx.fillRect(426, 18, 70, 42); ctx.fillRect(426, 68, 70, 42);
-    ctx.fillStyle = '#00ffaa';
-    ctx.fillRect(428, 22, 50, 14); ctx.fillRect(428, 40, 44, 14);
-    ctx.fillRect(428, 72, 56, 14); ctx.fillRect(428, 90, 52, 14);
     if (this.displayTexture) this.displayTexture.needsUpdate = true;
   }
 
@@ -1012,29 +997,43 @@ export class Piano3D {
   }
 
   // Note-On Event Trigger
-  onNoteOn(midiPitch, velocity = 0.8) {
+  onNoteOn(midiPitch, velocity = 0.8, eventTime = null, trackIndex = null, duration = 0.5) {
     const keyData = this.keyMeshes[midiPitch];
     if (!keyData) return;
 
     keyData.activeCount++;
     this.activeNoteCount++;
-    const vel = Math.max(0.4, Math.min(1.0, velocity));
+    const vel = THREE.MathUtils.clamp(velocity, 0, 1);
 
     // Responsive mechanical downward key rotation
-    const maxDepressAngle = keyData.isBlack ? 0.055 : 0.068;
-    const targetAngle = maxDepressAngle * (0.6 + 0.4 * vel);
+    const maxDepressAngle = keyData.isBlack ? 0.065 : 0.075;
+    const targetAngle = maxDepressAngle * (0.75 + 0.25 * vel);
+    const attackTime = THREE.MathUtils.clamp(duration * 0.4, 0.012, 0.03);
 
-    gsap.killTweensOf(keyData.pivot.rotation);
+    // Cancel the previous release, including its light/color fade. A repeated
+    // pitch must get a fresh stroke even when its note envelopes overlap.
+    gsap.killTweensOf([keyData.pivot.rotation, keyData.mat, keyData.mat.color]);
+    keyData.pivot.rotation.x *= 0.18;
     gsap.to(keyData.pivot.rotation, {
       x: targetAngle,
-      duration: 0.035,
-      ease: 'power3.out'
+      duration: attackTime,
+      ease: 'power2.out'
     });
 
     // Glow highlight on key
-    const emissiveColor = keyData.isBlack ? 0x00d4ff : 0x00f0ff;
+    const emissiveColor = 0x00b9d4;
     keyData.mat.emissive.setHex(emissiveColor);
-    keyData.mat.emissiveIntensity = 0.85 * vel;
+    keyData.mat.color.setHex(keyData.baseColor);
+    if (!keyData.isBlack) {
+      // Match the black keys' cyan highlight while keeping ivory keys distinct.
+      keyData.mat.color.copy(this.pressedWhiteColor);
+    }
+    keyData.mat.emissiveIntensity = 0.24 + 0.3 * vel;
+    gsap.to(keyData.mat, {
+      emissiveIntensity: 0.12 + 0.16 * vel,
+      duration: 0.07,
+      ease: 'power1.out'
+    });
 
     // Sustain pedal reactive foot depression on floor
     if (this.pedalTongue) {
@@ -1052,27 +1051,23 @@ export class Piano3D {
     const keyData = this.keyMeshes[midiPitch];
     if (!keyData) return;
 
-    if (force) {
-      keyData.activeCount = 0;
-    } else {
-      keyData.activeCount = Math.max(0, keyData.activeCount - 1);
-    }
+    const releasedCount = force ? keyData.activeCount : Math.min(1, keyData.activeCount);
+    keyData.activeCount -= releasedCount;
+    this.activeNoteCount = Math.max(0, this.activeNoteCount - releasedCount);
 
     if (keyData.activeCount === 0) {
-      this.activeNoteCount = Math.max(0, this.activeNoteCount - 1);
-
-      gsap.killTweensOf(keyData.pivot.rotation);
-      gsap.to(keyData.pivot.rotation, {
-        x: 0,
-        duration: 0.08,
-        ease: 'elastic.out(1.2, 0.6)'
-      });
-
-      gsap.to(keyData.mat, {
-        emissiveIntensity: 0,
-        duration: 0.12,
-        ease: 'power2.out'
-      });
+      gsap.killTweensOf([keyData.pivot.rotation, keyData.mat, keyData.mat.color]);
+      if (force) {
+        keyData.pivot.rotation.x = 0;
+        keyData.mat.emissiveIntensity = 0;
+        keyData.mat.color.setHex(keyData.baseColor);
+      } else {
+        // A damped return leaves a clear gap between staccato notes.
+        gsap.to(keyData.pivot.rotation, { x: 0, duration: 0.055, ease: 'power2.out' });
+        gsap.to(keyData.mat, { emissiveIntensity: 0, duration: 0.055, ease: 'power2.out' });
+        const base = new THREE.Color(keyData.baseColor);
+        gsap.to(keyData.mat.color, { r: base.r, g: base.g, b: base.b, duration: 0.055, ease: 'power2.out' });
+      }
     }
 
     // Release sustain pedal when all notes end

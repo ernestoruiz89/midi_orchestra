@@ -61,9 +61,9 @@ export class CameraController {
       cello_closeup: { pos: new THREE.Vector3(-3.15, 1.35, 0.30), target: new THREE.Vector3(-3.30, 1.25, -1.20) },
       flute: { pos: new THREE.Vector3(1.60, 1.52, 3.05), target: new THREE.Vector3(1.60, 1.46, 1.80) },
       flute_closeup: { pos: new THREE.Vector3(1.60, 1.50, 2.65), target: new THREE.Vector3(1.60, 1.46, 1.80) },
-      xylophone: { pos: new THREE.Vector3(-3.00, 1.78, 2.10), target: new THREE.Vector3(-3.54, 0.96, 0.38) },
-      xylophone_topdown: { pos: new THREE.Vector3(-3.37, 2.45, 0.70), target: new THREE.Vector3(-3.54, 0.96, 0.38) },
-      xylophone_closeup: { pos: new THREE.Vector3(-3.23, 1.30, 1.15), target: new THREE.Vector3(-3.54, 0.96, 0.38) },
+      xylophone: { pos: new THREE.Vector3(-3.00, 1.58, 2.10), target: new THREE.Vector3(-3.54, 0.76, 0.38) },
+      xylophone_topdown: { pos: new THREE.Vector3(-3.37, 2.25, 0.70), target: new THREE.Vector3(-3.54, 0.76, 0.38) },
+      xylophone_closeup: { pos: new THREE.Vector3(-3.23, 1.10, 1.15), target: new THREE.Vector3(-3.54, 0.76, 0.38) },
       cabasa: { pos: new THREE.Vector3(-1.35, 1.25, 1.55), target: new THREE.Vector3(-1.35, 1.05, 0.65) },
       cabasa_closeup: { pos: new THREE.Vector3(-1.35, 1.15, 1.15), target: new THREE.Vector3(-1.35, 1.05, 0.65) },
       tambourine: { pos: new THREE.Vector3(-2.15, 1.35, 0.75), target: new THREE.Vector3(-1.65, 1.15, 0.15) },
@@ -274,7 +274,7 @@ export class CameraController {
     }
 
     if (name.startsWith('xylophone')) {
-      // In Xylophone3D, group.position.y is already at ~0.95m; bars are at local y: 0.02
+      // In Xylophone3D, group.position.y is at ~0.75m; bars are at local y: 0.02
       // Full overhead concert view: frames the entire wooden keyboard from bass to treble with clean margins
       this.presets[name] = {
         pos: localToWorld(0.0, 1.10, 1.75),

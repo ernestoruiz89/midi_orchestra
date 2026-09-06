@@ -259,7 +259,7 @@ export const instrumentFactories = {
   },
   xylophone_2: (scene) => {
     const instrument = new Xylophone3D(scene);
-    instrument.group.position.set(0.9, 0.95, 2.6);
+    instrument.group.position.set(0.9, 0.7485, 2.6);
     instrument.group.visible = false;
     instrument.group.rotation.y = Math.PI * 0.14;
     return instrument;

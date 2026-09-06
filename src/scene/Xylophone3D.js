@@ -15,8 +15,8 @@ export class Xylophone3D {
   constructor(scene) {
     this.scene = scene;
     this.group = new THREE.Group();
-    // Positioned front-center stage with natural stage angle
-    this.group.position.set(0, 0.95, 1.6);
+    // Positioned with wheels resting flush on the stage floor (caster bottom at y = -0.7485)
+    this.group.position.set(0, 0.7485, 1.6);
     this.group.rotation.set(0, Math.PI * 0.14, 0);
 
     this.bars = {};
