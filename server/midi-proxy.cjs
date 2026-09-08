@@ -67,7 +67,12 @@ async function getRemoteResponse(url, redirectsRemaining = 3) {
       'Accept': 'audio/midi,audio/sp-midi,application/octet-stream;q=0.9,*/*;q=0.1'
     },
     servername: url.hostname,
-    lookup: (_hostname, _options, callback) => callback(null, address.address, address.family),
+    lookup: (_hostname, lookupOptions, callback) => {
+      // Node may request every address when automatic family selection is on.
+      // Return the already-vetted address in the shape it expects in either mode.
+      if (lookupOptions?.all) return callback(null, [address]);
+      return callback(null, address.address, address.family);
+    },
     timeout: requestTimeoutMs
   };
 
