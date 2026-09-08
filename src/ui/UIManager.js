@@ -17,8 +17,6 @@ export class UIManager {
     this.previousMasterVolume = soundEngine.masterVolume;
     this.showAllInstruments = localStorage.getItem('midi_orchestra_instrument_visibility') === 'all';
     this._shareSongId = null;
-    this._shareLastSecond = null;
-    this._shareLastUrlUpdateAt = 0;
 
     this._cacheDOM();
     this._bindPlaybackControls();
@@ -203,7 +201,6 @@ export class UIManager {
       const val = parseFloat(e.target.value);
       const targetTime = (val / 100) * this.midiPlayer.duration;
       this.midiPlayer.seek(targetTime);
-      this._syncShareUrl(targetTime, { force: true });
       this.isSeeking = false;
     });
 
@@ -482,8 +479,6 @@ export class UIManager {
     this.dom.songBpm.textContent = `${this.midiPlayer.bpm} BPM`;
     this.dom.timeTotal.textContent = this._formatTime(this.midiPlayer.duration);
     this._shareSongId = selectedSongId;
-    this._shareLastSecond = null;
-    this._shareLastUrlUpdateAt = 0;
 
     const shouldStart = typeof startTime === 'number' && Number.isFinite(startTime)
       ? Math.min(Math.max(0, startTime), Math.max(0, this.midiPlayer.duration))
@@ -491,7 +486,7 @@ export class UIManager {
     if (shouldStart > 0) {
       this.midiPlayer.seek(shouldStart);
     }
-    this._syncShareUrl(shouldStart, { force: true });
+    this._syncShareUrl(shouldStart);
 
     // Always reset to Stage Overview by default
     this.sceneManager.cameraController.setPreset('overview', 0.8);
@@ -561,8 +556,6 @@ export class UIManager {
       this.dom.songBpm.textContent = `${this.midiPlayer.bpm} BPM`;
       this.dom.timeTotal.textContent = this._formatTime(this.midiPlayer.duration);
       this._shareSongId = null;
-      this._shareLastSecond = null;
-      this._shareLastUrlUpdateAt = 0;
       this._clearShareUrl();
 
       // Always reset to Stage Overview by default
@@ -935,7 +928,6 @@ export class UIManager {
         this.dom.seekSlider.value = percent;
         this.dom.timeCurrent.textContent = this._formatTime(current);
       }
-      this._syncShareUrl(current);
     };
 
     // State Change (Play/Pause/Stop)
@@ -1083,7 +1075,7 @@ export class UIManager {
     const copyCurrentLink = async () => {
       if (!this._shareSongId) return;
 
-      this._syncShareUrl(this.midiPlayer?.currentTime || 0, { force: true });
+      this._syncShareUrl(this.midiPlayer?.currentTime || 0);
       const copied = await this._copyShareUrlToClipboard();
       const isEs = i18n.getLocale() === 'es';
       this.showToast(copied
@@ -1161,38 +1153,24 @@ export class UIManager {
     window.history.replaceState({}, '', targetUrl);
   }
 
-  _syncShareUrl(currentTime, { force = false } = {}) {
+  _syncShareUrl(currentTime) {
     if (!this._shareSongId) return;
     if (typeof this._shareSongId !== 'string') {
       return;
     }
 
-    const now = performance.now();
     const targetSecond = Math.max(0, Math.floor(currentTime || 0));
-    if (!force && targetSecond === this._shareLastSecond && now - this._shareLastUrlUpdateAt < 1000) {
-      return;
-    }
-    if (!force && targetSecond === this._shareLastSecond) return;
-
     const clamped = this.midiPlayer?.duration
       ? Math.min(targetSecond, Math.max(0, this.midiPlayer.duration))
       : targetSecond;
 
     const params = new URLSearchParams(window.location.search);
     params.set('song', this._shareSongId);
-
-    if (clamped > 0.5) {
-      params.set('t', this._formatShareTime(clamped));
-    } else {
-      params.delete('t');
-    }
+    params.set('t', this._formatShareTime(clamped));
 
     const query = params.toString();
     const targetUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
     window.history.replaceState({}, '', targetUrl);
-
-    this._shareLastSecond = targetSecond;
-    this._shareLastUrlUpdateAt = now;
   }
 
   showToast(msg) {
