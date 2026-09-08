@@ -623,7 +623,7 @@ export class UIManager {
     try {
       const fileName = this._getMidiUrlFileName(midiUrl);
       this.showToast(i18n.t('toasts.processingFile', fileName));
-      const response = await fetch(midiUrl.toString());
+      const response = await this._fetchRemoteMidi(midiUrl);
       if (!response.ok) throw new Error(`Unable to load MIDI URL (${response.status})`);
 
       await this.midiPlayer.loadMidiData(await response.arrayBuffer(), fileName);
@@ -659,6 +659,17 @@ export class UIManager {
   _getMidiUrlFileName(url) {
     const basename = decodeURIComponent(url.pathname.split('/').pop() || 'shared-midi.mid');
     return basename.match(/\.(mid|midi|kar)$/i) ? basename : `${basename || 'shared-midi'}.mid`;
+  }
+
+  async _fetchRemoteMidi(midiUrl) {
+    const isLocalDevelopment = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    if (isLocalDevelopment) {
+      return fetch(midiUrl.toString());
+    }
+
+    const proxyUrl = new URL('/midi-proxy', window.location.origin);
+    proxyUrl.searchParams.set('url', midiUrl.toString());
+    return fetch(proxyUrl.toString());
   }
 
   _bindMixerDrawer() {

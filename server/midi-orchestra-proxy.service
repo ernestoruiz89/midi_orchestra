@@ -1,0 +1,23 @@
+[Unit]
+Description=MIDI Orchestra controlled remote MIDI proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+Environment=HOST=127.0.0.1
+Environment=PORT=8787
+Environment=CACHE_DIR=/var/cache/midi-orchestra-proxy
+ExecStart=/usr/local/bin/node /var/www/midi.appnica.com/repository/server/midi-proxy.cjs
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/cache/midi-orchestra-proxy
+
+[Install]
+WantedBy=multi-user.target
