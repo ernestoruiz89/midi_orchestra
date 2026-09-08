@@ -848,6 +848,98 @@ body {
   margin-bottom: 18px;
 }
 
+.midi-source-card {
+  width: min(90vw, 560px);
+}
+
+.midi-source-body {
+  display: grid;
+  gap: 18px;
+}
+
+.midi-source-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid rgba(0, 240, 255, 0.24);
+  border-radius: var(--radius-md);
+  background: rgba(0, 240, 255, 0.06);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.midi-source-option:hover,
+.midi-source-option:focus-visible {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: var(--accent-cyan);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.midi-source-icon {
+  font-size: 1.6rem;
+}
+
+.midi-source-option strong,
+.midi-source-option small {
+  display: block;
+}
+
+.midi-source-option small,
+.midi-url-note {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.midi-source-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.midi-source-divider::before,
+.midi-source-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--panel-border);
+}
+
+.midi-url-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.midi-url-row {
+  display: flex;
+  gap: 8px;
+}
+
+.midi-url-row input {
+  min-width: 0;
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.midi-url-row input:focus {
+  border-color: var(--accent-cyan);
+  outline: none;
+}
+
 /* Demo Songs Grid */
 .demo-songs-grid {
   display: grid;

@@ -58,11 +58,11 @@
         <span data-i18n="nav.demoSongs">Demo Songs</span>
       </button>
 
-      <label class="btn btn-primary file-upload-btn">
+      <button id="btn-open-midi" class="btn btn-primary" aria-haspopup="dialog" aria-controls="modal-midi-source">
         <span class="btn-icon">📁</span>
         <span data-i18n="nav.loadMidi">Load MIDI</span>
-        <input type="file" id="file-input" accept=".mid,.midi,.kar" style="display: none;" />
-      </label>
+      </button>
+      <input type="file" id="file-input" accept=".mid,.midi,.kar" style="display: none;" />
 
       <button id="btn-open-tracks" class="btn btn-icon-only" title="MIDI Track Mapping" data-i18n-title="nav.tracksMap">
         <span>🎛️</span>
@@ -217,6 +217,36 @@
       <div class="modal-body">
         <p class="modal-subtitle" data-i18n="demoModal.subtitle">Select any musical arrangement to play the 3D orchestra instantly:</p>
         <div id="demo-songs-list" class="demo-songs-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MIDI Source Selector Modal -->
+  <div id="modal-midi-source" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="midi-source-title">
+    <div class="modal-card midi-source-card glass-panel">
+      <div class="modal-header">
+        <h2 id="midi-source-title" data-i18n="midiSource.title">📁 Load MIDI</h2>
+        <button class="modal-close" id="btn-close-midi-source" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body midi-source-body">
+        <button id="btn-select-midi-file" class="midi-source-option" type="button">
+          <span class="midi-source-icon">💻</span>
+          <span>
+            <strong data-i18n="midiSource.fileTitle">Choose a file</strong>
+            <small data-i18n="midiSource.fileHint">.mid, .midi or .kar from this device</small>
+          </span>
+        </button>
+
+        <div class="midi-source-divider"><span data-i18n="midiSource.or">or</span></div>
+
+        <form id="form-midi-url" class="midi-url-form">
+          <label for="input-midi-url" data-i18n="midiSource.urlLabel">MIDI file URL</label>
+          <div class="midi-url-row">
+            <input id="input-midi-url" type="url" inputmode="url" autocomplete="url" placeholder="https://example.com/song.mid" required />
+            <button class="btn btn-primary" type="submit" data-i18n="midiSource.loadUrl">Load URL</button>
+          </div>
+          <p class="midi-url-note" data-i18n="midiSource.urlHint">The file host must allow browser access (CORS). URL-loaded MIDI files can be shared.</p>
+        </form>
       </div>
     </div>
   </div>

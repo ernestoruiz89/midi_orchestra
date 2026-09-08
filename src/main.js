@@ -59,6 +59,17 @@ function parseShareTime(rawTime) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function resolveRemoteMidiUrl(rawUrl) {
+  if (typeof rawUrl !== 'string' || !rawUrl.trim()) return null;
+
+  try {
+    const url = new URL(rawUrl.trim());
+    return ['http:', 'https:'].includes(url.protocol) ? url.toString() : null;
+  } catch (err) {
+    return null;
+  }
+}
+
 // Application Bootstrap
 async function bootstrap() {
   const canvasContainer = document.getElementById('canvas-container');
@@ -80,14 +91,25 @@ async function bootstrap() {
 
   const searchParams = new URLSearchParams(window.location.search);
   const requestedSong = resolveDemoSongId(searchParams.get('song') || searchParams.get('demo'));
+  const requestedMidiUrl = resolveRemoteMidiUrl(searchParams.get('midi'));
   const requestedTime = parseShareTime(searchParams.get('t'));
 
   // 4. Preload the default demo without starting audio. Playback must always
   // follow an explicit Play click or demo-song selection.
-  await uiManager.loadDemoSong(requestedSong, {
-    autoplay: false,
-    startTime: requestedTime
-  });
+  if (requestedMidiUrl) {
+    const loaded = await uiManager.loadMidiFromUrl(requestedMidiUrl, {
+      autoplay: false,
+      startTime: requestedTime
+    });
+    if (!loaded) {
+      await uiManager.loadDemoSong(DEFAULT_DEMO_ID, { autoplay: false });
+    }
+  } else {
+    await uiManager.loadDemoSong(requestedSong, {
+      autoplay: false,
+      startTime: requestedTime
+    });
+  }
 
   // Show welcome toast
   uiManager.showToast(i18n.t('toasts.welcome'));

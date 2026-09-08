@@ -17,6 +17,7 @@ export class UIManager {
     this.previousMasterVolume = soundEngine.masterVolume;
     this.showAllInstruments = localStorage.getItem('midi_orchestra_instrument_visibility') === 'all';
     this._shareSongId = null;
+    this._shareMidiUrl = null;
 
     this._cacheDOM();
     this._bindPlaybackControls();
@@ -25,6 +26,7 @@ export class UIManager {
     this._bindVirtualBandStrip();
     this._bindDemoSongsModal();
     this._bindFileUploadAndDropzone();
+    this._bindMidiSourceModal();
     this._bindMixerDrawer();
     this._bindMidiOutputSelector();
     this._bindTrackInspectorModal();
@@ -60,6 +62,7 @@ export class UIManager {
       // Header Buttons
       btnToggleLang: document.getElementById('btn-toggle-lang'),
       btnOpenSongs: document.getElementById('btn-open-songs'),
+      btnOpenMidi: document.getElementById('btn-open-midi'),
       fileInput: document.getElementById('file-input'),
       btnOpenTracks: document.getElementById('btn-open-tracks'),
       btnToggleMixer: document.getElementById('btn-toggle-mixer'),
@@ -94,6 +97,11 @@ export class UIManager {
       modalSongs: document.getElementById('modal-songs'),
       btnCloseSongs: document.getElementById('btn-close-songs'),
       demoSongsList: document.getElementById('demo-songs-list'),
+      modalMidiSource: document.getElementById('modal-midi-source'),
+      btnCloseMidiSource: document.getElementById('btn-close-midi-source'),
+      btnSelectMidiFile: document.getElementById('btn-select-midi-file'),
+      formMidiUrl: document.getElementById('form-midi-url'),
+      inputMidiUrl: document.getElementById('input-midi-url'),
 
       drawerMixer: document.getElementById('drawer-mixer'),
       btnCloseMixer: document.getElementById('btn-close-mixer'),
@@ -475,10 +483,11 @@ export class UIManager {
     this._applyActiveInstruments(this.midiPlayer.getActiveInstruments());
 
     this.dom.songTitle.textContent = this.midiPlayer.songName;
-    this._setSongTitleShareable(true);
     this.dom.songBpm.textContent = `${this.midiPlayer.bpm} BPM`;
     this.dom.timeTotal.textContent = this._formatTime(this.midiPlayer.duration);
     this._shareSongId = selectedSongId;
+    this._shareMidiUrl = null;
+    this._setSongTitleShareable(true);
 
     const shouldStart = typeof startTime === 'number' && Number.isFinite(startTime)
       ? Math.min(Math.max(0, startTime), Math.max(0, this.midiPlayer.duration))
@@ -503,7 +512,9 @@ export class UIManager {
       const file = e.target.files[0];
       if (file) {
         await this._handleFile(file);
+        this.dom.modalMidiSource.classList.add('hidden');
       }
+      e.target.value = '';
     });
 
     // Drag and Drop
@@ -540,6 +551,33 @@ export class UIManager {
     });
   }
 
+  _bindMidiSourceModal() {
+    const close = () => {
+      this.dom.modalMidiSource.classList.add('hidden');
+      this.dom.btnOpenMidi.focus();
+    };
+
+    this.dom.btnOpenMidi.addEventListener('click', () => {
+      this.dom.modalMidiSource.classList.remove('hidden');
+      this.dom.inputMidiUrl.focus();
+    });
+    this.dom.btnCloseMidiSource.addEventListener('click', close);
+    this.dom.modalMidiSource.addEventListener('click', (event) => {
+      if (event.target === this.dom.modalMidiSource) close();
+    });
+    this.dom.btnSelectMidiFile.addEventListener('click', () => {
+      this.dom.fileInput.click();
+    });
+    this.dom.formMidiUrl.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const loaded = await this.loadMidiFromUrl(this.dom.inputMidiUrl.value);
+      if (loaded) close();
+    });
+    this.dom.modalMidiSource.addEventListener('keydown', event => {
+      if (event.key === 'Escape') close();
+    });
+  }
+
   async _handleFile(file) {
     if (!file.name.match(/\.(mid|midi|kar)$/i)) {
       this.showToast(i18n.t('toasts.invalidFile'));
@@ -556,6 +594,7 @@ export class UIManager {
       this.dom.songBpm.textContent = `${this.midiPlayer.bpm} BPM`;
       this.dom.timeTotal.textContent = this._formatTime(this.midiPlayer.duration);
       this._shareSongId = null;
+      this._shareMidiUrl = null;
       this._clearShareUrl();
 
       // Always reset to Stage Overview by default
@@ -569,6 +608,57 @@ export class UIManager {
       console.error('Error al cargar archivo MIDI:', err);
       this.showToast(i18n.t('toasts.fileError'));
     }
+  }
+
+  async loadMidiFromUrl(rawUrl, { autoplay = true, startTime = null } = {}) {
+    let midiUrl;
+    try {
+      midiUrl = new URL(String(rawUrl || '').trim());
+      if (!['http:', 'https:'].includes(midiUrl.protocol)) throw new Error('Unsupported protocol');
+    } catch (err) {
+      this.showToast(i18n.t('toasts.urlInvalid'));
+      return false;
+    }
+
+    try {
+      const fileName = this._getMidiUrlFileName(midiUrl);
+      this.showToast(i18n.t('toasts.processingFile', fileName));
+      const response = await fetch(midiUrl.toString());
+      if (!response.ok) throw new Error(`Unable to load MIDI URL (${response.status})`);
+
+      await this.midiPlayer.loadMidiData(await response.arrayBuffer(), fileName);
+      this._applyActiveInstruments(this.midiPlayer.getActiveInstruments());
+
+      this.dom.songTitle.textContent = this.midiPlayer.songName;
+      this.dom.songBpm.textContent = `${this.midiPlayer.bpm} BPM`;
+      this.dom.timeTotal.textContent = this._formatTime(this.midiPlayer.duration);
+      this._shareSongId = null;
+      this._shareMidiUrl = midiUrl.toString();
+      this._setSongTitleShareable(true);
+
+      const shouldStart = typeof startTime === 'number' && Number.isFinite(startTime)
+        ? Math.min(Math.max(0, startTime), Math.max(0, this.midiPlayer.duration))
+        : 0;
+      if (shouldStart > 0) this.midiPlayer.seek(shouldStart);
+      this._syncShareUrl(shouldStart);
+
+      this.sceneManager.cameraController.setPreset('overview', 0.8);
+      this.dom.camButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === 'overview'));
+      if (this.dom.btnDirectorMode) this.dom.btnDirectorMode.classList.remove('active');
+
+      this.showToast(i18n.t('toasts.fileLoaded', this.midiPlayer.trackInfos.length));
+      if (autoplay) await this.midiPlayer.play();
+      return true;
+    } catch (err) {
+      console.error('Error loading MIDI URL:', err);
+      this.showToast(i18n.t('toasts.urlError'));
+      return false;
+    }
+  }
+
+  _getMidiUrlFileName(url) {
+    const basename = decodeURIComponent(url.pathname.split('/').pop() || 'shared-midi.mid');
+    return basename.match(/\.(mid|midi|kar)$/i) ? basename : `${basename || 'shared-midi'}.mid`;
   }
 
   _bindMixerDrawer() {
@@ -826,7 +916,7 @@ export class UIManager {
 
   _onLocaleChanged(locale) {
     this._bindDemoSongsModal();
-    this._setSongTitleShareable(Boolean(this._shareSongId));
+    this._setSongTitleShareable(Boolean(this._shareSongId || this._shareMidiUrl));
     this._updateInstrumentVisibilityButton();
     if (this.midiPlayer && this.midiPlayer.trackInfos && this.midiPlayer.trackInfos.length > 0) {
       this._renderTracksTable();
@@ -1073,7 +1163,7 @@ export class UIManager {
     if (!this.dom.songTitle) return;
 
     const copyCurrentLink = async () => {
-      if (!this._shareSongId) return;
+      if (!this._shareSongId && !this._shareMidiUrl) return;
 
       this._syncShareUrl(this.midiPlayer?.currentTime || 0);
       const copied = await this._copyShareUrlToClipboard();
@@ -1146,6 +1236,7 @@ export class UIManager {
   _clearShareUrl() {
     const params = new URLSearchParams(window.location.search);
     params.delete('song');
+    params.delete('midi');
     params.delete('t');
 
     const query = params.toString();
@@ -1154,8 +1245,9 @@ export class UIManager {
   }
 
   _syncShareUrl(currentTime) {
-    if (!this._shareSongId) return;
-    if (typeof this._shareSongId !== 'string') {
+    const isDemoSong = typeof this._shareSongId === 'string';
+    const isRemoteMidi = typeof this._shareMidiUrl === 'string';
+    if (!isDemoSong && !isRemoteMidi) {
       return;
     }
 
@@ -1165,7 +1257,13 @@ export class UIManager {
       : targetSecond;
 
     const params = new URLSearchParams(window.location.search);
-    params.set('song', this._shareSongId);
+    params.delete('song');
+    params.delete('midi');
+    if (isRemoteMidi) {
+      params.set('midi', this._shareMidiUrl);
+    } else {
+      params.set('song', this._shareSongId);
+    }
     params.set('t', this._formatShareTime(clamped));
 
     const query = params.toString();

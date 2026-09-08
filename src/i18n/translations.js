@@ -21,6 +21,15 @@ export const translations = {
       controlsGuide: 'Controls Guide',
       langToggleTitle: 'Switch language / Cambiar idioma'
     },
+    midiSource: {
+      title: '📁 Load MIDI',
+      fileTitle: 'Choose a file',
+      fileHint: '.mid, .midi or .kar from this device',
+      or: 'or',
+      urlLabel: 'MIDI file URL',
+      loadUrl: 'Load URL',
+      urlHint: 'The file host must allow browser access (CORS). URL-loaded MIDI files can be shared.'
+    },
     dropzone: {
       title: 'Drop your MIDI file here',
       subtitle: 'Supported formats: .mid, .midi, .kar (Automatic multi-track)'
@@ -201,6 +210,8 @@ export const translations = {
       processingFile: (name) => `Processing file: ${name}...`,
       fileLoaded: (count) => `✅ File loaded (${count} tracks)`,
       fileError: '❌ Error processing MIDI file',
+      urlInvalid: '⚠️ Enter a valid http:// or https:// MIDI URL',
+      urlError: '❌ Could not load this MIDI URL. Check the link and CORS permission.',
       trackAssigned: (track, inst) => `Track "${track}" assigned to ${inst}`,
       songRestarted: '⏮️ Restarted to beginning',
       cameraShortcut: (slot, instrument) => `📷 Camera ${slot}: ${instrument}`,
@@ -279,6 +290,15 @@ export const translations = {
       audioMixer: 'Mezclador de Audio',
       controlsGuide: 'Guía de Controles',
       langToggleTitle: 'Cambiar idioma / Switch language'
+    },
+    midiSource: {
+      title: '📁 Cargar MIDI',
+      fileTitle: 'Elegir un archivo',
+      fileHint: '.mid, .midi o .kar desde este dispositivo',
+      or: 'o',
+      urlLabel: 'URL del archivo MIDI',
+      loadUrl: 'Cargar URL',
+      urlHint: 'El servidor del archivo debe permitir el acceso desde el navegador (CORS). Los MIDI cargados por URL se pueden compartir.'
     },
     dropzone: {
       title: 'Suelta tu archivo MIDI aquí',
@@ -460,6 +480,8 @@ export const translations = {
       processingFile: (name) => `Procesando archivo: ${name}...`,
       fileLoaded: (count) => `✅ Archivo cargado (${count} pistas)`,
       fileError: '❌ Error al procesar el archivo MIDI',
+      urlInvalid: '⚠️ Ingresa una URL MIDI válida con http:// o https://',
+      urlError: '❌ No se pudo cargar esta URL MIDI. Revisa el enlace y el permiso CORS.',
       trackAssigned: (track, inst) => `Pista "${track}" asignada a ${inst}`,
       songRestarted: '⏮️ Reiniciada al inicio',
       cameraShortcut: (slot, instrument) => `📷 Cámara ${slot}: ${instrument}`,
