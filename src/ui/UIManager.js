@@ -16,9 +16,13 @@ export class UIManager {
     this.isMutedMaster = false;
     this.previousMasterVolume = soundEngine.masterVolume;
     this.showAllInstruments = localStorage.getItem('midi_orchestra_instrument_visibility') === 'all';
+    this._shareSongId = null;
+    this._shareLastSecond = null;
+    this._shareLastUrlUpdateAt = 0;
 
     this._cacheDOM();
     this._bindPlaybackControls();
+    this._bindSongTitleShare();
     this._bindCameraToolbar();
     this._bindVirtualBandStrip();
     this._bindDemoSongsModal();
@@ -199,6 +203,7 @@ export class UIManager {
       const val = parseFloat(e.target.value);
       const targetTime = (val / 100) * this.midiPlayer.duration;
       this.midiPlayer.seek(targetTime);
+      this._syncShareUrl(targetTime, { force: true });
       this.isSeeking = false;
     });
 
@@ -440,8 +445,9 @@ export class UIManager {
     });
   }
 
-  async loadDemoSong(songId, { autoplay = true } = {}) {
+  async loadDemoSong(songId, { autoplay = true, startTime = null } = {}) {
     const song = DemoSongs.getSongsList().find(item => item.id === songId);
+    const selectedSongId = song?.id || songId;
     this.midiPlayer.stop();
 
     try {
@@ -472,8 +478,20 @@ export class UIManager {
     this._applyActiveInstruments(this.midiPlayer.getActiveInstruments());
 
     this.dom.songTitle.textContent = this.midiPlayer.songName;
+    this._setSongTitleShareable(true);
     this.dom.songBpm.textContent = `${this.midiPlayer.bpm} BPM`;
     this.dom.timeTotal.textContent = this._formatTime(this.midiPlayer.duration);
+    this._shareSongId = selectedSongId;
+    this._shareLastSecond = null;
+    this._shareLastUrlUpdateAt = 0;
+
+    const shouldStart = typeof startTime === 'number' && Number.isFinite(startTime)
+      ? Math.min(Math.max(0, startTime), Math.max(0, this.midiPlayer.duration))
+      : 0;
+    if (shouldStart > 0) {
+      this.midiPlayer.seek(shouldStart);
+    }
+    this._syncShareUrl(shouldStart, { force: true });
 
     // Always reset to Stage Overview by default
     this.sceneManager.cameraController.setPreset('overview', 0.8);
@@ -539,8 +557,13 @@ export class UIManager {
       await this.midiPlayer.loadMidiData(buffer, file.name);
 
       this.dom.songTitle.textContent = file.name.replace(/\.[^/.]+$/, '');
+      this._setSongTitleShareable(false);
       this.dom.songBpm.textContent = `${this.midiPlayer.bpm} BPM`;
       this.dom.timeTotal.textContent = this._formatTime(this.midiPlayer.duration);
+      this._shareSongId = null;
+      this._shareLastSecond = null;
+      this._shareLastUrlUpdateAt = 0;
+      this._clearShareUrl();
 
       // Always reset to Stage Overview by default
       this.sceneManager.cameraController.setPreset('overview', 0.8);
@@ -810,6 +833,7 @@ export class UIManager {
 
   _onLocaleChanged(locale) {
     this._bindDemoSongsModal();
+    this._setSongTitleShareable(Boolean(this._shareSongId));
     this._updateInstrumentVisibilityButton();
     if (this.midiPlayer && this.midiPlayer.trackInfos && this.midiPlayer.trackInfos.length > 0) {
       this._renderTracksTable();
@@ -911,6 +935,7 @@ export class UIManager {
         this.dom.seekSlider.value = percent;
         this.dom.timeCurrent.textContent = this._formatTime(current);
       }
+      this._syncShareUrl(current);
     };
 
     // State Change (Play/Pause/Stop)
@@ -1050,6 +1075,124 @@ export class UIManager {
     const mins = Math.floor(s / 60);
     const secs = s % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  _bindSongTitleShare() {
+    if (!this.dom.songTitle) return;
+
+    const copyCurrentLink = async () => {
+      if (!this._shareSongId) return;
+
+      this._syncShareUrl(this.midiPlayer?.currentTime || 0, { force: true });
+      const copied = await this._copyShareUrlToClipboard();
+      const isEs = i18n.getLocale() === 'es';
+      this.showToast(copied
+        ? (isEs ? 'Enlace de la canción copiado.' : 'Song link copied.')
+        : (isEs ? 'No se pudo copiar el enlace.' : 'Could not copy the link.'));
+    };
+
+    this.dom.songTitle.addEventListener('click', copyCurrentLink);
+    this.dom.songTitle.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      copyCurrentLink();
+    });
+  }
+
+  _setSongTitleShareable(enabled) {
+    if (!this.dom.songTitle) return;
+
+    const isEs = i18n.getLocale() === 'es';
+    this.dom.songTitle.classList.toggle('share-enabled', enabled);
+    this.dom.songTitle.tabIndex = enabled ? 0 : -1;
+    if (enabled) {
+      this.dom.songTitle.setAttribute('role', 'button');
+    } else {
+      this.dom.songTitle.removeAttribute('role');
+    }
+    this.dom.songTitle.title = enabled
+      ? (isEs ? 'Copiar enlace de esta canción y tiempo actual' : 'Copy link to this song and current time')
+      : '';
+  }
+
+  async _copyShareUrlToClipboard() {
+    const url = window.location.href;
+
+    if (!url) return false;
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(url);
+        return true;
+      } catch (err) {
+        // continue with fallback
+      }
+    }
+
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return success;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  _formatShareTime(seconds) {
+    const s = Math.max(0, Math.floor(seconds || 0));
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  _clearShareUrl() {
+    const params = new URLSearchParams(window.location.search);
+    params.delete('song');
+    params.delete('t');
+
+    const query = params.toString();
+    const targetUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+    window.history.replaceState({}, '', targetUrl);
+  }
+
+  _syncShareUrl(currentTime, { force = false } = {}) {
+    if (!this._shareSongId) return;
+    if (typeof this._shareSongId !== 'string') {
+      return;
+    }
+
+    const now = performance.now();
+    const targetSecond = Math.max(0, Math.floor(currentTime || 0));
+    if (!force && targetSecond === this._shareLastSecond && now - this._shareLastUrlUpdateAt < 1000) {
+      return;
+    }
+    if (!force && targetSecond === this._shareLastSecond) return;
+
+    const clamped = this.midiPlayer?.duration
+      ? Math.min(targetSecond, Math.max(0, this.midiPlayer.duration))
+      : targetSecond;
+
+    const params = new URLSearchParams(window.location.search);
+    params.set('song', this._shareSongId);
+
+    if (clamped > 0.5) {
+      params.set('t', this._formatShareTime(clamped));
+    } else {
+      params.delete('t');
+    }
+
+    const query = params.toString();
+    const targetUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+    window.history.replaceState({}, '', targetUrl);
+
+    this._shareLastSecond = targetSecond;
+    this._shareLastUrlUpdateAt = now;
   }
 
   showToast(msg) {
