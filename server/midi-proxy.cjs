@@ -15,7 +15,7 @@ const port = Number(process.env.PORT || 8787);
 const cacheDir = process.env.CACHE_DIR || '/var/cache/midi-orchestra-proxy';
 const maxBytes = 10 * 1024 * 1024;
 const maxUrlLength = 2048;
-const cacheLifetimeMs = 24 * 60 * 60 * 1000;
+const cacheLifetimeMs = 2 * 60 * 60 * 1000;
 const requestTimeoutMs = 15 * 1000;
 const inflight = new Map();
 
@@ -114,12 +114,18 @@ function cachePaths(url) {
   };
 }
 
+function getCacheExpiry(metadata) {
+  const createdAt = Number(metadata.createdAt);
+  if (Number.isFinite(createdAt) && createdAt > 0) return createdAt + cacheLifetimeMs;
+  return Number(metadata.expiresAt) || 0;
+}
+
 async function getCachedEntry(url) {
   const paths = cachePaths(url);
   try {
     const metadata = JSON.parse(await fsp.readFile(paths.metadata, 'utf8'));
     const stat = await fsp.stat(paths.midi);
-    if (metadata.url === url && metadata.expiresAt > Date.now() && stat.size > 4 && stat.size <= maxBytes) {
+    if (metadata.url === url && getCacheExpiry(metadata) > Date.now() && stat.size > 4 && stat.size <= maxBytes) {
       return paths;
     }
   } catch (_) {
@@ -181,7 +187,7 @@ async function cleanExpiredCache() {
       const metadataPath = path.join(cacheDir, entry.name);
       try {
         const metadata = JSON.parse(await fsp.readFile(metadataPath, 'utf8'));
-        if (metadata.expiresAt <= Date.now()) {
+        if (getCacheExpiry(metadata) <= Date.now()) {
           const midiPath = metadataPath.replace(/\.json$/, '.mid');
           await Promise.allSettled([fsp.unlink(metadataPath), fsp.unlink(midiPath)]);
         }
