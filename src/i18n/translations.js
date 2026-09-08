@@ -27,6 +27,7 @@ export const translations = {
       fileHint: '.mid, .midi or .kar from this device',
       or: 'or',
       urlLabel: 'MIDI file URL',
+      clearUrl: 'Clear URL',
       loadUrl: 'Load URL',
       urlHint: 'The file host must allow browser access (CORS). URL-loaded MIDI files can be shared.'
     },
@@ -297,6 +298,7 @@ export const translations = {
       fileHint: '.mid, .midi o .kar desde este dispositivo',
       or: 'o',
       urlLabel: 'URL del archivo MIDI',
+      clearUrl: 'Limpiar URL',
       loadUrl: 'Cargar URL',
       urlHint: 'El servidor del archivo debe permitir el acceso desde el navegador (CORS). Los MIDI cargados por URL se pueden compartir.'
     },

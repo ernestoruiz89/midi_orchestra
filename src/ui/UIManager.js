@@ -102,6 +102,7 @@ export class UIManager {
       btnSelectMidiFile: document.getElementById('btn-select-midi-file'),
       formMidiUrl: document.getElementById('form-midi-url'),
       inputMidiUrl: document.getElementById('input-midi-url'),
+      btnClearMidiUrl: document.getElementById('btn-clear-midi-url'),
 
       drawerMixer: document.getElementById('drawer-mixer'),
       btnCloseMixer: document.getElementById('btn-close-mixer'),
@@ -567,6 +568,10 @@ export class UIManager {
     });
     this.dom.btnSelectMidiFile.addEventListener('click', () => {
       this.dom.fileInput.click();
+    });
+    this.dom.btnClearMidiUrl.addEventListener('click', () => {
+      this.dom.inputMidiUrl.value = '';
+      this.dom.inputMidiUrl.focus();
     });
     this.dom.formMidiUrl.addEventListener('submit', async (event) => {
       event.preventDefault();
