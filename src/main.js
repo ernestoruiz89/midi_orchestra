@@ -70,6 +70,15 @@ function resolveRemoteMidiUrl(rawUrl) {
   }
 }
 
+function parseAutoplay(rawValue) {
+  return rawValue === '1' || rawValue === 'true';
+}
+
+function resolveCameraPreset(rawPreset, cameraController) {
+  const preset = String(rawPreset || '').trim();
+  return preset && cameraController?.presets?.[preset] ? preset : 'overview';
+}
+
 // Application Bootstrap
 async function bootstrap() {
   const canvasContainer = document.getElementById('canvas-container');
@@ -93,21 +102,27 @@ async function bootstrap() {
   const requestedSong = resolveDemoSongId(searchParams.get('song') || searchParams.get('demo'));
   const requestedMidiUrl = resolveRemoteMidiUrl(searchParams.get('midi'));
   const requestedTime = parseShareTime(searchParams.get('t'));
+  const requestedAutoplay = parseAutoplay(searchParams.get('autoplay'));
+  const requestedCamera = resolveCameraPreset(searchParams.get('camera'), sceneManager.cameraController);
 
-  // 4. Preload the default demo without starting audio. Playback must always
-  // follow an explicit Play click or demo-song selection.
+  // 4. Load the requested shared state. Browser audio policies can still
+  // require the listener to press Play before an autoplay request takes effect.
   if (requestedMidiUrl) {
     const loaded = await uiManager.loadMidiFromUrl(requestedMidiUrl, {
-      autoplay: false,
-      startTime: requestedTime
+      autoplay: requestedAutoplay,
+      startTime: requestedTime,
+      cameraPreset: requestedCamera,
+      nonBlockingAutoplay: requestedAutoplay
     });
     if (!loaded) {
-      await uiManager.loadDemoSong(DEFAULT_DEMO_ID, { autoplay: false });
+      await uiManager.loadDemoSong(DEFAULT_DEMO_ID, { autoplay: false, cameraPreset: requestedCamera });
     }
   } else {
     await uiManager.loadDemoSong(requestedSong, {
-      autoplay: false,
-      startTime: requestedTime
+      autoplay: requestedAutoplay,
+      startTime: requestedTime,
+      cameraPreset: requestedCamera,
+      nonBlockingAutoplay: requestedAutoplay
     });
   }
 

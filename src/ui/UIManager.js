@@ -548,7 +548,12 @@ export class UIManager {
     });
   }
 
-  async loadDemoSong(songId, { autoplay = true, startTime = null } = {}) {
+  async loadDemoSong(songId, {
+    autoplay = true,
+    startTime = null,
+    cameraPreset = 'overview',
+    nonBlockingAutoplay = false
+  } = {}) {
     const song = DemoSongs.getSongsList().find(item => item.id === songId);
     const selectedSongId = song?.id || songId;
     this.midiPlayer.stop();
@@ -593,15 +598,12 @@ export class UIManager {
     if (shouldStart > 0) {
       this.midiPlayer.seek(shouldStart);
     }
-    this._syncShareUrl(shouldStart);
-
-    // Always reset to Stage Overview by default
-    this.sceneManager.cameraController.setPreset('overview', 0.8);
-    this.dom.camButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === 'overview'));
-    if (this.dom.btnDirectorMode) this.dom.btnDirectorMode.classList.remove('active');
+    this._applySharedCameraPreset(cameraPreset);
 
     this.showToast(i18n.t('toasts.songLoaded', this.midiPlayer.songName));
-    if (autoplay) await this.midiPlayer.play();
+    const autoplayPromise = this._startAutoplayIfRequested(autoplay);
+    if (!nonBlockingAutoplay) await autoplayPromise;
+    this._syncShareUrl(this.midiPlayer?.currentTime || shouldStart, { autoplay });
   }
 
   _bindFileUploadAndDropzone() {
@@ -712,7 +714,12 @@ export class UIManager {
     }
   }
 
-  async loadMidiFromUrl(rawUrl, { autoplay = true, startTime = null } = {}) {
+  async loadMidiFromUrl(rawUrl, {
+    autoplay = true,
+    startTime = null,
+    cameraPreset = 'overview',
+    nonBlockingAutoplay = false
+  } = {}) {
     let midiUrl;
     try {
       midiUrl = new URL(String(rawUrl || '').trim());
@@ -742,19 +749,41 @@ export class UIManager {
         ? Math.min(Math.max(0, startTime), Math.max(0, this.midiPlayer.duration))
         : 0;
       if (shouldStart > 0) this.midiPlayer.seek(shouldStart);
-      this._syncShareUrl(shouldStart);
-
-      this.sceneManager.cameraController.setPreset('overview', 0.8);
-      this.dom.camButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === 'overview'));
-      if (this.dom.btnDirectorMode) this.dom.btnDirectorMode.classList.remove('active');
+      this._applySharedCameraPreset(cameraPreset);
 
       this.showToast(i18n.t('toasts.fileLoaded', this.midiPlayer.trackInfos.length));
-      if (autoplay) await this.midiPlayer.play();
+      const autoplayPromise = this._startAutoplayIfRequested(autoplay);
+      if (!nonBlockingAutoplay) await autoplayPromise;
+      this._syncShareUrl(this.midiPlayer?.currentTime || shouldStart, { autoplay });
       return true;
     } catch (err) {
       console.error('Error loading MIDI URL:', err);
       this.showToast(i18n.t('toasts.urlError'));
       return false;
+    }
+  }
+
+  _applySharedCameraPreset(requestedPreset = 'overview') {
+    const cameraController = this.sceneManager.cameraController;
+    const preset = cameraController.presets?.[requestedPreset] ? requestedPreset : 'overview';
+
+    cameraController.setPreset(preset, 0.8);
+    this.dom.camButtons.forEach(button => {
+      button.classList.toggle('active', button.dataset.preset === preset);
+    });
+    if (this.dom.btnDirectorMode) this.dom.btnDirectorMode.classList.remove('active');
+  }
+
+  async _startAutoplayIfRequested(autoplay) {
+    if (!autoplay) return;
+
+    try {
+      await this.midiPlayer.play();
+    } catch (err) {
+      console.warn('Shared-link autoplay was blocked:', err);
+      this.showToast(i18n.getLocale() === 'es'
+        ? 'El navegador bloqueó la reproducción automática. Presiona Reproducir.'
+        : 'Autoplay was blocked. Press Play to start.');
     }
   }
 
@@ -1306,7 +1335,7 @@ export class UIManager {
       this.dom.songTitle.removeAttribute('role');
     }
     this.dom.songTitle.title = enabled
-      ? (isEs ? 'Copiar enlace de esta canción y tiempo actual' : 'Copy link to this song and current time')
+      ? (isEs ? 'Copiar enlace de esta canción, tiempo, cámara y reproducción actual' : 'Copy link to this song, time, current camera, and playback state')
       : '';
   }
 
@@ -1349,15 +1378,18 @@ export class UIManager {
   _clearShareUrl() {
     const params = new URLSearchParams(window.location.search);
     params.delete('song');
+    params.delete('demo');
     params.delete('midi');
     params.delete('t');
+    params.delete('autoplay');
+    params.delete('camera');
 
     const query = params.toString();
     const targetUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
     window.history.replaceState({}, '', targetUrl);
   }
 
-  _syncShareUrl(currentTime) {
+  _syncShareUrl(currentTime, { autoplay } = {}) {
     const isDemoSong = typeof this._shareSongId === 'string';
     const isRemoteMidi = typeof this._shareMidiUrl === 'string';
     if (!isDemoSong && !isRemoteMidi) {
@@ -1371,6 +1403,7 @@ export class UIManager {
 
     const params = new URLSearchParams(window.location.search);
     params.delete('song');
+    params.delete('demo');
     params.delete('midi');
     if (isRemoteMidi) {
       params.set('midi', this._shareMidiUrl);
@@ -1378,6 +1411,16 @@ export class UIManager {
       params.set('song', this._shareSongId);
     }
     params.set('t', this._formatShareTime(clamped));
+
+    const cameraController = this.sceneManager?.cameraController;
+    const cameraPreset = cameraController?.currentPreset;
+    if (cameraPreset && cameraController.presets?.[cameraPreset]) {
+      params.set('camera', cameraPreset);
+    } else {
+      params.delete('camera');
+    }
+    const shouldAutoplay = typeof autoplay === 'boolean' ? autoplay : this.midiPlayer?.isPlaying;
+    params.set('autoplay', shouldAutoplay ? '1' : '0');
 
     const query = params.toString();
     const targetUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
