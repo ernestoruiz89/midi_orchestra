@@ -32,6 +32,7 @@ export class UIManager {
     this._bindTrackInspectorModal();
     this._bindHelpModal();
     this._bindQualitySettings();
+    this._bindEqualizerSettings();
     this._bindLanguageSwitcher();
     this._bindGlobalKeyboardShortcuts();
     this._bindMidiPlayerCallbacks();
@@ -103,6 +104,19 @@ export class UIManager {
       formMidiUrl: document.getElementById('form-midi-url'),
       inputMidiUrl: document.getElementById('input-midi-url'),
       btnClearMidiUrl: document.getElementById('btn-clear-midi-url'),
+      modalEqualizer: document.getElementById('modal-equalizer'),
+      btnOpenEqualizer: document.getElementById('btn-open-equalizer'),
+      btnCloseEqualizer: document.getElementById('btn-close-equalizer'),
+      selectEqualizerPreset: document.getElementById('select-equalizer-preset'),
+      equalizerInputs: document.querySelectorAll('.equalizer-band input'),
+      btnResetEqualizer: document.getElementById('btn-reset-equalizer'),
+      equalizerCurve: document.getElementById('equalizer-curve'),
+      equalizerFill: document.getElementById('equalizer-fill'),
+      equalizerPoints: {
+        bass: document.getElementById('equalizer-point-bass'),
+        mid: document.getElementById('equalizer-point-mid'),
+        treble: document.getElementById('equalizer-point-treble')
+      },
 
       drawerMixer: document.getElementById('drawer-mixer'),
       btnCloseMixer: document.getElementById('btn-close-mixer'),
@@ -158,6 +172,78 @@ export class UIManager {
     });
     i18n.onLocaleChange(refresh);
     refresh();
+  }
+
+  _bindEqualizerSettings() {
+    const presets = {
+      balanced: { bass: 0, mid: 0, treble: 0 },
+      bassBoost: { bass: 5, mid: 0, treble: 1 },
+      vocal: { bass: -2, mid: 4, treble: 1 },
+      bright: { bass: -1, mid: 0, treble: 5 }
+    };
+    const bandPositions = { bass: 38, mid: 210, treble: 382 };
+    const formatDb = value => `${value > 0 ? '+' : ''}${value.toFixed(value % 1 ? 1 : 0)} dB`;
+    const getMatchingPreset = values => Object.entries(presets).find(([, preset]) => (
+      Object.entries(preset).every(([band, value]) => values[band] === value)
+    ))?.[0] || 'manual';
+
+    const render = () => {
+      const values = this.soundEngine.getGlobalEqualizer();
+      this.dom.equalizerInputs.forEach(input => {
+        const band = input.dataset.band;
+        input.value = values[band];
+        document.getElementById(`eq-value-${band}`).textContent = formatDb(values[band]);
+      });
+      this.dom.selectEqualizerPreset.value = getMatchingPreset(values);
+
+      const y = band => 87 - (values[band] / 12) * 60;
+      const bassY = y('bass');
+      const midY = y('mid');
+      const trebleY = y('treble');
+      const curve = `M ${bandPositions.bass} ${bassY} Q 124 ${bassY} ${bandPositions.mid} ${midY} Q 296 ${midY} ${bandPositions.treble} ${trebleY}`;
+      this.dom.equalizerCurve.setAttribute('d', curve);
+      this.dom.equalizerFill.setAttribute('d', `${curve} L ${bandPositions.treble} 150 L ${bandPositions.bass} 150 Z`);
+      Object.entries(bandPositions).forEach(([band, x]) => {
+        const point = this.dom.equalizerPoints[band];
+        point.setAttribute('cx', x);
+        point.setAttribute('cy', y(band));
+      });
+    };
+
+    const close = () => {
+      this.dom.modalEqualizer.classList.add('hidden');
+      document.getElementById('modal-quality').classList.remove('hidden');
+      this.dom.btnOpenEqualizer.focus();
+    };
+
+    this.dom.btnOpenEqualizer.addEventListener('click', () => {
+      document.getElementById('modal-quality').classList.add('hidden');
+      render();
+      this.dom.modalEqualizer.classList.remove('hidden');
+    });
+    this.dom.btnCloseEqualizer.addEventListener('click', close);
+    this.dom.modalEqualizer.addEventListener('click', event => {
+      if (event.target === this.dom.modalEqualizer) close();
+    });
+    this.dom.modalEqualizer.addEventListener('keydown', event => {
+      if (event.key === 'Escape') close();
+    });
+    this.dom.equalizerInputs.forEach(input => {
+      input.addEventListener('input', () => {
+        this.soundEngine.setGlobalEqualizer({ [input.dataset.band]: Number(input.value) });
+        render();
+      });
+    });
+    this.dom.selectEqualizerPreset.addEventListener('change', () => {
+      const preset = presets[this.dom.selectEqualizerPreset.value];
+      if (preset) this.soundEngine.setGlobalEqualizer(preset);
+      render();
+    });
+    this.dom.btnResetEqualizer.addEventListener('click', () => {
+      this.soundEngine.resetGlobalEqualizer();
+      render();
+    });
+    i18n.onLocaleChange(render);
   }
 
   _bindPlaybackControls() {

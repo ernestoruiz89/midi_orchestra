@@ -13,6 +13,21 @@ export const translations = {
       highDescription: 'More detail: higher resolution and a sharper main shadow. Requires a faster phone.',
       saved: 'Applied immediately and saved on this device. Audio quality is unchanged.'
     },
+    equalizer: {
+      open: '🎚️ General Equalizer',
+      title: '🎚️ General Equalizer',
+      preset: 'Preset',
+      manual: 'Manual',
+      balanced: 'Balanced',
+      bassBoost: 'Bass Boost',
+      vocal: 'Vocal Clarity',
+      bright: 'Bright',
+      bass: 'Bass',
+      mid: 'Mid',
+      treble: 'Treble',
+      saved: 'Changes apply to all MIDI Orchestra audio and are saved on this device.',
+      reset: 'Reset'
+    },
     nav: {
       demoSongs: 'Demo Songs',
       loadMidi: 'Load MIDI',
@@ -283,6 +298,21 @@ export const translations = {
       mediumDescription: 'Equilibrada: imagen más nítida, una sombra principal y efectos ambientales sutiles.',
       highDescription: 'Más detalle: mayor resolución y una sombra principal más definida. Requiere un celular más potente.',
       saved: 'Se aplica al instante y se guarda en este dispositivo. La calidad del audio se mantiene.'
+    },
+    equalizer: {
+      open: '🎚️ Equalizador general',
+      title: '🎚️ Equalizador general',
+      preset: 'Valores predefinidos',
+      manual: 'Manual',
+      balanced: 'Equilibrado',
+      bassBoost: 'Refuerzo de bajos',
+      vocal: 'Claridad vocal',
+      bright: 'Brillante',
+      bass: 'Bajos',
+      mid: 'Medios',
+      treble: 'Altos',
+      saved: 'Los cambios se aplican a todo el audio de MIDI Orchestra y se guardan en este dispositivo.',
+      reset: 'Restablecer'
     },
     nav: {
       demoSongs: 'Canciones Demo',

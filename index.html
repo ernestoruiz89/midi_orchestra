@@ -96,6 +96,62 @@
         </select>
         <p id="quality-description" aria-live="polite"></p>
         <p class="quality-note" data-i18n="quality.saved">Applied immediately and saved on this device. Audio quality is unchanged.</p>
+        <button id="btn-open-equalizer" class="btn btn-secondary quality-equalizer-btn" type="button" data-i18n="equalizer.open">🎚️ General Equalizer</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-equalizer" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="equalizer-title">
+    <div class="modal-card equalizer-card glass-panel">
+      <div class="modal-header">
+        <h2 id="equalizer-title" data-i18n="equalizer.title">🎚️ General Equalizer</h2>
+        <button id="btn-close-equalizer" class="btn btn-icon-only" title="Close" data-i18n-title="quality.close">✕</button>
+      </div>
+      <div class="modal-body equalizer-body">
+        <div class="equalizer-toolbar">
+          <label for="select-equalizer-preset" data-i18n="equalizer.preset">Preset</label>
+          <select id="select-equalizer-preset">
+            <option value="manual" data-i18n="equalizer.manual">Manual</option>
+            <option value="balanced" data-i18n="equalizer.balanced">Balanced</option>
+            <option value="bassBoost" data-i18n="equalizer.bassBoost">Bass Boost</option>
+            <option value="vocal" data-i18n="equalizer.vocal">Vocal Clarity</option>
+            <option value="bright" data-i18n="equalizer.bright">Bright</option>
+          </select>
+        </div>
+
+        <div class="equalizer-graph" aria-label="Equalizer response curve">
+          <span class="eq-db-label eq-db-top">+12 dB</span>
+          <span class="eq-db-label eq-db-mid">0 dB</span>
+          <span class="eq-db-label eq-db-bottom">−12 dB</span>
+          <svg viewBox="0 0 420 180" role="img" aria-hidden="true">
+            <defs>
+              <linearGradient id="eq-fill-gradient" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#00e676" stop-opacity="0.58" />
+                <stop offset="100%" stop-color="#00e676" stop-opacity="0.03" />
+              </linearGradient>
+            </defs>
+            <g class="eq-grid-lines">
+              <line x1="38" y1="24" x2="38" y2="150" /><line x1="210" y1="24" x2="210" y2="150" /><line x1="382" y1="24" x2="382" y2="150" />
+              <line x1="38" y1="87" x2="382" y2="87" />
+            </g>
+            <path id="equalizer-fill" class="eq-curve-fill" d="M 38 87 L 210 87 L 382 87 L 382 150 L 38 150 Z" />
+            <path id="equalizer-curve" class="eq-curve" d="M 38 87 Q 124 87 210 87 Q 296 87 382 87" />
+            <circle id="equalizer-point-bass" class="eq-point" cx="38" cy="87" r="4" />
+            <circle id="equalizer-point-mid" class="eq-point" cx="210" cy="87" r="4" />
+            <circle id="equalizer-point-treble" class="eq-point" cx="382" cy="87" r="4" />
+          </svg>
+        </div>
+
+        <div class="equalizer-bands">
+          <label class="equalizer-band"><span><strong data-i18n="equalizer.bass">Bass</strong><small>120 Hz</small></span><output id="eq-value-bass">0 dB</output><input id="eq-bass" data-band="bass" type="range" min="-12" max="12" step="0.5" value="0" /></label>
+          <label class="equalizer-band"><span><strong data-i18n="equalizer.mid">Mid</strong><small>1 kHz</small></span><output id="eq-value-mid">0 dB</output><input id="eq-mid" data-band="mid" type="range" min="-12" max="12" step="0.5" value="0" /></label>
+          <label class="equalizer-band"><span><strong data-i18n="equalizer.treble">Treble</strong><small>4.8 kHz</small></span><output id="eq-value-treble">0 dB</output><input id="eq-treble" data-band="treble" type="range" min="-12" max="12" step="0.5" value="0" /></label>
+        </div>
+
+        <div class="equalizer-footer">
+          <p data-i18n="equalizer.saved">Changes apply to all MIDI Orchestra audio and are saved on this device.</p>
+          <button id="btn-reset-equalizer" class="btn btn-secondary" type="button" data-i18n="equalizer.reset">Reset</button>
+        </div>
       </div>
     </div>
   </div>

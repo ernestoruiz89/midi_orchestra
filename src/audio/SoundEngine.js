@@ -2,6 +2,9 @@ import * as Tone from 'tone';
 import Soundfont from 'soundfont-player';
 import { WorkletSynthesizer } from 'spessasynth_lib';
 
+const GLOBAL_EQ_STORAGE_KEY = 'midi_orchestra_global_equalizer';
+const GLOBAL_EQ_DEFAULTS = Object.freeze({ bass: 0, mid: 0, treble: 0 });
+
 /**
  * General MIDI (GM) Standard Program Map
  * Maps GM Patch numbers (0 to 127) to FluidR3_GM soundfont names and audio bus channels.
@@ -181,6 +184,7 @@ export class SoundEngine {
     this.soundfontsLoaded = false;
     this.masterVolume = 1.0;
     this.outputBoost = 1.15;
+    this.globalEqualizer = this._loadGlobalEqualizer();
     const reportedMemory = Number(navigator.deviceMemory) || 8;
     const saveData = Boolean(navigator.connection?.saveData);
     this.preferCompressedGmBank = window.matchMedia('(max-width: 900px), (pointer: coarse)').matches || reportedMemory <= 4 || saveData;
@@ -221,6 +225,7 @@ export class SoundEngine {
     this.gmMasterCompressor = null;
     this.gmMasterGain = null;
     this.gmAnalyser = null;
+    this.gmEqualizer = null;
 
     // Tone.js nodes
     this.channels = {};
@@ -299,9 +304,9 @@ export class SoundEngine {
 
     // Studio EQ (Warm lows, rich body, crisp airy highs)
     this.masterEQ = new Tone.EQ3({
-      low: 1.2,
-      mid: -0.3,
-      high: 0.8,
+      low: 1.2 + this.globalEqualizer.bass,
+      mid: -0.3 + this.globalEqualizer.mid,
+      high: 0.8 + this.globalEqualizer.treble,
       lowFrequency: 160,
       highFrequency: 4800
     }).connect(this.limiter);
@@ -679,11 +684,28 @@ export class SoundEngine {
       this.gmMasterGain = nativeContext.createGain();
       this.gmMasterGain.gain.value = this.masterVolume * this.outputBoost;
 
+      this.gmEqualizer = {
+        bass: nativeContext.createBiquadFilter(),
+        mid: nativeContext.createBiquadFilter(),
+        treble: nativeContext.createBiquadFilter()
+      };
+      this.gmEqualizer.bass.type = 'lowshelf';
+      this.gmEqualizer.bass.frequency.value = 160;
+      this.gmEqualizer.mid.type = 'peaking';
+      this.gmEqualizer.mid.frequency.value = 1000;
+      this.gmEqualizer.mid.Q.value = 0.8;
+      this.gmEqualizer.treble.type = 'highshelf';
+      this.gmEqualizer.treble.frequency.value = 4800;
+      this._applyGlobalEqualizer();
+
       this.gmAnalyser = nativeContext.createAnalyser();
       this.gmAnalyser.fftSize = 128;
       this.gmAnalyser.smoothingTimeConstant = 0.72;
 
-      this.gmMasterCompressor.connect(this.gmMasterGain);
+      this.gmMasterCompressor.connect(this.gmEqualizer.bass);
+      this.gmEqualizer.bass.connect(this.gmEqualizer.mid);
+      this.gmEqualizer.mid.connect(this.gmEqualizer.treble);
+      this.gmEqualizer.treble.connect(this.gmMasterGain);
       this.gmMasterGain.connect(this.gmAnalyser);
       this.gmAnalyser.connect(nativeContext.destination);
 
@@ -1573,6 +1595,58 @@ export class SoundEngine {
     }
     if (this.limiter) {
       Tone.getDestination().volume.rampTo(Tone.gainToDb(this.masterVolume * this.outputBoost), 0.05);
+    }
+  }
+
+  _loadGlobalEqualizer() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(GLOBAL_EQ_STORAGE_KEY) || 'null');
+      if (!saved || typeof saved !== 'object') return { ...GLOBAL_EQ_DEFAULTS };
+      return Object.fromEntries(Object.entries(GLOBAL_EQ_DEFAULTS).map(([band, fallback]) => {
+        const value = Number(saved[band]);
+        return [band, Number.isFinite(value) ? Math.max(-12, Math.min(12, value)) : fallback];
+      }));
+    } catch (_) {
+      return { ...GLOBAL_EQ_DEFAULTS };
+    }
+  }
+
+  getGlobalEqualizer() {
+    return { ...this.globalEqualizer };
+  }
+
+  setGlobalEqualizer(values = {}) {
+    for (const band of Object.keys(GLOBAL_EQ_DEFAULTS)) {
+      if (values[band] === undefined) continue;
+      const value = Number(values[band]);
+      if (Number.isFinite(value)) this.globalEqualizer[band] = Math.max(-12, Math.min(12, value));
+    }
+    try {
+      localStorage.setItem(GLOBAL_EQ_STORAGE_KEY, JSON.stringify(this.globalEqualizer));
+    } catch (_) {
+      // Keep the setting for this session when browser storage is unavailable.
+    }
+    this._applyGlobalEqualizer();
+  }
+
+  resetGlobalEqualizer() {
+    this.setGlobalEqualizer(GLOBAL_EQ_DEFAULTS);
+  }
+
+  _applyGlobalEqualizer() {
+    const { bass, mid, treble } = this.globalEqualizer;
+    if (this.masterEQ) {
+      this.masterEQ.low.value = 1.2 + bass;
+      this.masterEQ.mid.value = -0.3 + mid;
+      this.masterEQ.high.value = 0.8 + treble;
+    }
+    if (this.gmEqualizer) {
+      const now = this.gmEqualizer.bass.context.currentTime;
+      for (const [band, gain] of Object.entries(this.gmEqualizer)) {
+        const value = this.globalEqualizer[band];
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setTargetAtTime(value, now, 0.02);
+      }
     }
   }
 
