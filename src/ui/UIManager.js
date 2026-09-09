@@ -354,6 +354,7 @@ export class UIManager {
       buttons.forEach(button => toolbar.insertBefore(button, afterCameras));
     }
     this.dom.camButtons = document.querySelectorAll('.cam-btn[data-preset]');
+    this._enableCameraToolbarScrolling(toolbar);
 
     if (this.dom.btnDirectorMode) {
       this.dom.btnDirectorMode.addEventListener('click', () => {
@@ -410,6 +411,52 @@ export class UIManager {
         ));
       });
     }
+  }
+
+  _enableCameraToolbarScrolling(toolbar) {
+    if (!toolbar) return;
+    let dragStartX = 0;
+    let dragStartScroll = 0;
+    let dragged = false;
+    let suppressClickUntil = 0;
+
+    toolbar.addEventListener('wheel', event => {
+      if (!event.shiftKey && Math.abs(event.deltaX) < Math.abs(event.deltaY)) return;
+      event.preventDefault();
+      toolbar.scrollLeft += event.deltaX || event.deltaY;
+    }, { passive: false });
+
+    toolbar.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      dragStartX = event.clientX;
+      dragStartScroll = toolbar.scrollLeft;
+      dragged = false;
+      toolbar.setPointerCapture?.(event.pointerId);
+    });
+
+    toolbar.addEventListener('pointermove', event => {
+      if (!toolbar.hasPointerCapture?.(event.pointerId)) return;
+      const distance = event.clientX - dragStartX;
+      if (Math.abs(distance) > 4) dragged = true;
+      if (!dragged) return;
+      toolbar.scrollLeft = dragStartScroll - distance;
+      toolbar.classList.add('is-dragging');
+    });
+
+    const stopDragging = event => {
+      if (!toolbar.hasPointerCapture?.(event.pointerId)) return;
+      toolbar.releasePointerCapture(event.pointerId);
+      toolbar.classList.remove('is-dragging');
+      if (dragged) suppressClickUntil = performance.now() + 80;
+    };
+    toolbar.addEventListener('pointerup', stopDragging);
+    toolbar.addEventListener('pointercancel', stopDragging);
+    toolbar.addEventListener('click', event => {
+      if (performance.now() < suppressClickUntil) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, true);
   }
 
   _updateInstrumentVisibilityButton() {

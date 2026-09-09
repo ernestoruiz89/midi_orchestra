@@ -259,11 +259,27 @@ body {
   max-width: calc(100% - 32px);
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 240, 255, 0.5) transparent;
+  cursor: grab;
+  user-select: none;
 }
 
 .camera-toolbar::-webkit-scrollbar {
-  display: none;
+  height: 5px;
+}
+
+.camera-toolbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 240, 255, 0.45);
+  border-radius: 999px;
+}
+
+.camera-toolbar.is-dragging {
+  cursor: grabbing;
+}
+
+.camera-toolbar.is-dragging > * {
+  pointer-events: none;
 }
 
 .camera-toolbar > .cam-btn,
