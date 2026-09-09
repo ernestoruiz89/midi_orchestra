@@ -1319,7 +1319,7 @@ kbd {
 
 /* Responsive adjustments */
 .mobile-quality-control {
-  display: none;
+  display: inline-flex;
 }
 
 .quality-card {
