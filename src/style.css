@@ -261,8 +261,6 @@ body {
   overflow-y: hidden;
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 240, 255, 0.5) transparent;
-  cursor: grab;
-  user-select: none;
 }
 
 .camera-toolbar::-webkit-scrollbar {
@@ -274,13 +272,6 @@ body {
   border-radius: 999px;
 }
 
-.camera-toolbar.is-dragging {
-  cursor: grabbing;
-}
-
-.camera-toolbar.is-dragging > * {
-  pointer-events: none;
-}
 
 .camera-toolbar > .cam-btn,
 .camera-toolbar > .toolbar-label {
