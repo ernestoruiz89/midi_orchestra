@@ -1464,8 +1464,8 @@ export class Piano3D {
     const struts = [
       { start: new THREE.Vector3(-0.62, 0.01, -0.12), end: new THREE.Vector3(-0.62, 0.01, -1.50) },
       { start: new THREE.Vector3(-0.25, 0.01, -0.12), end: new THREE.Vector3(-0.15, 0.01, -1.75) },
-      { start: new THREE.Vector3(0.18, 0.01, -0.12), end: new THREE.Vector3(0.35, 0.01, -1.35) },
-      { start: new THREE.Vector3(0.55, 0.01, -0.12), end: new THREE.Vector3(0.58, 0.01, -0.65) }
+      { start: new THREE.Vector3(0.18, 0.01, -0.12), end: new THREE.Vector3(0.32, 0.01, -1.30) },
+      { start: new THREE.Vector3(0.55, 0.01, -0.12), end: new THREE.Vector3(0.52, 0.01, -0.52) }
     ];
     struts.forEach(s => {
       const diff = s.end.clone().sub(s.start);
@@ -1478,12 +1478,12 @@ export class Piano3D {
       harpGroup.add(strutMesh);
     });
 
-    // Circular Sound Holes in harp web
-    [-0.20, 0.15, 0.40].forEach((hx, idx) => {
-      const holeRingGeom = new THREE.TorusGeometry(0.045 + idx * 0.008, 0.008, 8, 24);
+    // Circular Sound Holes in harp web (properly contained within plate, none protruding through rim)
+    [-0.20, 0.10].forEach((hx, idx) => {
+      const holeRingGeom = new THREE.TorusGeometry(0.042 + idx * 0.006, 0.008, 8, 24);
       holeRingGeom.rotateX(Math.PI / 2);
       const holeRing = new THREE.Mesh(holeRingGeom, this.castIronHarpMaterial);
-      holeRing.position.set(hx, 0.012, -0.85 - idx * 0.30);
+      holeRing.position.set(hx, 0.012, -0.85 - idx * 0.35);
       harpGroup.add(holeRing);
     });
 
@@ -1728,25 +1728,21 @@ export class Piano3D {
     knuckle.position.set(0, 0.012, 0);
     rimMountGroup.add(knuckle);
 
-    // Rubber / felt rest pad along rim for resting the sticks
-    const restBumperGeom = new THREE.BoxGeometry(0.016, 0.006, 0.035);
-    const restBumper = new THREE.Mesh(restBumperGeom, this.rubberMaterial);
-    restBumper.position.set(0, 0.005, -0.09);
-    rimMountGroup.add(restBumper);
-
     this.grandPianoGroup.add(rimMountGroup);
 
-    // Compute exact connection points using Three.js matrices to ensure 100% gapless physical contact
-    lidGroup.updateMatrixWorld(true);
-    rimMountGroup.updateMatrixWorld(true);
+    // Compute exact connection points in grandPianoGroup space
+    mainCupGroup.updateMatrix();
+    lidGroup.updateMatrix();
+    rimMountGroup.updateMatrix();
 
-    const rimHingeWorld = new THREE.Vector3();
-    knuckle.getWorldPosition(rimHingeWorld);
-    const rimHingeGP = this.grandPianoGroup.worldToLocal(rimHingeWorld.clone());
+    // Position of cup socket in grandPianoGroup space
+    const lidCupGP = cupSocket.position.clone()
+      .applyMatrix4(mainCupGroup.matrix)
+      .applyMatrix4(lidGroup.matrix);
 
-    const cupSocketWorld = new THREE.Vector3();
-    cupSocket.getWorldPosition(cupSocketWorld);
-    const lidCupGP = this.grandPianoGroup.worldToLocal(cupSocketWorld.clone());
+    // Position of rim knuckle in grandPianoGroup space
+    const rimHingeGP = knuckle.position.clone()
+      .applyMatrix4(rimMountGroup.matrix);
 
     // Long Concert Prop Stick extending from rim hinge directly into lid cup socket
     const stickVector = new THREE.Vector3().subVectors(lidCupGP, rimHingeGP);
@@ -1783,29 +1779,6 @@ export class Piano3D {
     propStickGroup.add(topPin);
 
     this.grandPianoGroup.add(propStickGroup);
-
-    // Secondary Short Prop Stick (resting folded along the inner rim shelf)
-    const shortStickGroup = new THREE.Group();
-    shortStickGroup.position.set(0.620, 0.952, -0.38);
-    const shortShaftGeom = new THREE.BoxGeometry(0.016, 0.012, 0.28);
-    const shortShaft = new THREE.Mesh(shortShaftGeom, this.grandEbonyMaterial);
-    shortShaft.position.set(0, 0, -0.15);
-    shortShaft.castShadow = true;
-    shortStickGroup.add(shortShaft);
-
-    // Brass hinge & tip for short stick
-    const shortKnuckleGeom = new THREE.CylinderGeometry(0.005, 0.005, 0.018, 12);
-    shortKnuckleGeom.rotateZ(Math.PI / 2);
-    const shortKnuckle = new THREE.Mesh(shortKnuckleGeom, this.grandBrassMaterial);
-    shortStickGroup.add(shortKnuckle);
-
-    const shortTipGeom = new THREE.CylinderGeometry(0.006, 0.006, 0.018, 12);
-    shortTipGeom.rotateX(Math.PI / 2);
-    const shortTip = new THREE.Mesh(shortTipGeom, this.grandBrassMaterial);
-    shortTip.position.set(0, 0, -0.29);
-    shortStickGroup.add(shortTip);
-
-    this.grandPianoGroup.add(shortStickGroup);
 
     // 10. 3 Sculpted Concert Legs with Solid Brass Dual Casters
     const legPositions = [
