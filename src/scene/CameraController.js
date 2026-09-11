@@ -19,7 +19,7 @@ export class CameraController {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
     this.controls.maxDistance = 25;
-    this.controls.minDistance = 1.0;
+    this.controls.minDistance = 0.25;
     this.controls.maxPolarAngle = Math.PI / 2 - 0.02; // Don't clip below stage floor
     this.controls.target.set(0, 1.5, 0);
 
@@ -42,6 +42,9 @@ export class CameraController {
       acousticGuitar_2: { pos: new THREE.Vector3(1.48, 1.40, 3.65), target: new THREE.Vector3(1.42, 1.18, 1.20) },
       acousticGuitar_3: { pos: new THREE.Vector3(1.70, 1.35, 3.40), target: new THREE.Vector3(1.65, 1.10, 0.95) },
       acousticGuitar_4: { pos: new THREE.Vector3(1.92, 1.30, 3.15), target: new THREE.Vector3(1.88, 1.05, 0.70) },
+      banjo: { pos: new THREE.Vector3(2.10, 1.45, 3.85), target: new THREE.Vector3(2.05, 1.15, 1.25) },
+      banjo_neck: { pos: new THREE.Vector3(2.35, 1.45, 2.75), target: new THREE.Vector3(2.15, 1.25, 1.25) },
+      banjo_closeup: { pos: new THREE.Vector3(1.75, 1.30, 2.65), target: new THREE.Vector3(1.95, 1.15, 1.25) },
       bass: { pos: new THREE.Vector3(-2.00, 1.35, 2.75), target: new THREE.Vector3(-2.00, 1.25, -0.10) },
       bass_closeup: { pos: new THREE.Vector3(-2.15, 1.25, 1.45), target: new THREE.Vector3(-2.05, 1.15, -0.10) },
       doubleBass: { pos: new THREE.Vector3(-2.85, 1.45, 3.15), target: new THREE.Vector3(-2.85, 1.20, -0.70) },
@@ -51,8 +54,8 @@ export class CameraController {
       trumpet_closeup: { pos: new THREE.Vector3(3.95, 1.48, 1.25), target: new THREE.Vector3(4.40, 1.45, 0.40) },
       frenchHorn: { pos: new THREE.Vector3(4.35, 1.51, 2.45), target: new THREE.Vector3(4.16, 1.29, 1.22) },
       frenchHorn_closeup: { pos: new THREE.Vector3(4.30, 1.45, 2.05), target: new THREE.Vector3(4.16, 1.29, 1.22) },
-      sax: { pos: new THREE.Vector3(3.15, 1.45, 3.35), target: new THREE.Vector3(3.40, 1.35, 1.80) },
-      sax_closeup: { pos: new THREE.Vector3(3.05, 1.40, 2.85), target: new THREE.Vector3(3.40, 1.35, 1.80) },
+      sax: { pos: new THREE.Vector3(3.90, 1.41, 3.13), target: new THREE.Vector3(3.48, 1.23, 1.81) },
+      sax_closeup: { pos: new THREE.Vector3(3.75, 1.35, 2.60), target: new THREE.Vector3(3.48, 1.23, 1.81) },
       clarinet: { pos: new THREE.Vector3(3.55, 1.47, 3.19), target: new THREE.Vector3(2.35, 1.30, 2.20) },
       clarinet_closeup: { pos: new THREE.Vector3(3.18, 1.41, 2.85), target: new THREE.Vector3(2.38, 1.31, 2.22) },
       violin: { pos: new THREE.Vector3(-4.12, 1.45, 0.05), target: new THREE.Vector3(-4.15, 1.38, -1.80) },
@@ -61,6 +64,8 @@ export class CameraController {
       cello_closeup: { pos: new THREE.Vector3(-3.15, 1.35, 0.30), target: new THREE.Vector3(-3.30, 1.25, -1.20) },
       flute: { pos: new THREE.Vector3(1.60, 1.52, 3.05), target: new THREE.Vector3(1.60, 1.46, 1.80) },
       flute_closeup: { pos: new THREE.Vector3(1.60, 1.50, 2.65), target: new THREE.Vector3(1.60, 1.46, 1.80) },
+      recorder: { pos: new THREE.Vector3(1.95, 0.83, 4.18), target: new THREE.Vector3(1.60, 0.76, 1.80) },
+      recorder_closeup: { pos: new THREE.Vector3(1.68, 1.33, 2.26), target: new THREE.Vector3(1.60, 1.34, 1.80) },
       xylophone: { pos: new THREE.Vector3(-3.00, 1.58, 2.10), target: new THREE.Vector3(-3.54, 0.76, 0.38) },
       xylophone_topdown: { pos: new THREE.Vector3(-3.37, 2.25, 0.70), target: new THREE.Vector3(-3.54, 0.76, 0.38) },
       xylophone_closeup: { pos: new THREE.Vector3(-3.23, 1.10, 1.15), target: new THREE.Vector3(-3.54, 0.76, 0.38) },
@@ -76,10 +81,15 @@ export class CameraController {
       guiro_closeup: { pos: new THREE.Vector3(2.00, 1.25, 0.50), target: new THREE.Vector3(1.65, 1.12, 0.15) },
       whistle: { pos: new THREE.Vector3(1.28, 1.45, 1.85), target: new THREE.Vector3(1.28, 1.28, 1.05) },
       whistle_closeup: { pos: new THREE.Vector3(1.28, 1.36, 1.50), target: new THREE.Vector3(1.28, 1.28, 1.05) },
+      clap: { pos: new THREE.Vector3(0.00, 1.38, 2.15), target: new THREE.Vector3(0.00, 1.20, 1.28) },
+      clap_closeup: { pos: new THREE.Vector3(0.00, 1.30, 1.70), target: new THREE.Vector3(0.00, 1.20, 1.28) },
       congas: { pos: new THREE.Vector3(1.65, 1.65, 0.25), target: new THREE.Vector3(1.65, 1.25, -1.15) },
       congas_closeup: { pos: new THREE.Vector3(1.65, 1.55, -0.15), target: new THREE.Vector3(1.65, 1.30, -1.15) },
       timbales: { pos: new THREE.Vector3(-1.65, 1.65, 0.25), target: new THREE.Vector3(-1.65, 1.25, -1.15) },
       timbales_closeup: { pos: new THREE.Vector3(-1.65, 1.55, -0.15), target: new THREE.Vector3(-1.65, 1.30, -1.15) },
+      timpani: { pos: new THREE.Vector3(0.00, 2.25, 3.20), target: new THREE.Vector3(0.00, 1.00, -0.05) },
+      timpani_topdown: { pos: new THREE.Vector3(0.00, 3.50, 1.10), target: new THREE.Vector3(0.00, 0.95, -0.10) },
+      timpani_closeup: { pos: new THREE.Vector3(-0.45, 1.65, 1.35), target: new THREE.Vector3(-0.35, 1.05, 0.05) },
       synth: { pos: new THREE.Vector3(-3.00, 1.75, 3.15), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
       synth_topdown: { pos: new THREE.Vector3(-3.37, 2.40, 2.38), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
       synth_closeup: { pos: new THREE.Vector3(-3.23, 1.35, 2.75), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
@@ -209,6 +219,32 @@ export class CameraController {
     );
 
     if (name.startsWith('piano')) {
+      const isGrand = Boolean(instrumentGroup?.userData?.isGrandPiano);
+      if (isGrand) {
+        // Concert Grand Piano Presets:
+        // Main view: 3/4 concert overview framing the rim, propped-open lid, golden harp, keys & bench
+        this.presets[name] = {
+          pos: localToWorld(1.75, 1.45, 1.75),
+          target: localToWorld(-0.15, 0.78, -0.25)
+        };
+        // Top-down bird's-eye view looking directly into the open harp, soundboard, and keys
+        this.presets[`${name}_topdown`] = {
+          pos: localToWorld(0.70, 2.65, 0.35),
+          target: localToWorld(-0.10, 0.75, -0.45)
+        };
+        // Close-up: pianist perspective framing both the 88 keys and the full classical sheet music score
+        this.presets[`${name}_closeup`] = {
+          pos: localToWorld(0.0, 1.28, 0.98),
+          target: localToWorld(0.0, 0.90, 0.05)
+        };
+        // Sweep view: profile view along curved rim
+        this.presets[`${name}_sweep`] = {
+          pos: localToWorld(-1.85, 1.35, 0.45),
+          target: localToWorld(0.15, 0.85, -0.35)
+        };
+        return;
+      }
+
       const tierMatch = name.match(/piano_(\d+)/);
       const tier = tierMatch ? parseInt(tierMatch[1], 10) : 1;
       const tierConfigs = {
@@ -341,6 +377,22 @@ export class CameraController {
       return;
     }
 
+    if (name.startsWith('banjo')) {
+      this.presets[name] = {
+        pos: localToWorld(0.16, 0.25, 2.60),
+        target: localToWorld(0.16, 0.10, 0.0)
+      };
+      this.presets[`${name}_neck`] = {
+        pos: localToWorld(0.44, 0.25, 1.65),
+        target: localToWorld(0.30, 0.15, 0.0)
+      };
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(-0.10, 0.18, 1.60),
+        target: localToWorld(-0.05, 0.08, 0.0)
+      };
+      return;
+    }
+
     if (name.startsWith('bass')) {
       // Entire bass guitar: top peg, headstock, neck, pickups, body, stand fully framed
       this.presets[name] = {
@@ -394,14 +446,14 @@ export class CameraController {
     }
 
     if (name.startsWith('sax')) {
-      // 3/4 golden profile concert framing: mouthpiece with comfortable headroom, flared bell, pearl keys, body and U-bow
+      // 3/4 concert framing: bell flared on left, all primary keys (upper & lower stacks) and pinky spatulas visible on right
       this.presets[name] = {
-        pos: localToWorld(1.20, 0.20, 1.55),
-        target: localToWorld(-0.04, 0.10, 0.05)
+        pos: localToWorld(0.75, 0.15, 0.95),
+        target: localToWorld(0.01, -0.05, 0.08)
       };
       this.presets[`${name}_closeup`] = {
-        pos: localToWorld(0.85, 0.18, 1.15),
-        target: localToWorld(-0.04, 0.10, 0.05)
+        pos: localToWorld(0.55, 0.08, 0.70),
+        target: localToWorld(0.02, -0.06, 0.06)
       };
       return;
     }
@@ -426,6 +478,27 @@ export class CameraController {
       this.presets[`${name}_closeup`] = {
         pos: localToWorld(0.0, 0.06, 0.75),
         target: localToWorld(0.0, 0.0, 0.0)
+      };
+      return;
+    }
+
+    if (name.startsWith('recorder')) {
+      // Full stand & instrument hero perspective: gleaming silver chrome base plate and ivory body
+      this.presets[name] = {
+        pos: localToWorld(0.35, -0.45, 2.38),
+        target: localToWorld(0.0, -0.52, 0.0)
+      };
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(0.08, 0.05, 0.46),
+        target: localToWorld(0.0, 0.06, 0.0)
+      };
+      this.presets[`${name}_rear`] = {
+        pos: localToWorld(0.05, 0.20, -0.24),
+        target: localToWorld(0.0, 0.14, -0.01)
+      };
+      this.presets[`${name}_bell`] = {
+        pos: localToWorld(0.07, -0.14, 0.22),
+        target: localToWorld(0.0, -0.16, 0.02)
       };
       return;
     }
@@ -456,7 +529,7 @@ export class CameraController {
       return;
     }
 
-    if (name.startsWith('cabasa') || name.startsWith('tambourine') || name.startsWith('maracas') || name.startsWith('guiro')) {
+    if (name.startsWith('cabasa') || name.startsWith('tambourine') || name.startsWith('maracas') || name.startsWith('guiro') || name.startsWith('clap')) {
       const isLeft = instrumentGroup ? instrumentGroup.position.x < 0 : name === 'cabasa' || name === 'tambourine';
       const xOff = isLeft ? -0.16 : 0.16;
       this.presets[name] = {
@@ -545,6 +618,23 @@ export class CameraController {
       this.presets[`${name}_closeup`] = {
         pos: localToWorld(0.0, 1.35, 1.00),
         target: localToWorld(0.0, 1.10, 0.0)
+      };
+      return;
+    }
+
+    if (name.startsWith('timpani')) {
+      // Concert Symphonic Timpani 4-kettle set
+      this.presets[name] = {
+        pos: localToWorld(0.0, 2.05, 3.15),
+        target: localToWorld(0.0, 0.90, 0.05)
+      };
+      this.presets[`${name}_topdown`] = {
+        pos: localToWorld(0.0, 3.35, 1.15),
+        target: localToWorld(0.0, 0.85, -0.05)
+      };
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(-0.40, 1.55, 1.35),
+        target: localToWorld(-0.35, 0.95, 0.05)
       };
       return;
     }

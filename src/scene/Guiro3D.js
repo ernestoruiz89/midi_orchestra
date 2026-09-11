@@ -105,7 +105,7 @@ export class Guiro3D {
     mouth.position.x = bodyLength / 2 + 0.024;
     bodyGroup.add(mouth);
 
-    // B. 24 Precision Serrated Ridges (Cáscara ribs on front belly)
+    // B. 24 Precision Serrated Ridges (Cáscara ribs facing forward towards the audience)
     const ridgeCount = 24;
     const startX = -0.11;
     const endX = 0.12;
@@ -119,18 +119,17 @@ export class Guiro3D {
 
       const ribGeom = new THREE.TorusGeometry(rAtX + 0.0018, 0.0022, 6, 24, Math.PI * 0.72);
       const rib = new THREE.Mesh(ribGeom, this.ridgeMaterial);
-      rib.rotation.y = Math.PI / 2;
-      rib.rotation.z = -Math.PI * 0.36;
+      rib.rotation.set(0, -Math.PI / 2, -Math.PI * 0.36); // Center arc facing forward (+Z) towards the audience
       rib.position.set(rx, 0, 0);
       bodyGroup.add(rib);
     }
 
-    // C. Rear Grip / Resonance Sound Holes (two oval holes on back)
+    // C. Rear Grip / Resonance Sound Holes (two oval holes on rear/underside)
     [-0.03, 0.04].forEach(hx => {
       const holeGeom = new THREE.CylinderGeometry(0.012, 0.012, 0.005, 16);
       const hole = new THREE.Mesh(holeGeom, this.darkInteriorMaterial);
       hole.rotation.x = Math.PI / 2;
-      hole.position.set(hx, 0, -bodyRadius);
+      hole.position.set(hx, -0.010, -bodyRadius * 0.96);
       bodyGroup.add(hole);
     });
 
@@ -141,9 +140,9 @@ export class Guiro3D {
     const pivot = new THREE.Group();
     this.scraperPivot = pivot;
 
-    // Resting position: scraper held in front against middle ridges
-    pivot.position.set(0.0, 0.065, 0.045);
-    pivot.rotation.set(0.20, 0.10, 0.45);
+    // Resting position: scraper stick placed directly across the front ridges facing the audience
+    pivot.position.set(0.0, 0.065, 0.055);
+    pivot.rotation.set(0.18, 0.08, 0.46);
 
     // Wooden scraper stick (raspador)
     const scraperLength = 0.22;
@@ -191,38 +190,43 @@ export class Guiro3D {
       gsap.killTweensOf(this.guiroBody.rotation);
 
       if (isLong) {
-        // Long Güiro Scrape (MIDI 74): sweeping down and up stroke across ridges
+        // Long Güiro Scrape (MIDI 74): sweeping down and up stroke across front ridges
         gsap.timeline()
           .to(this.scraperPivot.position, {
             x: -0.09 * vel,
-            y: 0.055,
+            y: 0.060,
+            z: 0.050,
             duration: 0.09,
             ease: 'power1.inOut'
           })
           .to(this.scraperPivot.position, {
             x: 0.10 * vel,
-            y: 0.058,
+            y: 0.068,
+            z: 0.058,
             duration: 0.14,
             ease: 'power1.inOut'
           })
           .to(this.scraperPivot.position, {
             x: 0.0,
             y: 0.065,
+            z: 0.055,
             duration: 0.18,
             ease: 'power2.out'
           });
       } else {
-        // Short Güiro Scrape (MIDI 73): crisp staccato downward stroke
+        // Short Güiro Scrape (MIDI 73): crisp staccato downward stroke across front ridges
         gsap.timeline()
           .to(this.scraperPivot.position, {
             x: -0.06 * vel,
-            y: 0.056,
+            y: 0.061,
+            z: 0.052,
             duration: 0.05,
             ease: 'power3.in'
           })
           .to(this.scraperPivot.position, {
             x: 0.0,
             y: 0.065,
+            z: 0.055,
             duration: 0.12,
             ease: 'power2.out'
           });

@@ -25,6 +25,17 @@ export class Piano3D {
     this.keys = [];
     this.keyMeshes = {};
     this.pedalTongue = null;
+    this.grandDamperPedal = null;
+    this.isGrandPiano = false;
+    this.grandPianoGroup = null;
+    this.standGroup = null;
+    this.floorPedalGroup = null;
+    this.cableMesh = null;
+    this.strapMesh = null;
+    this.plugGroup = null;
+    this.tierRiserGroup = null;
+    this.pedalLight = null;
+    this.keybedGroup = null;
     this.activeNoteCount = 0;
     this.pressedWhiteColor = new THREE.Color(0x00b9d4);
     this.displayCanvas = null;
@@ -36,6 +47,10 @@ export class Piano3D {
     this._buildKeyboardChassis();
     this._build88Keys();
 
+    if (this.tier === 1) {
+      this._buildGrandPiano();
+    }
+
     if (this.hasStand) {
       this._buildDoubleTierXStand();
       if (this.tier === 1) {
@@ -45,6 +60,7 @@ export class Piano3D {
         const pedalLight = new THREE.PointLight(0xffeedd, 0.8, 1.4, 2.0);
         pedalLight.position.set(0.14, 0.35, 0.30);
         this.group.add(pedalLight);
+        this.pedalLight = pedalLight;
       }
     } else if (this.tier >= 3) {
       this._buildTierRisers();
@@ -163,6 +179,61 @@ export class Piano3D {
       color: 0xa81422,
       roughness: 0.92,
       metalness: 0.0
+    });
+
+    // 15. Concert Grand Piano Materials:
+    // High-Gloss Concert Ebony Black Lacquer (Rim, Lid, Case, Legs)
+    this.grandEbonyMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x08080c,
+      roughness: 0.10,
+      metalness: 0.12,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.02,
+      reflectivity: 0.95
+    });
+
+    // Resonant Solid Spruce Soundboard
+    this.spruceSoundboardMaterial = new THREE.MeshStandardMaterial({
+      color: 0xc9944d,
+      roughness: 0.58,
+      metalness: 0.05,
+      side: THREE.DoubleSide
+    });
+
+    // Gilded Cast-Iron Frame / Harp
+    this.castIronHarpMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xd4af37,
+      roughness: 0.28,
+      metalness: 0.88,
+      clearcoat: 0.4
+    });
+
+    // Solid Polished Brass (pedals, casters, ferrules, hinges)
+    this.grandBrassMaterial = new THREE.MeshStandardMaterial({
+      color: 0xdfb94a,
+      roughness: 0.20,
+      metalness: 0.92
+    });
+
+    // Polished High-Tensile Steel Wire Strings
+    this.steelStringMaterial = new THREE.MeshStandardMaterial({
+      color: 0xccd0d8,
+      roughness: 0.22,
+      metalness: 0.95
+    });
+
+    // Wound Copper Bass Strings
+    this.copperStringMaterial = new THREE.MeshStandardMaterial({
+      color: 0xb56535,
+      roughness: 0.35,
+      metalness: 0.88
+    });
+
+    // Concert Artist Tufted Leather Bench
+    this.leatherBenchMaterial = new THREE.MeshStandardMaterial({
+      color: 0x16161a,
+      roughness: 0.72,
+      metalness: 0.08
     });
   }
 
@@ -505,6 +576,7 @@ export class Piano3D {
     // Placed right on the front shelf of keyboard body
     keybedGroup.position.set(0.045, 0.085, 0.005);
     this.keyboardBody.add(keybedGroup);
+    this.keybedGroup = keybedGroup;
 
     const totalWhiteKeys = 52;
     const whiteKeyWidth = 0.0232;  // 23.2 mm (1.206 m span)
@@ -733,6 +805,7 @@ export class Piano3D {
     standGroup.add(crossBrace);
 
     this.group.add(standGroup);
+    this.standGroup = standGroup;
   }
 
   /**
@@ -905,6 +978,7 @@ export class Piano3D {
 
     pedalGroup.castShadow = true;
     this.group.add(pedalGroup);
+    this.floorPedalGroup = pedalGroup;
 
     // 7. Realistic Flexible Audio Cable with Professional Stage Routing
     // Exits rear boot -> drops with gravity to floor -> snakes neatly toward X-stand ->
@@ -927,6 +1001,7 @@ export class Piano3D {
     const cable = new THREE.Mesh(cableGeom, this.rubberMaterial);
     cable.castShadow = true;
     this.group.add(cable);
+    this.cableMesh = cable;
 
     // Cable Fastening Strap (Velcro / Plastic Tie) on the stand leg
     const strapGeom = new THREE.CylinderGeometry(0.018, 0.018, 0.020, 14);
@@ -934,6 +1009,7 @@ export class Piano3D {
     strap.position.set(standLegX, 0.390, 0.010);
     strap.rotation.x = -0.44;
     this.group.add(strap);
+    this.strapMesh = strap;
 
     // 1/4" Phone Jack Metal Plug Body at Piano Back Panel
     const plugGroup = new THREE.Group();
@@ -952,6 +1028,7 @@ export class Piano3D {
     plugGroup.add(plugBoot);
 
     this.group.add(plugGroup);
+    this.plugGroup = plugGroup;
   }
 
   /**
@@ -994,6 +1071,7 @@ export class Piano3D {
     });
 
     this.group.add(riserGroup);
+    this.tierRiserGroup = riserGroup;
   }
 
   // Note-On Event Trigger
@@ -1035,14 +1113,13 @@ export class Piano3D {
       ease: 'power1.out'
     });
 
-    // Sustain pedal reactive foot depression on floor
-    if (this.pedalTongue) {
-      gsap.killTweensOf(this.pedalTongue.rotation);
-      gsap.to(this.pedalTongue.rotation, {
-        x: 0.02,
-        duration: 0.04,
-        ease: 'power2.out'
-      });
+    // Reactive pedal animation with note playing (if not currently controlled by explicit MIDI CC64)
+    if (!this.ccSustainActive) {
+      this.setSustainPedal(true, vel);
+    }
+    // Una corda soft pedal animation for pianissimo notes
+    if (vel < 0.45 && !this.ccSustainActive) {
+      this.setUnaCordaPedal(true);
     }
   }
 
@@ -1070,14 +1147,885 @@ export class Piano3D {
       }
     }
 
-    // Release sustain pedal when all notes end
-    if (this.pedalTongue && this.activeNoteCount === 0) {
+    // Release pedal when all active notes end (if not held by CC64)
+    if (!this.ccSustainActive && this.activeNoteCount === 0) {
+      this.setSustainPedal(false);
+      this.setUnaCordaPedal(false);
+    }
+  }
+
+  // Animates the sustain / damper pedal and lifting rod
+  setSustainPedal(isDown, vel = 0.8) {
+    this.isSustainDown = isDown;
+
+    // 1. Electronic stage keyboard pedal lever on floor
+    if (this.pedalTongue) {
       gsap.killTweensOf(this.pedalTongue.rotation);
       gsap.to(this.pedalTongue.rotation, {
-        x: -0.15,
-        duration: 0.12,
-        ease: 'back.out(1.4)'
+        x: isDown ? 0.03 : -0.15,
+        duration: isDown ? 0.04 : 0.12,
+        ease: isDown ? 'power2.out' : 'back.out(1.4)'
       });
+    }
+
+    // 2. Grand Piano brass damper pedal (pivots down ~8.5 degrees with mechanical displacement)
+    if (this.grandDamperPedal) {
+      gsap.killTweensOf(this.grandDamperPedal.rotation);
+      gsap.to(this.grandDamperPedal.rotation, {
+        x: isDown ? (0.13 + 0.03 * vel) : 0,
+        duration: isDown ? 0.04 : 0.12,
+        ease: 'power2.out'
+      });
+    }
+
+    // 3. Vertical brass lifting rod (pushes upward through bottom of keybed)
+    if (this.grandPedalRods && this.grandPedalRods[2]) {
+      gsap.killTweensOf(this.grandPedalRods[2].position);
+      gsap.to(this.grandPedalRods[2].position, {
+        y: isDown ? 0.364 : 0.350,
+        duration: isDown ? 0.04 : 0.12,
+        ease: 'power2.out'
+      });
+    }
+  }
+
+  // Animates the soft pedal (Una Corda, leftmost pedal)
+  setUnaCordaPedal(isDown) {
+    if (this.grandUnaCordaPedal) {
+      gsap.killTweensOf(this.grandUnaCordaPedal.rotation);
+      gsap.to(this.grandUnaCordaPedal.rotation, {
+        x: isDown ? 0.11 : 0,
+        duration: isDown ? 0.06 : 0.14,
+        ease: 'power2.out'
+      });
+    }
+    if (this.grandPedalRods && this.grandPedalRods[0]) {
+      gsap.killTweensOf(this.grandPedalRods[0].position);
+      gsap.to(this.grandPedalRods[0].position, {
+        y: isDown ? 0.360 : 0.350,
+        duration: isDown ? 0.06 : 0.14,
+        ease: 'power2.out'
+      });
+    }
+  }
+
+  // Handles MIDI Control Change events (CC64 Damper/Sustain, CC67 Soft Pedal)
+  onControlChange(controller, value) {
+    if (controller === 64) {
+      const isDown = value >= 64;
+      this.ccSustainActive = isDown;
+      this.setSustainPedal(isDown);
+    } else if (controller === 67) {
+      const isDown = value >= 64;
+      this.setUnaCordaPedal(isDown);
+    }
+  }
+
+  _createFallboardTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+
+    // Deep ebony black background
+    ctx.fillStyle = '#08080c';
+    ctx.fillRect(0, 0, 1024, 128);
+
+    // Fine gold filigree double-rule border
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.45)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(30, 20, 964, 88);
+
+    // Gold gradient lettering
+    const grad = ctx.createLinearGradient(0, 0, 1024, 0);
+    grad.addColorStop(0.3, '#d4af37');
+    grad.addColorStop(0.5, '#fff5d0');
+    grad.addColorStop(0.7, '#d4af37');
+    ctx.fillStyle = grad;
+
+    // Brand Nameplate
+    ctx.font = 'bold 42px "Times New Roman", "Georgia", serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('STEINWAY  &  SONS', 512, 58);
+
+    ctx.font = '16px "Georgia", serif';
+    ctx.fillStyle = '#b89728';
+    ctx.fillText('•  CONCERT GRAND MODEL D  •', 512, 90);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    return texture;
+  }
+
+  _createSheetMusicTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    // Warm ivory / parchment paper
+    ctx.fillStyle = '#f8f4e6';
+    ctx.fillRect(0, 0, 512, 256);
+
+    // Book spine center shadow
+    const spineGrad = ctx.createLinearGradient(240, 0, 272, 0);
+    spineGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    spineGrad.addColorStop(0.5, 'rgba(80, 60, 40, 0.25)');
+    spineGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = spineGrad;
+    ctx.fillRect(240, 0, 32, 256);
+
+    // Draw staves (5 lines per staff)
+    const drawStaff = (x, y, w) => {
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.moveTo(x, y + i * 5);
+        ctx.lineTo(x + w, y + i * 5);
+        ctx.stroke();
+      }
+    };
+
+    // Title on left page
+    ctx.fillStyle = '#111';
+    ctx.font = 'bold 15px "Times New Roman", serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Concerto No. 2 in C Minor', 128, 24);
+    ctx.font = 'italic 10px "Times New Roman", serif';
+    ctx.fillText('Op. 18 - S. Rachmaninoff', 128, 38);
+
+    // Title on right page
+    ctx.font = 'bold 13px "Times New Roman", serif';
+    ctx.fillText('Moderato maestoso', 384, 28);
+
+    // Left Page Staves
+    drawStaff(20, 55, 215);
+    drawStaff(20, 88, 215);
+    drawStaff(20, 130, 215);
+    drawStaff(20, 163, 215);
+    drawStaff(20, 205, 215);
+
+    // Right Page Staves
+    drawStaff(275, 55, 215);
+    drawStaff(275, 88, 215);
+    drawStaff(275, 130, 215);
+    drawStaff(275, 163, 215);
+    drawStaff(275, 205, 215);
+
+    // Clefs and musical note heads
+    ctx.fillStyle = '#111';
+    [20, 275].forEach(pageLeft => {
+      [55, 130].forEach(topY => {
+        ctx.font = '24px serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('𝄞', pageLeft + 4, topY + 18);
+        ctx.fillText('𝄢', pageLeft + 4, topY + 50);
+
+        for (let n = 0; n < 8; n++) {
+          const nx = pageLeft + 42 + n * 20;
+          const ny = topY + 5 + (n % 4) * 4;
+          ctx.beginPath();
+          ctx.ellipse(nx, ny, 3.5, 2.5, -0.3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillRect(nx + 2.5, ny - 14, 1.2, 14);
+          if (n % 2 === 0) {
+            ctx.fillRect(nx + 2.5, ny - 14, 20, 2);
+          }
+        }
+      });
+    });
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    return texture;
+  }
+
+  _buildGrandPiano() {
+    this.grandPianoGroup = new THREE.Group();
+
+    const t = 0.035; // Rim wall thickness (3.5 cm)
+
+    // 1. Curved Rim (High-Gloss Concert Ebony Lacquer)
+    // Runs along left spine, around tail, and along right bentside.
+    // Notice: Leaves the front (between left and right cheek blocks) completely OPEN for the keyboard!
+    const rimShape = new THREE.Shape();
+    // Outer perimeter:
+    rimShape.moveTo(-0.74, 0.20);
+    rimShape.lineTo(-0.74, -1.55);
+    rimShape.bezierCurveTo(-0.74, -1.85, -0.40, -1.95, -0.08, -1.88);
+    rimShape.bezierCurveTo(0.25, -1.82, 0.44, -1.50, 0.48, -1.15);
+    rimShape.bezierCurveTo(0.52, -0.75, 0.74, -0.30, 0.74, 0.20);
+    // Front right cheek step inward:
+    rimShape.lineTo(0.74 - t, 0.20);
+    // Inner perimeter:
+    rimShape.bezierCurveTo(0.74 - t, -0.30, 0.52 - t, -0.75, 0.48 - t, -1.15);
+    rimShape.bezierCurveTo(0.44 - t, -1.50, 0.25 - t, -1.82 + t, -0.08, -1.88 + t);
+    rimShape.bezierCurveTo(-0.40 + t, -1.95 + t, -0.74 + t, -1.85, -0.74 + t, -1.55);
+    rimShape.lineTo(-0.74 + t, 0.20);
+    // Front left cheek step outward to close:
+    rimShape.lineTo(-0.74, 0.20);
+
+    const rimGeom = new THREE.ExtrudeGeometry(rimShape, {
+      depth: 0.24,
+      bevelEnabled: true,
+      bevelSegments: 2,
+      steps: 1,
+      bevelSize: 0.005,
+      bevelThickness: 0.005
+    });
+    rimGeom.rotateX(Math.PI / 2);
+    const rimMesh = new THREE.Mesh(rimGeom, this.grandEbonyMaterial);
+    rimMesh.position.y = 0.95;
+    rimMesh.castShadow = true;
+    rimMesh.receiveShadow = true;
+    this.grandPianoGroup.add(rimMesh);
+
+    // 2. Base Plate (Under-belly support and keybed base)
+    const baseShape = new THREE.Shape();
+    baseShape.moveTo(-0.74, 0.20);
+    baseShape.lineTo(-0.74, -1.55);
+    baseShape.bezierCurveTo(-0.74, -1.85, -0.40, -1.95, -0.08, -1.88);
+    baseShape.bezierCurveTo(0.25, -1.82, 0.44, -1.50, 0.48, -1.15);
+    baseShape.bezierCurveTo(0.52, -0.75, 0.74, -0.30, 0.74, 0.20);
+    baseShape.lineTo(-0.74, 0.20);
+    const baseGeom = new THREE.ExtrudeGeometry(baseShape, { depth: 0.024, bevelEnabled: false });
+    baseGeom.rotateX(Math.PI / 2);
+    const baseMesh = new THREE.Mesh(baseGeom, this.grandEbonyMaterial);
+    baseMesh.position.y = 0.69;
+    baseMesh.castShadow = true;
+    baseMesh.receiveShadow = true;
+    this.grandPianoGroup.add(baseMesh);
+
+    // Stretcher Bar (Transverse casing beam connecting left & right rim beneath the music desk)
+    const stretcherGeom = new THREE.BoxGeometry(1.41, 0.055, 0.035);
+    const stretcher = new THREE.Mesh(stretcherGeom, this.grandEbonyMaterial);
+    stretcher.position.set(0, 0.875, -0.010);
+    stretcher.castShadow = true;
+    this.grandPianoGroup.add(stretcher);
+
+    // 3. Resonant Solid Spruce Soundboard
+    const soundboardShape = new THREE.Shape();
+    const st = 0.038;
+    soundboardShape.moveTo(-0.74 + st, -0.05);
+    soundboardShape.lineTo(-0.74 + st, -1.55);
+    soundboardShape.bezierCurveTo(-0.74 + st, -1.85, -0.40 + st, -1.94, -0.08, -1.87);
+    soundboardShape.bezierCurveTo(0.24, -1.81, 0.43 - st, -1.49, 0.47 - st, -1.14);
+    soundboardShape.bezierCurveTo(0.51 - st, -0.74, 0.73 - st, -0.30, 0.73 - st, -0.05);
+    soundboardShape.lineTo(-0.74 + st, -0.05);
+    const sbGeom = new THREE.ShapeGeometry(soundboardShape);
+    sbGeom.rotateX(Math.PI / 2);
+    const soundboardMesh = new THREE.Mesh(sbGeom, this.spruceSoundboardMaterial);
+    soundboardMesh.position.y = 0.742;
+    soundboardMesh.receiveShadow = true;
+    this.grandPianoGroup.add(soundboardMesh);
+
+    // 4. Curved Long Bridge & Bass Bridge
+    const bridgeCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0.55, 0.748, -0.25),
+      new THREE.Vector3(0.38, 0.748, -0.65),
+      new THREE.Vector3(0.18, 0.748, -1.05),
+      new THREE.Vector3(-0.05, 0.748, -1.40),
+      new THREE.Vector3(-0.25, 0.748, -1.65)
+    ]);
+    const bridgeGeom = new THREE.TubeGeometry(bridgeCurve, 32, 0.014, 8, false);
+    const bridgeMesh = new THREE.Mesh(bridgeGeom, this.spruceSoundboardMaterial);
+    this.grandPianoGroup.add(bridgeMesh);
+
+    const bassBridgeCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-0.45, 0.755, -0.55),
+      new THREE.Vector3(-0.48, 0.755, -0.95),
+      new THREE.Vector3(-0.52, 0.755, -1.35)
+    ]);
+    const bassBridgeGeom = new THREE.TubeGeometry(bassBridgeCurve, 16, 0.014, 8, false);
+    const bassBridgeMesh = new THREE.Mesh(bassBridgeGeom, this.spruceSoundboardMaterial);
+    this.grandPianoGroup.add(bassBridgeMesh);
+
+    // 5. Cast-Iron Frame / Harp (Arpa Dorada)
+    const harpGroup = new THREE.Group();
+    harpGroup.position.set(0, 0.760, 0);
+
+    // Pinblock / front plate transverse bar
+    const pinblockGeom = new THREE.BoxGeometry(1.36, 0.022, 0.12);
+    const pinblockMesh = new THREE.Mesh(pinblockGeom, this.castIronHarpMaterial);
+    pinblockMesh.position.set(0, 0, -0.06);
+    harpGroup.add(pinblockMesh);
+
+    // Tuning Pins along front
+    for (let p = -0.58; p <= 0.58; p += 0.038) {
+      const pinGeom = new THREE.CylinderGeometry(0.003, 0.003, 0.018, 8);
+      const pinMesh = new THREE.Mesh(pinGeom, this.steelStringMaterial);
+      pinMesh.position.set(p, 0.012, -0.05 + ((p * 100) % 3) * 0.015);
+      harpGroup.add(pinMesh);
+    }
+
+    // 4 Diagonal Structural Cast-Iron Struts
+    const struts = [
+      { start: new THREE.Vector3(-0.62, 0.01, -0.12), end: new THREE.Vector3(-0.62, 0.01, -1.50) },
+      { start: new THREE.Vector3(-0.25, 0.01, -0.12), end: new THREE.Vector3(-0.15, 0.01, -1.75) },
+      { start: new THREE.Vector3(0.18, 0.01, -0.12), end: new THREE.Vector3(0.35, 0.01, -1.35) },
+      { start: new THREE.Vector3(0.55, 0.01, -0.12), end: new THREE.Vector3(0.58, 0.01, -0.65) }
+    ];
+    struts.forEach(s => {
+      const diff = s.end.clone().sub(s.start);
+      const len = diff.length();
+      const strutGeom = new THREE.BoxGeometry(0.032, 0.024, len);
+      const strutMesh = new THREE.Mesh(strutGeom, this.castIronHarpMaterial);
+      strutMesh.position.copy(s.start).add(diff.clone().multiplyScalar(0.5));
+      strutMesh.rotation.y = Math.atan2(diff.x, diff.z);
+      strutMesh.castShadow = true;
+      harpGroup.add(strutMesh);
+    });
+
+    // Circular Sound Holes in harp web
+    [-0.20, 0.15, 0.40].forEach((hx, idx) => {
+      const holeRingGeom = new THREE.TorusGeometry(0.045 + idx * 0.008, 0.008, 8, 24);
+      holeRingGeom.rotateX(Math.PI / 2);
+      const holeRing = new THREE.Mesh(holeRingGeom, this.castIronHarpMaterial);
+      holeRing.position.set(hx, 0.012, -0.85 - idx * 0.30);
+      harpGroup.add(holeRing);
+    });
+
+    this.grandPianoGroup.add(harpGroup);
+
+    // 6. Overstrung Strings (Copper Bass + Steel Treble)
+    const stringsGroup = new THREE.Group();
+    stringsGroup.position.set(0, 0.762, 0);
+
+    // Bass strings (wound copper) angled from front-left to rear-right
+    for (let b = 0; b < 14; b++) {
+      const tNorm = b / 13;
+      const startX = -0.58 + tNorm * 0.28;
+      const startZ = -0.10;
+      const endX = -0.46 + tNorm * 0.35;
+      const endZ = -1.45 + tNorm * 0.40;
+      const strGeom = new THREE.CylinderGeometry(0.0022, 0.0022, Math.hypot(endX - startX, endZ - startZ), 4);
+      strGeom.rotateX(Math.PI / 2);
+      const strMesh = new THREE.Mesh(strGeom, this.copperStringMaterial);
+      strMesh.position.set((startX + endX) / 2, 0.016, (startZ + endZ) / 2);
+      strMesh.rotation.y = Math.atan2(endX - startX, endZ - startZ);
+      stringsGroup.add(strMesh);
+    }
+
+    // Treble strings (polished steel wire)
+    for (let tr = 0; tr < 38; tr++) {
+      const tNorm = tr / 37;
+      const startX = -0.32 + tNorm * 0.92;
+      const startZ = -0.10;
+      const endX = -0.22 + tNorm * 0.85;
+      const endZ = -1.65 + Math.pow(tNorm, 0.6) * 1.35;
+      const len = Math.hypot(endX - startX, endZ - startZ);
+      const strGeom = new THREE.CylinderGeometry(0.0012, 0.0012, len, 4);
+      strGeom.rotateX(Math.PI / 2);
+      const strMesh = new THREE.Mesh(strGeom, this.steelStringMaterial);
+      strMesh.position.set((startX + endX) / 2, 0.005, (startZ + endZ) / 2);
+      strMesh.rotation.y = Math.atan2(endX - startX, endZ - startZ);
+      stringsGroup.add(strMesh);
+
+      // Red felt damper wedges on treble strings
+      if (tr % 3 === 0) {
+        const damperGeom = new THREE.BoxGeometry(0.015, 0.018, 0.022);
+        const damper = new THREE.Mesh(damperGeom, this.feltMaterial);
+        damper.position.set((startX + endX) / 2, 0.016, (startZ * 0.7 + endZ * 0.3));
+        stringsGroup.add(damper);
+      }
+    }
+    this.grandPianoGroup.add(stringsGroup);
+
+    // 7. Sculptured Cheek Blocks (flanking the keyboard on left and right)
+    const cheekGeom = new THREE.BoxGeometry(0.125, 0.10, 0.19);
+    const leftCheek = new THREE.Mesh(cheekGeom, this.grandEbonyMaterial);
+    leftCheek.position.set(-0.675, 0.745, 0.105);
+    leftCheek.castShadow = true;
+    this.grandPianoGroup.add(leftCheek);
+
+    const rightCheek = new THREE.Mesh(cheekGeom, this.grandEbonyMaterial);
+    rightCheek.position.set(0.675, 0.745, 0.105);
+    rightCheek.castShadow = true;
+    this.grandPianoGroup.add(rightCheek);
+
+    // Front Key Slip (protective rail in front of the white keys, below playing level)
+    const keySlipGeom = new THREE.BoxGeometry(1.224, 0.034, 0.018);
+    const keySlip = new THREE.Mesh(keySlipGeom, this.grandEbonyMaterial);
+    keySlip.position.set(0, 0.707, 0.195);
+    keySlip.castShadow = true;
+    this.grandPianoGroup.add(keySlip);
+
+    // Fallboard (angled ebony panel with golden brand lettering, sitting directly behind keys)
+    const fallboardGeom = new THREE.BoxGeometry(1.22, 0.11, 0.022);
+    const fallboardTex = this._createFallboardTexture();
+    const fallboardMat = new THREE.MeshStandardMaterial({
+      map: fallboardTex,
+      roughness: 0.14,
+      metalness: 0.35
+    });
+    const fallboard = new THREE.Mesh(fallboardGeom, [
+      this.grandEbonyMaterial,
+      this.grandEbonyMaterial,
+      this.grandEbonyMaterial,
+      this.grandEbonyMaterial,
+      fallboardMat, // front face with brand text
+      this.grandEbonyMaterial
+    ]);
+    fallboard.position.set(0, 0.785, 0.038);
+    fallboard.rotation.x = -0.22; // Slanted back ~12.6 degrees
+    fallboard.castShadow = true;
+    this.grandPianoGroup.add(fallboard);
+
+    // Crimson Red Acoustic Felt Strip along the keybed rear crease
+    const feltStripGeom = new THREE.BoxGeometry(1.21, 0.008, 0.014);
+    const feltStrip = new THREE.Mesh(feltStripGeom, this.feltMaterial);
+    feltStrip.position.set(0, 0.740, 0.044);
+    this.grandPianoGroup.add(feltStrip);
+
+    // 8. Concert Music Desk with Classical Sheet Music Score
+    const deskGroup = new THREE.Group();
+    deskGroup.position.set(0, 0.925, 0.010);
+
+    // A. Bottom Shelf / Ledge (where the sheet music rests)
+    const shelfGeom = new THREE.BoxGeometry(0.68, 0.018, 0.055);
+    const shelf = new THREE.Mesh(shelfGeom, this.grandEbonyMaterial);
+    shelf.position.set(0, 0.009, 0.015);
+    shelf.castShadow = true;
+    deskGroup.add(shelf);
+
+    // Front lip on the shelf to prevent music from sliding
+    const lipGeom = new THREE.BoxGeometry(0.68, 0.016, 0.008);
+    const lip = new THREE.Mesh(lipGeom, this.grandEbonyMaterial);
+    lip.position.set(0, 0.022, 0.040);
+    deskGroup.add(lip);
+
+    // B. Back Rack / Music Stand Panel (angled back ~16 degrees)
+    const rackTilt = -0.28;
+    const rackGeom = new THREE.BoxGeometry(0.66, 0.25, 0.014);
+    const rack = new THREE.Mesh(rackGeom, this.grandEbonyMaterial);
+    rack.position.set(0, 0.125, -0.018);
+    rack.rotation.x = rackTilt;
+    rack.castShadow = true;
+    deskGroup.add(rack);
+
+    // C. Sheet Music Score (Rests directly on the shelf, tilted against the rack)
+    const scoreTex = this._createSheetMusicTexture();
+    const scoreGeom = new THREE.PlaneGeometry(0.50, 0.22);
+    const scoreMat = new THREE.MeshStandardMaterial({
+      map: scoreTex,
+      roughness: 0.98,
+      metalness: 0.0,
+      emissive: 0x33302a,
+      emissiveIntensity: 0.18,
+      side: THREE.DoubleSide
+    });
+    const score = new THREE.Mesh(scoreGeom, scoreMat);
+    score.position.set(0, 0.128, -0.010);
+    score.rotation.x = rackTilt;
+    deskGroup.add(score);
+
+    this.grandPianoGroup.add(deskGroup);
+
+    // 9. Grand Lid & Prop Sticks (Hinged along left spine, tilted open ~32 deg)
+    const lidGroup = new THREE.Group();
+    lidGroup.position.set(-0.74, 0.95, 0);
+
+    const lidShape = new THREE.Shape();
+    lidShape.moveTo(0, 0.015);
+    lidShape.lineTo(0, -1.55);
+    lidShape.bezierCurveTo(0, -1.85, 0.34, -1.95, 0.66, -1.88);
+    lidShape.bezierCurveTo(0.99, -1.82, 1.18, -1.50, 1.22, -1.15);
+    lidShape.bezierCurveTo(1.26, -0.75, 1.48, -0.30, 1.48, 0.015);
+    lidShape.lineTo(0, 0.015);
+    const lidGeom = new THREE.ExtrudeGeometry(lidShape, {
+      depth: 0.022,
+      bevelEnabled: true,
+      bevelSegments: 2,
+      bevelSize: 0.005,
+      bevelThickness: 0.005
+    });
+    lidGeom.rotateX(Math.PI / 2);
+    const lidMesh = new THREE.Mesh(lidGeom, this.grandEbonyMaterial);
+    lidMesh.castShadow = true;
+    lidMesh.receiveShadow = true;
+    lidGroup.add(lidMesh);
+
+    // Folded front flap on lid (rests folded back on top of the main lid)
+    const flapShape = new THREE.Shape();
+    flapShape.moveTo(0, -0.15);
+    flapShape.lineTo(1.48, -0.15);
+    flapShape.lineTo(1.48, -0.45);
+    flapShape.lineTo(0, -0.45);
+    flapShape.lineTo(0, -0.15);
+    const flapGeom = new THREE.ExtrudeGeometry(flapShape, {
+      depth: 0.020,
+      bevelEnabled: true,
+      bevelSegments: 2,
+      bevelSize: 0.004,
+      bevelThickness: 0.004
+    });
+    flapGeom.rotateX(Math.PI / 2);
+    const flapMesh = new THREE.Mesh(flapGeom, this.grandEbonyMaterial);
+    flapMesh.position.set(0, 0.024, 0);
+    flapMesh.castShadow = true;
+    lidGroup.add(flapMesh);
+
+    // Brass hinges along left edge
+    [-0.30, -0.80, -1.35].forEach(hz => {
+      const hingeGeom = new THREE.CylinderGeometry(0.005, 0.005, 0.05, 8);
+      const hinge = new THREE.Mesh(hingeGeom, this.grandBrassMaterial);
+      hinge.position.set(0.003, 0.012, hz);
+      lidGroup.add(hinge);
+    });
+
+    // Support cup blocks on underside of lid (tacos de apoyo con cazoleta de latón)
+    // Primary cup block for long concert prop stick (full concert open)
+    const mainCupGroup = new THREE.Group();
+    mainCupGroup.position.set(1.18, -0.022, -0.46);
+    const cupBlockGeom = new THREE.BoxGeometry(0.064, 0.018, 0.048);
+    const cupBlock = new THREE.Mesh(cupBlockGeom, this.grandEbonyMaterial);
+    cupBlock.position.y = -0.009;
+    mainCupGroup.add(cupBlock);
+    const cupSocketGeom = new THREE.CylinderGeometry(0.012, 0.009, 0.012, 16);
+    const cupSocket = new THREE.Mesh(cupSocketGeom, this.grandBrassMaterial);
+    cupSocket.position.y = -0.016;
+    mainCupGroup.add(cupSocket);
+    lidGroup.add(mainCupGroup);
+
+    // Secondary cup block for short prop stick (half-stick position)
+    const shortCupGroup = new THREE.Group();
+    shortCupGroup.position.set(0.96, -0.022, -0.54);
+    const shortCupBlock = new THREE.Mesh(cupBlockGeom, this.grandEbonyMaterial);
+    shortCupBlock.position.y = -0.009;
+    shortCupGroup.add(shortCupBlock);
+    const shortCupSocket = new THREE.Mesh(cupSocketGeom, this.grandBrassMaterial);
+    shortCupSocket.position.y = -0.016;
+    shortCupGroup.add(shortCupSocket);
+    lidGroup.add(shortCupGroup);
+
+    lidGroup.rotation.z = 0.56; // Tilted open UPWARDS ~32 degrees
+    this.grandPianoGroup.add(lidGroup);
+
+    // 10. Lid Prop Sticks & Rim Pivot Mount (Soporte de la tapa y varillas)
+    // Hinge bracket mounted securely to the inside right rim
+    const rimHingePos = new THREE.Vector3(0.620, 0.940, -0.38);
+    const rimMountGroup = new THREE.Group();
+    rimMountGroup.position.copy(rimHingePos);
+
+    // Solid wood mounting block shaped to inner rim
+    const rimMountBlockGeom = new THREE.BoxGeometry(0.038, 0.016, 0.075);
+    const rimMountBlock = new THREE.Mesh(rimMountBlockGeom, this.grandEbonyMaterial);
+    rimMountBlock.position.set(0.008, -0.008, 0);
+    rimMountGroup.add(rimMountBlock);
+
+    // Brass mounting plate on inner rim shelf
+    const mountPlateGeom = new THREE.BoxGeometry(0.028, 0.008, 0.065);
+    const mountPlate = new THREE.Mesh(mountPlateGeom, this.grandBrassMaterial);
+    mountPlate.position.set(0, 0.004, 0);
+    rimMountGroup.add(mountPlate);
+
+    // Brass hinge knuckle & pivot pin
+    const knuckleGeom = new THREE.CylinderGeometry(0.006, 0.006, 0.024, 12);
+    knuckleGeom.rotateX(Math.PI / 2);
+    const knuckle = new THREE.Mesh(knuckleGeom, this.grandBrassMaterial);
+    knuckle.position.set(0, 0.012, 0);
+    rimMountGroup.add(knuckle);
+
+    // Rubber / felt rest pad along rim for resting the sticks
+    const restBumperGeom = new THREE.BoxGeometry(0.016, 0.006, 0.035);
+    const restBumper = new THREE.Mesh(restBumperGeom, this.rubberMaterial);
+    restBumper.position.set(0, 0.005, -0.09);
+    rimMountGroup.add(restBumper);
+
+    this.grandPianoGroup.add(rimMountGroup);
+
+    // Compute exact connection points using Three.js matrices to ensure 100% gapless physical contact
+    lidGroup.updateMatrixWorld(true);
+    rimMountGroup.updateMatrixWorld(true);
+
+    const rimHingeWorld = new THREE.Vector3();
+    knuckle.getWorldPosition(rimHingeWorld);
+    const rimHingeGP = this.grandPianoGroup.worldToLocal(rimHingeWorld.clone());
+
+    const cupSocketWorld = new THREE.Vector3();
+    cupSocket.getWorldPosition(cupSocketWorld);
+    const lidCupGP = this.grandPianoGroup.worldToLocal(cupSocketWorld.clone());
+
+    // Long Concert Prop Stick extending from rim hinge directly into lid cup socket
+    const stickVector = new THREE.Vector3().subVectors(lidCupGP, rimHingeGP);
+    const stickLength = stickVector.length();
+    const stickDir = stickVector.clone().normalize();
+    const stickMid = new THREE.Vector3().addVectors(rimHingeGP, lidCupGP).multiplyScalar(0.5);
+
+    const propStickGroup = new THREE.Group();
+    propStickGroup.position.copy(stickMid);
+    propStickGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), stickDir);
+
+    // Main wooden prop shaft (ebony concert lacquer, rectangular with rounded bevel)
+    const shaftGeom = new THREE.BoxGeometry(0.022, stickLength - 0.024, 0.014);
+    const shaftMesh = new THREE.Mesh(shaftGeom, this.grandEbonyMaterial);
+    shaftMesh.castShadow = true;
+    propStickGroup.add(shaftMesh);
+
+    // Brass hinge knuckle at bottom of stick
+    const bottomKnuckleGeom = new THREE.CylinderGeometry(0.006, 0.006, 0.020, 12);
+    bottomKnuckleGeom.rotateX(Math.PI / 2);
+    const bottomKnuckle = new THREE.Mesh(bottomKnuckleGeom, this.grandBrassMaterial);
+    bottomKnuckle.position.set(0, -stickLength / 2 + 0.006, 0);
+    propStickGroup.add(bottomKnuckle);
+
+    // Brass ferrule & tip pin inserting into lid cup
+    const topFerruleGeom = new THREE.CylinderGeometry(0.008, 0.008, 0.020, 14);
+    const topFerrule = new THREE.Mesh(topFerruleGeom, this.grandBrassMaterial);
+    topFerrule.position.set(0, stickLength / 2 - 0.010, 0);
+    propStickGroup.add(topFerrule);
+
+    const topPinGeom = new THREE.CylinderGeometry(0.0045, 0.0045, 0.016, 12);
+    const topPin = new THREE.Mesh(topPinGeom, this.grandBrassMaterial);
+    topPin.position.set(0, stickLength / 2 + 0.006, 0);
+    propStickGroup.add(topPin);
+
+    this.grandPianoGroup.add(propStickGroup);
+
+    // Secondary Short Prop Stick (resting folded along the inner rim shelf)
+    const shortStickGroup = new THREE.Group();
+    shortStickGroup.position.set(0.620, 0.952, -0.38);
+    const shortShaftGeom = new THREE.BoxGeometry(0.016, 0.012, 0.28);
+    const shortShaft = new THREE.Mesh(shortShaftGeom, this.grandEbonyMaterial);
+    shortShaft.position.set(0, 0, -0.15);
+    shortShaft.castShadow = true;
+    shortStickGroup.add(shortShaft);
+
+    // Brass hinge & tip for short stick
+    const shortKnuckleGeom = new THREE.CylinderGeometry(0.005, 0.005, 0.018, 12);
+    shortKnuckleGeom.rotateZ(Math.PI / 2);
+    const shortKnuckle = new THREE.Mesh(shortKnuckleGeom, this.grandBrassMaterial);
+    shortStickGroup.add(shortKnuckle);
+
+    const shortTipGeom = new THREE.CylinderGeometry(0.006, 0.006, 0.018, 12);
+    shortTipGeom.rotateX(Math.PI / 2);
+    const shortTip = new THREE.Mesh(shortTipGeom, this.grandBrassMaterial);
+    shortTip.position.set(0, 0, -0.29);
+    shortStickGroup.add(shortTip);
+
+    this.grandPianoGroup.add(shortStickGroup);
+
+    // 10. 3 Sculpted Concert Legs with Solid Brass Dual Casters
+    const legPositions = [
+      { x: -0.62, z: 0.04 },  // Front Left
+      { x: 0.62, z: 0.04 },   // Front Right
+      { x: -0.15, z: -1.65 }  // Rear Tail
+    ];
+
+    legPositions.forEach(lp => {
+      const leg = new THREE.Group();
+      leg.position.set(lp.x, 0, lp.z);
+
+      // Top square mounting block
+      const topBlockGeom = new THREE.BoxGeometry(0.13, 0.12, 0.13);
+      const topBlock = new THREE.Mesh(topBlockGeom, this.grandEbonyMaterial);
+      topBlock.position.y = 0.63;
+      topBlock.castShadow = true;
+      leg.add(topBlock);
+
+      // Sculpted concert pillar
+      const pillarGeom = new THREE.CylinderGeometry(0.046, 0.036, 0.52, 16);
+      const pillar = new THREE.Mesh(pillarGeom, this.grandEbonyMaterial);
+      pillar.position.y = 0.32;
+      pillar.castShadow = true;
+      leg.add(pillar);
+
+      // Solid brass spade ferrule collar
+      const ferruleGeom = new THREE.CylinderGeometry(0.038, 0.042, 0.05, 16);
+      const ferrule = new THREE.Mesh(ferruleGeom, this.grandBrassMaterial);
+      ferrule.position.y = 0.085;
+      leg.add(ferrule);
+
+      // Dual Solid Brass Caster Wheels resting on stage floor (Y = 0)
+      [-0.018, 0.018].forEach(cx => {
+        const wheelGeom = new THREE.CylinderGeometry(0.028, 0.028, 0.016, 16);
+        wheelGeom.rotateZ(Math.PI / 2);
+        const wheel = new THREE.Mesh(wheelGeom, this.grandBrassMaterial);
+        wheel.position.set(cx, 0.028, 0);
+        wheel.castShadow = true;
+        leg.add(wheel);
+      });
+
+      this.grandPianoGroup.add(leg);
+    });
+
+    // 11. Grand Lyre & 3 Brass Concert Pedals
+    const lyreGroup = new THREE.Group();
+    lyreGroup.position.set(0, 0, 0.10);
+
+    // Top mounting block under keybed
+    const lyreTopGeom = new THREE.BoxGeometry(0.24, 0.04, 0.08);
+    const lyreTop = new THREE.Mesh(lyreTopGeom, this.grandEbonyMaterial);
+    lyreTop.position.y = 0.67;
+    lyreGroup.add(lyreTop);
+
+    // Bottom pedal box resting right above stage floor (Y = 0)
+    const pedalBoxGeom = new THREE.BoxGeometry(0.26, 0.048, 0.095);
+    const pedalBox = new THREE.Mesh(pedalBoxGeom, this.grandEbonyMaterial);
+    pedalBox.position.y = 0.034;
+    pedalBox.castShadow = true;
+    lyreGroup.add(pedalBox);
+
+    // Two vertical fluted posts connecting top block to pedal box
+    [-0.085, 0.085].forEach(px => {
+      const postGeom = new THREE.CylinderGeometry(0.018, 0.018, 0.592, 16);
+      const post = new THREE.Mesh(postGeom, this.grandEbonyMaterial);
+      post.position.set(px, 0.354, 0);
+      post.castShadow = true;
+      lyreGroup.add(post);
+    });
+
+    // 3 Solid Brass Pedals: [0] Una Corda, [1] Sostenuto, [2] Damper
+    const pedalPivots = [];
+    const pedalRods = [];
+    [-0.065, 0.0, 0.065].forEach((pedX) => {
+      const pedPivot = new THREE.Group();
+      pedPivot.position.set(pedX, 0.036, 0.035);
+
+      const pedGeom = new THREE.BoxGeometry(0.026, 0.013, 0.09);
+      const ped = new THREE.Mesh(pedGeom, this.grandBrassMaterial);
+      ped.position.set(0, 0, 0.042);
+      ped.castShadow = true;
+      pedPivot.add(ped);
+
+      // Upturned front toe curve
+      const toeGeom = new THREE.CylinderGeometry(0.009, 0.009, 0.026, 12);
+      toeGeom.rotateZ(Math.PI / 2);
+      const toe = new THREE.Mesh(toeGeom, this.grandBrassMaterial);
+      toe.position.set(0, 0.006, 0.086);
+      toe.castShadow = true;
+      pedPivot.add(toe);
+
+      lyreGroup.add(pedPivot);
+      pedalPivots.push(pedPivot);
+
+      // Vertical brass pedal rod extending upward to keybed
+      const rodGeom = new THREE.CylinderGeometry(0.004, 0.004, 0.60, 8);
+      const rod = new THREE.Mesh(rodGeom, this.grandBrassMaterial);
+      rod.position.set(pedX, 0.35, -0.01);
+      lyreGroup.add(rod);
+      pedalRods.push(rod);
+    });
+    this.grandUnaCordaPedal = pedalPivots[0]; // Left pedal (Una Corda / soft)
+    this.grandSostenutoPedal = pedalPivots[1]; // Center pedal (Sostenuto)
+    this.grandDamperPedal = pedalPivots[2]; // Rightmost pedal (Damper / sustain)
+    this.grandPedalRods = pedalRods;
+
+    this.grandPianoGroup.add(lyreGroup);
+
+    // 12. Concert Artist Leather Bench (Banqueta de concierto)
+    const benchGroup = new THREE.Group();
+    benchGroup.position.set(0, 0, 0.62);
+
+    // Tufted leather cushion top
+    const cushionGeom = new THREE.BoxGeometry(0.72, 0.075, 0.34);
+    const cushion = new THREE.Mesh(cushionGeom, this.leatherBenchMaterial);
+    cushion.position.y = 0.485;
+    cushion.castShadow = true;
+    benchGroup.add(cushion);
+
+    // Tufting buttons
+    for (let bx = -0.28; bx <= 0.28; bx += 0.095) {
+      for (let bz = -0.10; bz <= 0.10; bz += 0.10) {
+        const btnGeom = new THREE.SphereGeometry(0.007, 8, 6);
+        const btn = new THREE.Mesh(btnGeom, this.leatherBenchMaterial);
+        btn.position.set(bx, 0.523, bz);
+        benchGroup.add(btn);
+      }
+    }
+
+    // Wood skirt frame
+    const skirtGeom = new THREE.BoxGeometry(0.70, 0.045, 0.32);
+    const skirt = new THREE.Mesh(skirtGeom, this.grandEbonyMaterial);
+    skirt.position.y = 0.435;
+    skirt.castShadow = true;
+    benchGroup.add(skirt);
+
+    // 4 Square Tapered Concert Spade Legs
+    [
+      { x: -0.31, z: -0.12 },
+      { x: 0.31, z: -0.12 },
+      { x: -0.31, z: 0.12 },
+      { x: 0.31, z: 0.12 }
+    ].forEach(bp => {
+      const bLegGeom = new THREE.CylinderGeometry(0.022, 0.015, 0.41, 4);
+      bLegGeom.rotateY(Math.PI / 4);
+      const bLeg = new THREE.Mesh(bLegGeom, this.grandEbonyMaterial);
+      bLeg.position.set(bp.x, 0.205, bp.z);
+      bLeg.castShadow = true;
+      benchGroup.add(bLeg);
+    });
+
+    // Dual brass height adjustment knobs on left and right sides
+    [-0.37, 0.37].forEach((kx) => {
+      const knobGeom = new THREE.CylinderGeometry(0.022, 0.022, 0.035, 16);
+      knobGeom.rotateZ(Math.PI / 2);
+      const knob = new THREE.Mesh(knobGeom, this.grandBrassMaterial);
+      knob.position.set(kx, 0.435, 0);
+      benchGroup.add(knob);
+    });
+
+    this.grandPianoGroup.add(benchGroup);
+
+    // Initially hidden until solo piano mode is enabled
+    this.grandPianoGroup.visible = false;
+    this.group.add(this.grandPianoGroup);
+  }
+
+  setGrandPianoMode(isGrand) {
+    if (this.tier !== 1) return;
+    this.isGrandPiano = isGrand;
+    this.group.userData.isGrandPiano = isGrand;
+
+    if (isGrand) {
+      // Hide electronic stage keyboard workstation & stand
+      if (this.keyboardBody) this.keyboardBody.visible = false;
+      if (this.standGroup) this.standGroup.visible = false;
+      if (this.floorPedalGroup) this.floorPedalGroup.visible = false;
+      if (this.pedalLight) this.pedalLight.visible = false;
+      if (this.cableMesh) this.cableMesh.visible = false;
+      if (this.strapMesh) this.strapMesh.visible = false;
+      if (this.plugGroup) this.plugGroup.visible = false;
+      if (this.tierRiserGroup) this.tierRiserGroup.visible = false;
+
+      // Show Grand Piano
+      if (this.grandPianoGroup) {
+        this.grandPianoGroup.visible = true;
+        // Mount 88 keys flush into Grand Piano keybed
+        if (this.keybedGroup) {
+          this.grandPianoGroup.add(this.keybedGroup);
+          this.keybedGroup.position.set(0.0, 0.730, 0.045);
+          this.keybedGroup.rotation.set(0, 0, 0);
+        }
+      }
+
+      this.group.rotation.y = 0.28;
+    } else {
+      // Show electronic stage keyboard workstation & stand
+      if (this.keyboardBody) this.keyboardBody.visible = true;
+      if (this.standGroup) this.standGroup.visible = true;
+      if (this.floorPedalGroup) this.floorPedalGroup.visible = true;
+      if (this.pedalLight) this.pedalLight.visible = true;
+      if (this.cableMesh) this.cableMesh.visible = true;
+      if (this.strapMesh) this.strapMesh.visible = true;
+      if (this.plugGroup) this.plugGroup.visible = true;
+      if (this.tierRiserGroup) this.tierRiserGroup.visible = true;
+
+      // Hide Grand Piano
+      if (this.grandPianoGroup) {
+        this.grandPianoGroup.visible = false;
+      }
+
+      // Return 88 keys to electronic keyboard chassis shelf
+      if (this.keybedGroup && this.keyboardBody) {
+        this.keyboardBody.add(this.keybedGroup);
+        this.keybedGroup.position.set(0.045, 0.085, 0.005);
+        this.keybedGroup.rotation.set(0, 0, 0);
+      }
+
+      this.group.rotation.y = Math.PI * 0.14;
     }
   }
 

@@ -82,6 +82,8 @@ export const translations = {
       celloTitle: 'Cello Close-up',
       flute: '🪈 Flute',
       fluteTitle: 'Concert Flute Close-up',
+      recorder: '🪈 Recorder',
+      recorderTitle: 'Baroque Recorder Close-up',
       xylophone: '🪵 Xylophone',
       xylophoneTitle: 'Xylophone Close-up',
       cabasa: '🪇 Cabasa',
@@ -108,6 +110,12 @@ export const translations = {
       accordionTitle: 'Accordion Close-up',
       harmonica: '🎷 Harmonica',
       harmonicaTitle: 'Harmonica Close-up',
+      banjo: '🪕 Banjo',
+      banjoTitle: '5-String Banjo Close-up',
+      timpani: '🪘 Timpani',
+      timpaniTitle: 'Symphonic Timpani Close-up',
+      clap: '👏 Clap',
+      clapTitle: 'Hand Clap Close-up',
       guitar_2: '🎸 Guitar 2',
       guitar_3: '🎸 Guitar 3',
       guitar_4: '🎸 Guitar 4',
@@ -268,6 +276,7 @@ export const translations = {
       doubleBass_2: 'Double Bass 2',
       flute: 'Flute',
       flute_2: 'Flute 2',
+      recorder: 'Recorder',
       xylophone: 'Xylophone',
       xylophone_2: 'Xylophone 2',
       cabasa: 'Cabasa',
@@ -285,7 +294,10 @@ export const translations = {
       synth_4: 'Synth 4',
       harp: 'Harp',
       accordion: 'Accordion',
-      harmonica: 'Harmonica'
+      harmonica: 'Harmonica',
+      banjo: 'Banjo',
+      timpani: 'Timpani',
+      clap: 'Hand Clap'
     }
   },
 
@@ -368,6 +380,8 @@ export const translations = {
       celloTitle: 'Primer Plano Violonchelo',
       flute: '🪈 Flauta',
       fluteTitle: 'Primer Plano Flauta',
+      recorder: '🪈 Flauta Dulce',
+      recorderTitle: 'Primer Plano Flauta Dulce Barroca',
       xylophone: '🪵 Xilófono',
       xylophoneTitle: 'Primer Plano Xilófono',
       cabasa: '🪇 Cabasa',
@@ -394,6 +408,12 @@ export const translations = {
       accordionTitle: 'Primer Plano Acordeón',
       harmonica: '🎷 Armónica',
       harmonicaTitle: 'Primer Plano Armónica',
+      banjo: '🪕 Banjo',
+      banjoTitle: 'Primer Plano Banjo de 5 Cuerdas',
+      timpani: '🪘 Timpani',
+      timpaniTitle: 'Primer Plano Timbales Sinfónicos',
+      clap: '👏 Palmas',
+      clapTitle: 'Primer Plano Palmas / Aplausos',
       guitar_2: '🎸 Guitarra 2',
       guitar_3: '🎸 Guitarra 3',
       guitar_4: '🎸 Guitarra 4',
@@ -554,6 +574,7 @@ export const translations = {
       doubleBass_2: 'Contrabajo 2',
       flute: 'Flauta',
       flute_2: 'Flauta 2',
+      recorder: 'Flauta Dulce',
       xylophone: 'Xilófono',
       xylophone_2: 'Xilófono 2',
       cabasa: 'Cabasa',
@@ -571,7 +592,10 @@ export const translations = {
       synth_4: 'Synth 4',
       harp: 'Arpa',
       accordion: 'Acordeón',
-      harmonica: 'Armónica'
+      harmonica: 'Armónica',
+      banjo: 'Banjo',
+      timpani: 'Timbales Sinfónicos',
+      clap: 'Palmas / Clap'
     }
   }
 };

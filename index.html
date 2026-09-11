@@ -174,6 +174,7 @@
     <button class="cam-btn" data-preset="cello" title="Cello Close-up" data-i18n="camera.cello" data-i18n-title="camera.celloTitle">🎻 Cello</button>
     <button class="cam-btn" data-preset="doubleBass" title="Double Bass Close-up" data-i18n="camera.doubleBass" data-i18n-title="camera.doubleBassTitle">🎻 Contrabajo</button>
     <button class="cam-btn" data-preset="flute" title="Concert Flute Close-up" data-i18n="camera.flute" data-i18n-title="camera.fluteTitle">🪈 Flute</button>
+    <button class="cam-btn" data-preset="recorder" title="Recorder Close-up" data-i18n="camera.recorder" data-i18n-title="camera.recorderTitle">🪈 Flauta Dulce</button>
     <button class="cam-btn" data-preset="xylophone" title="Xylophone Close-up" data-i18n="camera.xylophone" data-i18n-title="camera.xylophoneTitle">🪵 Xylophone</button>
     <button class="cam-btn" data-preset="cabasa" title="Cabasa Close-up" data-i18n="camera.cabasa" data-i18n-title="camera.cabasaTitle">🪇 Cabasa</button>
     <button class="cam-btn" data-preset="tambourine" title="Tambourine Close-up" data-i18n="camera.tambourine" data-i18n-title="camera.tambourineTitle">🪘 Tambourine</button>
@@ -187,6 +188,9 @@
     <button class="cam-btn" data-preset="harp" title="Concert Grand Harp Close-up" data-i18n="camera.harp" data-i18n-title="camera.harpTitle">🪕 Harp</button>
     <button class="cam-btn" data-preset="accordion" title="Accordion Close-up" data-i18n="camera.accordion" data-i18n-title="camera.accordionTitle">🪗 Accordion</button>
     <button class="cam-btn" data-preset="harmonica" title="Harmonica Close-up" data-i18n="camera.harmonica" data-i18n-title="camera.harmonicaTitle">🎷 Harmonica</button>
+    <button class="cam-btn" data-preset="banjo" title="Banjo Close-up" data-i18n="camera.banjo" data-i18n-title="camera.banjoTitle">🪕 Banjo</button>
+    <button class="cam-btn" data-preset="timpani" title="Timpani Close-up" data-i18n="camera.timpani" data-i18n-title="camera.timpaniTitle">🪘 Timpani</button>
+    <button class="cam-btn" data-preset="clap" title="Hand Clap Close-up" data-i18n="camera.clap" data-i18n-title="camera.clapTitle">👏 Clap</button>
     <button class="cam-btn" data-preset="guitar_2" title="Guitar 2 Close-up" data-i18n="camera.guitar_2" style="display: none;">🎸 Guitar 2</button>
     <button class="cam-btn" data-preset="guitar_3" title="Guitar 3 Close-up" data-i18n="camera.guitar_3" style="display: none;">🎸 Guitar 3</button>
     <button class="cam-btn" data-preset="guitar_4" title="Guitar 4 Close-up" data-i18n="camera.guitar_4" style="display: none;">🎸 Guitar 4</button>
@@ -412,6 +416,20 @@
           </div>
         </div>
 
+        <!-- Banjo Channel -->
+        <div class="mixer-strip" data-inst="banjo">
+          <div class="strip-header">
+            <span class="strip-icon">🪕</span>
+            <span class="strip-name" data-i18n="instruments.banjo">Banjo</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-banjo"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.80" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
         <!-- Guitar 2 Channel -->
         <div class="mixer-strip" data-inst="guitar_2" style="display: none;">
           <div class="strip-header">
@@ -602,6 +620,20 @@
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-flute_2"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.60" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Recorder Channel -->
+        <div class="mixer-strip" data-inst="recorder">
+          <div class="strip-header">
+            <span class="strip-icon">🪈</span>
+            <span class="strip-name" data-i18n="instruments.recorder">Recorder</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-recorder"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.65" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
             <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
@@ -867,6 +899,34 @@
             <span class="strip-name" data-i18n="instruments.timbales">Timbales</span>
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-timbales"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Timpani Channel -->
+        <div class="mixer-strip" data-inst="timpani">
+          <div class="strip-header">
+            <span class="strip-icon">🪘</span>
+            <span class="strip-name" data-i18n="instruments.timpani">Timpani</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-timpani"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Hand Clap Channel -->
+        <div class="mixer-strip" data-inst="clap">
+          <div class="strip-header">
+            <span class="strip-icon">👏</span>
+            <span class="strip-name" data-i18n="instruments.clap">Clap</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-clap"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>

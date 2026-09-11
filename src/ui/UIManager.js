@@ -461,11 +461,11 @@ export class UIManager {
         e.stopPropagation();
         const inst = btn.dataset.inst;
         const allInsts = [
-          'piano', 'drums', 'guitar', 'acousticGuitar', 'bass', 'doubleBass',
+          'piano', 'drums', 'guitar', 'acousticGuitar', 'banjo', 'bass', 'doubleBass',
           'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute',
-          'xylophone', 'synth', 'cabasa', 'congas', 'timbales',
+          'xylophone', 'synth', 'cabasa', 'congas', 'timbales', 'timpani',
           'tambourine', 'maracas', 'whistle', 'guiro', 'triangle',
-          'harp', 'harmonica', 'accordion'
+          'harp', 'harmonica', 'accordion', 'recorder', 'clap'
         ];
         const instLabel = i18n.t('instruments.' + inst) || inst;
         if (this.soloedInstrument === inst) {
@@ -954,6 +954,7 @@ export class UIManager {
       { id: 'doubleBass', label: isEs ? '🎻 Contrabajo / Bajo Acústico' : '🎻 Double Bass / Upright Bass' },
       { id: 'guitar', label: isEs ? '🎸 Guitarra Eléctrica' : '🎸 Electric Guitar' },
       { id: 'acousticGuitar', label: isEs ? '🎼 Guitarra Acústica' : '🎼 Acoustic Guitar' },
+      { id: 'banjo', label: isEs ? '🪕 Banjo de 5 Cuerdas' : '🪕 5-String Banjo' },
       { id: 'trumpet', label: isEs ? '🎺 Trompeta / Metales' : '🎺 Trumpet / Brass' },
       { id: 'frenchHorn', label: isEs ? '📯 Corno Francés' : '📯 French Horn' },
       { id: 'sax', label: isEs ? '🎷 Saxofón Tenor/Alto' : '🎷 Tenor/Alto Saxophone' },
@@ -961,6 +962,7 @@ export class UIManager {
       { id: 'violin', label: isEs ? '🎻 Violín de Concierto' : '🎻 Concert Violin' },
       { id: 'cello', label: isEs ? '🎻 Violonchelo de Concierto' : '🎻 Concert Cello' },
       { id: 'flute', label: isEs ? '🪈 Flauta Travesera' : '🪈 Concert Flute' },
+      { id: 'recorder', label: isEs ? '🪈 Flauta Dulce Barroca' : '🪈 Baroque Recorder' },
       { id: 'xylophone', label: isEs ? '🪵 Xilófono / Marimba' : '🪵 Xylophone / Marimba' },
       { id: 'synth', label: isEs ? '🎹 Sintetizador Workstation' : '🎹 Synthesizer Workstation' },
       { id: 'cabasa', label: isEs ? '🪇 Cabasa / Percusión Latina' : '🪇 Cabasa / Latin Percussion' },
@@ -971,9 +973,11 @@ export class UIManager {
       { id: 'triangle', label: isEs ? '🔺 Triángulo' : '🔺 Triangle' },
       { id: 'congas', label: isEs ? '🪘 Bongó y Congas' : '🪘 Bongos & Congas' },
       { id: 'timbales', label: isEs ? '🪘 Timbales y Agogô' : '🪘 Timbales & Agogô' },
+      { id: 'timpani', label: isEs ? '🪘 Timbales Sinfónicos / Timpani' : '🪘 Symphonic Timpani' },
       { id: 'harp', label: isEs ? '🪕 Arpa de Concierto' : '🪕 Concert Grand Harp' },
       { id: 'harmonica', label: isEs ? '🎷 Armónica' : '🎷 Harmonica' },
-      { id: 'accordion', label: isEs ? '🪗 Acordeón' : '🪗 Accordion' }
+      { id: 'accordion', label: isEs ? '🪗 Acordeón' : '🪗 Accordion' },
+      { id: 'clap', label: isEs ? '👏 Palmas / Aplausos' : '👏 Hand Clap' }
     ];
 
     tracks.forEach((track, idx) => {
@@ -1186,6 +1190,11 @@ export class UIManager {
     // Note Off -> 3D scene dispatch (routed to specific duplicate instance)
     this.midiPlayer.onNoteOff = (instrument, midiPitch, noteName, force = false, instanceId = null) => {
       this.sceneManager.handleNoteOff(instrument, midiPitch, noteName, force, instanceId);
+    };
+
+    // Control Change (CC) -> 3D scene dispatch (pedals, expression, mod wheel)
+    this.midiPlayer.onControlChange = (channel, controller, value, instrument) => {
+      this.sceneManager.handleControlChange(channel, controller, value, instrument);
     };
 
     // Real-time VU meter updates from MidiPlayer activity decay (MIDIJam style)

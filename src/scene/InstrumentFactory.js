@@ -24,6 +24,10 @@ import { Synth3D } from './Synth3D.js';
 import { Harp3D } from './Harp3D.js';
 import { Harmonica3D } from './Harmonica3D.js';
 import { Accordion3D } from './Accordion3D.js';
+import { Banjo3D } from './Banjo3D.js';
+import { Timpani3D } from './Timpani3D.js';
+import { Recorder3D } from './Recorder3D.js';
+import { Clap3D } from './Clap3D.js';
 
 // Models are constructed only for assigned MIDI instances.
 export const instrumentFactories = {
@@ -133,6 +137,23 @@ export const instrumentFactories = {
   },
   accordion: (scene) => {
     const instrument = new Accordion3D(scene);
+    return instrument;
+  },
+  banjo: (scene) => {
+    const instrument = new Banjo3D(scene);
+    instrument.group.position.set(2.05, 1.15, 1.25);
+    return instrument;
+  },
+  timpani: (scene) => {
+    const instrument = new Timpani3D(scene);
+    return instrument;
+  },
+  recorder: (scene) => {
+    const instrument = new Recorder3D(scene);
+    return instrument;
+  },
+  clap: (scene) => {
+    const instrument = new Clap3D(scene);
     return instrument;
   },
   guitar_2: (scene) => {

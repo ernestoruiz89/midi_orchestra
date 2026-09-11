@@ -46,7 +46,11 @@ export const DEFAULT_GM_PROGRAMS = {
   triangle: 81,
   harp: 46,
   harmonica: 22,
-  accordion: 21
+  accordion: 21,
+  banjo: 105,
+  timpani: 47,
+  recorder: 74,
+  clap: 39
 };
 
 /**
@@ -64,17 +68,18 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
   24: 'acousticGuitar', 25: 'acousticGuitar', 26: 'guitar', 27: 'guitar', 28: 'guitar', 29: 'guitar', 30: 'guitar', 31: 'guitar',
   // 32-39: Bass
   32: 'doubleBass', 33: 'bass', 34: 'bass', 35: 'bass', 36: 'bass', 37: 'bass', 38: 'synth', 39: 'synth',
-  // 40-47: Strings & Orchestral Harp
-  40: 'violin', 41: 'violin', 42: 'cello', 43: 'doubleBass', 44: 'violin', 45: 'violin', 46: 'harp', 47: 'drums',
+  // 40-47: Strings & Orchestral Harp & Timpani
+  40: 'violin', 41: 'violin', 42: 'cello', 43: 'doubleBass', 44: 'violin', 45: 'violin', 46: 'harp', 47: 'timpani',
   // 48-55: Ensemble
   48: 'violin', 49: 'violin', 50: 'synth', 51: 'synth', 52: 'flute', 53: 'flute', 54: 'synth', 55: 'drums',
   // 56-63: Brass
   56: 'trumpet', 57: 'trumpet', 58: 'trumpet', 59: 'trumpet', 60: 'frenchHorn', 61: 'trumpet', 62: 'trumpet', 63: 'trumpet',
   // 64-71: Reed
   64: 'sax', 65: 'sax', 66: 'sax', 67: 'sax',
+  // 68-71: Pipes / Reeds
   68: 'flute', 69: 'flute', 70: 'flute', 71: 'clarinet',
-  // 72-79: Pipes / Woodwinds
-  72: 'flute', 73: 'flute', 74: 'flute', 75: 'flute', 76: 'flute', 77: 'flute', 78: 'flute', 79: 'flute',
+  // 72-79: Pipes / Woodwinds (74 = Recorder / Flauta Dulce)
+  72: 'flute', 73: 'flute', 74: 'recorder', 75: 'flute', 76: 'flute', 77: 'flute', 78: 'flute', 79: 'flute',
   // 80-87: Synth Lead
   80: 'synth', 81: 'synth', 82: 'synth', 83: 'synth', 84: 'synth', 85: 'synth', 86: 'synth', 87: 'synth',
   // 88-95: Synth Pad
@@ -82,7 +87,7 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
   // 96-103: Synth Effects
   96: 'synth', 97: 'synth', 98: 'synth', 99: 'synth', 100: 'synth', 101: 'synth', 102: 'synth', 103: 'synth',
   // 104-111: Ethnic
-  104: 'guitar', 105: 'guitar', 106: 'guitar', 107: 'guitar', 108: 'xylophone', 109: 'flute', 110: 'violin', 111: 'flute',
+  104: 'guitar', 105: 'banjo', 106: 'guitar', 107: 'guitar', 108: 'xylophone', 109: 'flute', 110: 'violin', 111: 'flute',
   // 112-119: Percussive & Drums (113 = Agogo -> timbales set, 119 = Reverse Cymbal -> played on drum kit cymbal)
   112: 'xylophone', 113: 'timbales', 114: 'xylophone', 115: 'xylophone', 116: 'drums', 117: 'drums', 118: 'drums', 119: 'drums',
   // 120-127: Sound Effects
@@ -92,7 +97,7 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
 const VALID_3D_INSTRUMENTS = new Set([
   'piano', 'drums', 'bass', 'doubleBass', 'guitar', 'acousticGuitar',
   'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'synth', 'cabasa', 'congas', 'timbales',
-  'tambourine', 'maracas', 'whistle', 'guiro', 'triangle', 'harp', 'harmonica', 'accordion'
+  'tambourine', 'maracas', 'whistle', 'guiro', 'triangle', 'harp', 'harmonica', 'accordion', 'banjo', 'timpani', 'recorder', 'clap'
 ]);
 
 /**
@@ -136,6 +141,7 @@ export class MidiPlayer {
     this.onNotePrepare = null;  // (instrument, noteNumber, noteName, velocity, duration) => {}
     this.onNoteOn = null;       // (instrument, noteNumber, noteName, velocity, duration) => {}
     this.onNoteOff = null;      // (instrument, noteNumber, noteName) => {}
+    this.onControlChange = null; // (channel, controller, value, instrument) => {}
     this.onProgress = null;     // (currentTime, duration, percent) => {}
     this.onSongLoaded = null;   // (songInfo) => {}
     this.onStateChange = null;  // (isPlaying, isPaused) => {}
@@ -171,7 +177,11 @@ export class MidiPlayer {
       triangle: 0,
       harp: 0,
       harmonica: 0,
-      accordion: 0
+      accordion: 0,
+      banjo: 0,
+      timpani: 0,
+      recorder: 0,
+      clap: 0
     };
   }
 
@@ -418,8 +428,14 @@ export class MidiPlayer {
     if (/\b(triangle|triangulo)\b/i.test(trackName)) {
       return 'triangle';
     }
+    if (/\b(clap|handclap|aplauso|palmas?)\b/i.test(trackName)) {
+      return 'clap';
+    }
     if (/\b(bongo|bongos|bong[oó]s?|conga|congas|tumbadora|tumbadoras|quinto|tumba|latin\s*perc(ussion)?)\b/i.test(trackName)) {
       return 'congas';
+    }
+    if (/\b(timpani|timbal\s*sinf[oó]nico|timbales\s*sinf[oó]nicos|kettle\s*drums?|pauken)\b/i.test(trackName)) {
+      return 'timpani';
     }
     if (/\b(timbal|timbale|timbales|pailas?|agogo|cencerro|mambo\s*bell)\b/i.test(trackName)) {
       return 'timbales';
@@ -434,6 +450,11 @@ export class MidiPlayer {
     // E. Bass (Electric / Generic):
     if (/\b(bass|bajo|fretless)\b/i.test(trackName) && !/\b(brass|bassoon)\b/i.test(trackName)) {
       return 'bass';
+    }
+
+    // Banjo:
+    if (/\b(banjo)\b/i.test(trackName)) {
+      return 'banjo';
     }
 
     // F. Acoustic Guitar (requires explicit acoustic indicator alongside guitar, never standalone 'acoustic'):
@@ -479,8 +500,13 @@ export class MidiPlayer {
       return 'clarinet';
     }
 
+    // Recorder / Flauta Dulce:
+    if (/\b(recorder|flauta\s*dulce|blockfl[oö]te|fl[uû]te\s*([aà]\s*bec|douce))\b/i.test(trackName)) {
+      return 'recorder';
+    }
+
     // K. Flute / Woodwinds:
-    if (/\b(flute|flauta|piccolo|recorder|pan\s*flute|oboe|bassoon|fagot|whistle|ocarina|woodwinds?)\b/i.test(trackName)) {
+    if (/\b(flute|flauta|piccolo|pan\s*flute|oboe|bassoon|fagot|whistle|ocarina|woodwinds?)\b/i.test(trackName)) {
       return 'flute';
     }
 
@@ -507,6 +533,9 @@ export class MidiPlayer {
       return 'piano';
     }
     if (instFamily.includes('guitar')) {
+      if (instName.includes('banjo')) {
+        return 'banjo';
+      }
       if (instName.includes('nylon') || instName.includes('steel') || (instName.includes('acoustic') && instName.includes('guitar'))) {
         return 'acousticGuitar';
       }
@@ -533,6 +562,7 @@ export class MidiPlayer {
       return 'flute';
     }
     if (instFamily.includes('pipe') || instFamily.includes('woodwind')) {
+      if (instName.includes('recorder')) return 'recorder';
       return 'flute';
     }
     if (instFamily.includes('synth')) {
@@ -582,6 +612,10 @@ export class MidiPlayer {
     const hasTriangleNote = this.events.some(e => (e.instrument === 'drums' && (e.midi === 80 || e.midi === 81)) || e.instrument === 'triangle');
     if (hasTriangleNote) {
       list.add('triangle');
+    }
+    const hasClapNote = this.events.some(e => (e.instrument === 'drums' && e.midi === 39) || e.instrument === 'clap');
+    if (hasClapNote) {
+      list.add('clap');
     }
     return Array.from(list);
   }
@@ -641,6 +675,13 @@ export class MidiPlayer {
       if (event.instrument === 'drums' && (event.midi === 80 || event.midi === 81)) {
         if (!notesByInstance.has('triangle')) notesByInstance.set('triangle', []);
         notesByInstance.get('triangle').push({
+          start: event.time,
+          end: event.time + Math.max(0, event.duration || 0.1)
+        });
+      }
+      if (event.instrument === 'drums' && event.midi === 39) {
+        if (!notesByInstance.has('clap')) notesByInstance.set('clap', []);
+        notesByInstance.get('clap').push({
           start: event.time,
           end: event.time + Math.max(0, event.duration || 0.1)
         });
@@ -1042,6 +1083,9 @@ export class MidiPlayer {
 
       if (ev.type === 'cc') {
         if (audio) this.soundEngine.applyMidiControlChange(ev.channel, ev.controller, ev.value);
+        if (visual && this.onControlChange) {
+          this.onControlChange(ev.channel, ev.controller, ev.value, ev.instrument);
+        }
       } else if (ev.type === 'pitchBend') {
         if (audio) this.soundEngine.applyMidiPitchBend(ev.channel, ev.value);
       } else if (ev.type === 'prepare') {
@@ -1158,6 +1202,12 @@ export class MidiPlayer {
             }
             this.onNoteOn('triangle', ev.midi, 'Triangle', ev.velocity, ev.duration, 'triangle', 0, ev.time, ev.trackIndex);
           }
+          if (ev.instrument === 'drums' && ev.midi === 39) {
+            if (this.instrumentActivity['clap'] !== undefined) {
+              this.instrumentActivity['clap'] = Math.max(this.instrumentActivity['clap'], ev.velocity);
+            }
+            this.onNoteOn('clap', 39, 'Clap', ev.velocity, ev.duration, 'clap', 0, ev.time, ev.trackIndex);
+          }
         }
       } else if (ev.type === 'off') {
         // Release Audio
@@ -1202,6 +1252,9 @@ export class MidiPlayer {
           if (ev.instrument === 'drums' && (ev.midi === 80 || ev.midi === 81)) {
             this.onNoteOff('triangle', ev.midi, 'Triangle', false, 'triangle', 0);
           }
+          if (ev.instrument === 'drums' && ev.midi === 39) {
+            this.onNoteOff('clap', 39, 'Clap', false, 'clap', 0);
+          }
         }
       }
     }
@@ -1244,7 +1297,7 @@ export class MidiPlayer {
       const allInsts = [
         'piano', 'drums', 'guitar', 'bass', 'doubleBass', 'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'synth', 'cabasa', 'congas', 'timbales',
         'tambourine', 'maracas', 'whistle', 'guiro', 'triangle',
-        'harp', 'harmonica', 'accordion',
+        'harp', 'harmonica', 'accordion', 'banjo', 'timpani', 'recorder', 'clap',
         'acousticGuitar', 'piano_2', 'piano_3', 'piano_4', 'guitar_2', 'guitar_3', 'guitar_4',
         'acousticGuitar_2', 'acousticGuitar_3', 'acousticGuitar_4',
         'bass_2', 'doubleBass_2', 'trumpet_2', 'frenchHorn_2', 'sax_2', 'clarinet_2', 'violin_2', 'cello_2', 'flute_2', 'xylophone_2',

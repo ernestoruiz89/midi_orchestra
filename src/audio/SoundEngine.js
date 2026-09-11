@@ -68,7 +68,7 @@ export const GM_PROGRAM_MAP = {
   44: { sf: 'tremolo_strings', bus: 'violin' },
   45: { sf: 'pizzicato_strings', bus: 'violin' },
   46: { sf: 'orchestral_harp', bus: 'harp' },
-  47: { sf: 'timpani', bus: 'xylophone' },
+  47: { sf: 'timpani', bus: 'timpani' },
 
   // Ensemble (48-55)
   48: { sf: 'string_ensemble_1', bus: 'violin' },
@@ -103,7 +103,7 @@ export const GM_PROGRAM_MAP = {
   // Pipes / Woodwinds (72-79)
   72: { sf: 'piccolo', bus: 'flute' },
   73: { sf: 'flute', bus: 'flute' },
-  74: { sf: 'recorder', bus: 'flute' },
+  74: { sf: 'recorder', bus: 'recorder' },
   75: { sf: 'pan_flute', bus: 'flute' },
   76: { sf: 'blown_bottle', bus: 'flute' },
   77: { sf: 'shakuhachi', bus: 'flute' },
@@ -142,7 +142,7 @@ export const GM_PROGRAM_MAP = {
 
   // Ethnic Instruments (104-111)
   104: { sf: 'sitar', bus: 'guitar' },
-  105: { sf: 'banjo', bus: 'guitar' },
+  105: { sf: 'banjo', bus: 'banjo' },
   106: { sf: 'shamisen', bus: 'guitar' },
   107: { sf: 'koto', bus: 'guitar' },
   108: { sf: 'kalimba', bus: 'xylophone' },
@@ -198,7 +198,7 @@ export class SoundEngine {
       'cello_2', 'flute', 'flute_2', 'xylophone', 'xylophone_2', 'synth',
       'synth_2', 'synth_3', 'synth_4', 'frenchHorn', 'clarinet', 'cabasa',
       'congas', 'timbales', 'tambourine', 'maracas', 'whistle', 'guiro',
-      'triangle', 'harp', 'harmonica', 'accordion',
+      'triangle', 'harp', 'harmonica', 'accordion', 'banjo', 'timpani', 'recorder', 'clap',
     ].map(instrument => [instrument, 1]));
 
     this.muted = {};
@@ -565,11 +565,11 @@ export class SoundEngine {
       'piano', 'drums', 'bass', 'doubleBass', 'guitar', 'acousticGuitar', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth',
       'frenchHorn', 'clarinet', 'cabasa', 'congas', 'timbales',
       'tambourine', 'maracas', 'whistle', 'guiro', 'triangle',
-      'harp', 'harmonica', 'accordion'
+      'harp', 'harmonica', 'accordion', 'banjo', 'timpani', 'recorder', 'clap'
     ];
     this.nativeInputs = {};
 
-    const percCompressorSet = new Set(['drums', 'bass', 'doubleBass', 'cabasa', 'congas', 'timbales', 'tambourine', 'maracas', 'whistle', 'guiro', 'triangle']);
+    const percCompressorSet = new Set(['drums', 'bass', 'doubleBass', 'cabasa', 'congas', 'timbales', 'tambourine', 'maracas', 'whistle', 'guiro', 'triangle', 'timpani', 'clap']);
 
     instrumentNames.forEach(inst => {
       const channel = new Tone.Channel({
@@ -600,13 +600,16 @@ export class SoundEngine {
       case 'drums': return 0.0;
       case 'xylophone': return 0.05;
       case 'flute': return 0.18;
+      case 'recorder': return 0.20;
       case 'guitar': return 0.28;
       case 'acousticGuitar': return 0.12;
+      case 'banjo': return 0.20;
       case 'sax': return 0.35;
       case 'trumpet': return 0.45;
       case 'frenchHorn': return 0.40;
       case 'clarinet': return 0.22;
       case 'timbales': return -0.15;
+      case 'timpani': return -0.18;
       case 'cabasa': return -0.12;
       case 'tambourine': return -0.18;
       case 'triangle': return -0.15;
@@ -614,6 +617,7 @@ export class SoundEngine {
       case 'maracas': return 0.18;
       case 'guiro': return 0.15;
       case 'whistle': return 0.12;
+      case 'clap': return 0.0;
       default: return 0;
     }
   }
@@ -1357,7 +1361,7 @@ export class SoundEngine {
       }
 
       // B. 2. Procedural drums (compatibility fallback)
-      if (instrument === 'drums' || instrument === 'congas' || instrument === 'timbales' || instrument === 'cabasa' || instrument === 'tambourine' || instrument === 'maracas' || instrument === 'whistle' || instrument === 'guiro' || instrument === 'triangle') {
+      if (instrument === 'drums' || instrument === 'congas' || instrument === 'timbales' || instrument === 'cabasa' || instrument === 'tambourine' || instrument === 'maracas' || instrument === 'whistle' || instrument === 'guiro' || instrument === 'triangle' || instrument === 'clap') {
         this._triggerDrumSound(note, vel, time, channel, instrument);
         return;
       }
@@ -1390,7 +1394,10 @@ export class SoundEngine {
           accordion: 'accordion',
           harp: 'orchestral_harp',
           frenchHorn: 'french_horn',
-          clarinet: 'clarinet'
+          clarinet: 'clarinet',
+          banjo: 'banjo',
+          timpani: 'timpani',
+          recorder: 'recorder'
         };
         const defaultName = defaultSfNames[baseInst];
         sfPlayer = this.soundfontPlayers[defaultName];
@@ -1480,7 +1487,9 @@ export class SoundEngine {
 
   _triggerDrumSound(pitchOrPiece, velocity = 0.8, time = undefined, channel = 9, instrument = 'drums') {
     let piece = pitchOrPiece;
-    if (typeof pitchOrPiece === 'number') {
+    if (instrument === 'clap' && (!piece || piece === 'clap')) {
+      piece = 'handClap';
+    } else if (typeof pitchOrPiece === 'number') {
       piece = this.midiPitchToDrumPiece(pitchOrPiece);
     } else if (typeof pitchOrPiece === 'string' && !this.drumAudioBuffers[piece]) {
       try {
@@ -1489,7 +1498,7 @@ export class SoundEngine {
           piece = this.midiPitchToDrumPiece(midi);
         }
       } catch (e) {
-        piece = 'snare';
+        piece = instrument === 'clap' ? 'handClap' : 'snare';
       }
     }
 

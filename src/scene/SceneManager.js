@@ -188,7 +188,11 @@ export class SceneManager {
       timbales: { width: 1.4, depth: 1.1, priority: 64 },
       harp: { width: 2.1, depth: 1.8, priority: 85 },
       accordion: { width: 1.6, depth: 1.4, priority: 70 },
-      harmonica: { width: 1.3, depth: 1.1, priority: 52 }
+      harmonica: { width: 1.3, depth: 1.1, priority: 52 },
+      banjo: { width: 1.65, depth: 1.3, priority: 73 },
+      timpani: { width: 3.5, depth: 1.9, priority: 66 },
+      recorder: { width: 1.4, depth: 1.0, priority: 55 },
+      clap: { width: 1.1, depth: 1.0, priority: 50 }
     };
     return footprints[family] || { width: 1.8, depth: 1.2, priority: 50 };
   }
@@ -316,6 +320,83 @@ export class SceneManager {
     };
   }
 
+  _resolveInstrumentCollisions(units, placements) {
+    const placedUnits = units.filter(unit => placements.has(unit.id));
+    const iterations = 8;
+
+    for (let iter = 0; iter < iterations; iter++) {
+      let hadCollision = false;
+
+      for (let i = 0; i < placedUnits.length; i++) {
+        for (let j = i + 1; j < placedUnits.length; j++) {
+          const uA = placedUnits[i];
+          const uB = placedUnits[j];
+          const pA = placements.get(uA.id);
+          const pB = placements.get(uB.id);
+
+          // Skip floating auxiliary percussion (they float in open air at y >= 0.80)
+          if ((pA.y || 0) >= 0.80 || (pB.y || 0) >= 0.80) continue;
+
+          // Don't move the drum kit - it is the fixed anchor on the tarima
+          const isAnchorA = uA.family === 'drums';
+          const isAnchorB = uB.family === 'drums';
+
+          const margin = 0.25;
+          const halfWA = uA.width * 0.5 + margin;
+          const halfDA = uA.depth * 0.5 + margin;
+          const halfWB = uB.width * 0.5 + margin;
+          const halfDB = uB.depth * 0.5 + margin;
+
+          const dx = pB.x - pA.x;
+          const dz = pB.z - pA.z;
+          const overlapX = (halfWA + halfWB) - Math.abs(dx);
+          const overlapZ = (halfDA + halfDB) - Math.abs(dz);
+
+          if (overlapX > 0 && overlapZ > 0) {
+            hadCollision = true;
+
+            // Separate along the axis of minimum penetration
+            if (overlapZ <= overlapX) {
+              const pushZ = overlapZ + 0.05;
+              if (isAnchorA) {
+                pB.z += dz >= 0 ? pushZ : -pushZ;
+              } else if (isAnchorB) {
+                pA.z += dz >= 0 ? -pushZ : pushZ;
+              } else {
+                const halfPush = pushZ * 0.5;
+                if (dz >= 0) {
+                  pB.z += halfPush;
+                  pA.z -= halfPush;
+                } else {
+                  pB.z -= halfPush;
+                  pA.z += halfPush;
+                }
+              }
+            } else {
+              const pushX = overlapX + 0.05;
+              if (isAnchorA) {
+                pB.x += dx >= 0 ? pushX : -pushX;
+              } else if (isAnchorB) {
+                pA.x += dx >= 0 ? -pushX : pushX;
+              } else {
+                const halfPush = pushX * 0.5;
+                if (dx >= 0) {
+                  pB.x += halfPush;
+                  pA.x -= halfPush;
+                } else {
+                  pB.x -= halfPush;
+                  pA.x += halfPush;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (!hadCollision) break;
+    }
+  }
+
   _constrainPlacementsToStage(units, placements) {
     // Keep a margin inside the 20 x 12 stage deck. The front limit also keeps
     // every performer behind the floor monitors at z = 2.4.
@@ -371,21 +452,29 @@ export class SceneManager {
     this._instrumentLayoutSignature = signature;
     if (!activeKeys.length) return;
 
+    const isSoloPiano = activeKeys.length === 1 && activeKeys[0] === 'piano';
+    const pianoInst = this.allInstruments['piano'];
+    if (pianoInst && typeof pianoInst.setGrandPianoMode === 'function') {
+      pianoInst.setGrandPianoMode(isSoloPiano);
+    }
+
     const units = this._buildLayoutUnits(activeKeys, prominenceByInstrument);
     const placements = new Map();
     const drumUnit = units.find(unit => unit.family === 'drums');
     const remaining = units.filter(unit => unit !== drumUnit);
 
-    // Dedicated percussion section: timbales, congas/bongos, cabasa, tambourine, maracas, guiro, whistle, triangle
-    const percussionFamilies = ['timbales', 'congas', 'cabasa', 'tambourine', 'maracas', 'guiro', 'whistle', 'triangle'];
+    // Dedicated percussion section: timbales, congas/bongos, cabasa, tambourine, maracas, guiro, whistle, triangle, timpani, clap
+    const percussionFamilies = ['timbales', 'congas', 'cabasa', 'tambourine', 'maracas', 'guiro', 'whistle', 'triangle', 'timpani', 'clap'];
     const timbalesUnits = remaining.filter(unit => unit.family === 'timbales');
     const congasUnits = remaining.filter(unit => unit.family === 'congas');
+    const timpaniUnits = remaining.filter(unit => unit.family === 'timpani');
     const cabasaUnits = remaining.filter(unit => unit.family === 'cabasa');
     const tambourineUnits = remaining.filter(unit => unit.family === 'tambourine');
     const triangleUnits = remaining.filter(unit => unit.family === 'triangle');
     const maracasUnits = remaining.filter(unit => unit.family === 'maracas');
     const guiroUnits = remaining.filter(unit => unit.family === 'guiro');
     const whistleUnits = remaining.filter(unit => unit.family === 'whistle');
+    const clapUnits = remaining.filter(unit => unit.family === 'clap');
 
     const placePercussion = (hasDrums = true) => {
       if (hasDrums) {
@@ -458,9 +547,29 @@ export class SceneManager {
             y: 1.28
           });
         });
+
+        // Clap hands placed front-center of the tarima, perfectly framed
+        clapUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: 0.0 + idx * 0.28,
+            z: 1.28 + idx * 0.15,
+            y: 1.20
+          });
+        });
+
+        // 5. Timpani when drums are present is deferred and placed upstage
+        // after melodic/keyboard sections are positioned to guarantee complete spatial separation.
       } else {
         // No drum kit: Percussion takes center stage on the tarima ("no reservar ese espacio")!
         const hasBothPerc = timbalesUnits.length > 0 && congasUnits.length > 0;
+        const hasOtherFloorPerc = timbalesUnits.length > 0 || congasUnits.length > 0;
+        timpaniUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: 0.0,
+            z: hasOtherFloorPerc ? (-1.35 - idx * 0.35) : (-0.45 - idx * 0.35),
+            y: 0.20
+          });
+        });
         timbalesUnits.forEach((unit, idx) => {
           const baseX = hasBothPerc ? -0.85 : 0.0;
           placements.set(unit.id, {
@@ -522,6 +631,13 @@ export class SceneManager {
             y: 1.28
           });
         });
+        clapUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: 0.0 + idx * 0.28,
+            z: 0.85 + idx * 0.15,
+            y: 1.20
+          });
+        });
       }
     };
 
@@ -530,9 +646,10 @@ export class SceneManager {
     const strings = melodicUnits.filter(unit => ['violin', 'cello', 'doubleBass', 'harp'].includes(unit.family));
     const electricGuitars = melodicUnits.filter(unit => unit.family === 'guitar');
     const acousticGuitars = melodicUnits.filter(unit => unit.family === 'acousticGuitar');
+    const banjos = melodicUnits.filter(unit => unit.family === 'banjo');
     const basses = melodicUnits.filter(unit => unit.family === 'bass');
-    const guitars = [...electricGuitars, ...acousticGuitars];
-    const winds = melodicUnits.filter(unit => ['trumpet', 'sax', 'flute', 'frenchHorn', 'clarinet', 'harmonica'].includes(unit.family));
+    const guitars = [...electricGuitars, ...acousticGuitars, ...banjos];
+    const winds = melodicUnits.filter(unit => ['trumpet', 'sax', 'flute', 'frenchHorn', 'clarinet', 'harmonica', 'recorder'].includes(unit.family));
     const auxiliaries = melodicUnits.filter(unit =>
       !keyboards.includes(unit) && !strings.includes(unit) &&
       !guitars.includes(unit) && !basses.includes(unit) && !winds.includes(unit)
@@ -587,9 +704,21 @@ export class SceneManager {
         frontEdge: orderedPrimaryGuitars.length ? primaryLayout.backEdge - 0.2 : frontEdge
       });
 
+      const banjoLayout = this._placeInstrumentCascade(banjos, placements, {
+        lateralStep: 0,
+        depthStep: 0.42,
+        verticalStep: 0.28,
+        baseY: 0.90,
+        align,
+        edgeX,
+        frontEdge: (orderedPrimaryGuitars.length || orderedSecondaryGuitars.length) ? Math.min(primaryLayout.backEdge, secondaryLayout.backEdge) - 0.2 : frontEdge
+      });
+
+      const effectiveBackEdge = banjos.length ? banjoLayout.backEdge : (orderedSecondaryGuitars.length ? secondaryLayout.backEdge : primaryLayout.backEdge);
+
       return {
-        backEdge: orderedSecondaryGuitars.length ? secondaryLayout.backEdge : primaryLayout.backEdge,
-        hasInstruments: orderedPrimaryGuitars.length > 0 || orderedSecondaryGuitars.length > 0
+        backEdge: effectiveBackEdge,
+        hasInstruments: orderedPrimaryGuitars.length > 0 || orderedSecondaryGuitars.length > 0 || banjos.length > 0
       };
     };
 
@@ -615,7 +744,15 @@ export class SceneManager {
       }
     );
 
-    if (drumUnit) {
+    if (isSoloPiano) {
+      if (this.stage && typeof this.stage.setRiserVisible === 'function') {
+        this.stage.setRiserVisible(false);
+      }
+      placements.set('piano', { x: 0.0, z: 0.15, y: 0.0 });
+    } else if (drumUnit) {
+      if (this.stage && typeof this.stage.setRiserVisible === 'function') {
+        this.stage.setRiserVisible(true);
+      }
       // The drum kit is the anchor: centered on the tarima safely inside its boundaries
       placements.set(drumUnit.id, { x: 0, z: -0.15, y: 0.20 });
       placePercussion(true);
@@ -637,7 +774,7 @@ export class SceneManager {
       const stringLayout = this._placeInstrumentSection(strings, placements, {
         align: 'right', edgeX: keyboardEdge, frontEdge: stringsFront
       });
-      this._placeInstrumentSection(leftAuxiliaries, placements, {
+      const leftAuxLayout = this._placeInstrumentSection(leftAuxiliaries, placements, {
         align: 'right', edgeX: keyboardEdge,
         frontEdge: Math.min(keyboardLayout.backEdge, stringLayout.backEdge) - 0.2
       });
@@ -647,16 +784,51 @@ export class SceneManager {
       const guitarLayout = placeGuitarSections('left', guitarCornerEdge, 1.75);
       const windsFront = guitarLayout.hasInstruments ? guitarLayout.backEdge - 0.2 : 1.65;
       const windLayout = placeWinds('left', rightEdge, windsFront);
-      this._placeInstrumentSection(rightAuxiliaries, placements, {
+      const rightAuxLayout = this._placeInstrumentSection(rightAuxiliaries, placements, {
         align: 'left', edgeX: rightEdge,
         frontEdge: Math.min(guitarLayout.backEdge, windLayout.backEdge) - 0.2
       });
+
+      // 5. Timpani: Positioned in percussion wing upstage with guaranteed spatial clearance from all melodic/keyboard sections
+      if (timpaniUnits.length > 0) {
+        const leftBackEdge = Math.min(
+          basses.length ? bassLayout.backEdge : 1.65,
+          keyboards.length ? keyboardLayout.backEdge : 1.65,
+          strings.length ? stringLayout.backEdge : 1.65,
+          leftAuxiliaries.length ? leftAuxLayout.backEdge : 1.65
+        );
+        const rightBackEdge = Math.min(
+          guitarLayout.hasInstruments ? guitarLayout.backEdge : 1.65,
+          orderedWinds.length ? windLayout.backEdge : 1.65,
+          rightAuxiliaries.length ? rightAuxLayout.backEdge : 1.65
+        );
+
+        timpaniUnits.forEach((unit, idx) => {
+          // If stage-left has room (leftBackEdge > -3.20), place in left percussion wing behind keyboards/strings.
+          // Otherwise, if stage-right has significantly more room, place upstage right.
+          const placeOnRight = leftBackEdge <= -3.20 && rightBackEdge > (leftBackEdge + 1.20);
+          const chosenBackEdge = placeOnRight ? rightBackEdge : leftBackEdge;
+          const targetZ = Math.min(-1.80, chosenBackEdge - 0.50) - (unit.depth * 0.5) - (idx * 0.35);
+          const targetX = placeOnRight ? (4.50 + idx * 0.40) : (-4.50 - idx * 0.40);
+
+          placements.set(unit.id, {
+            x: targetX,
+            z: Math.max(-5.0, targetZ),
+            y: 0.0
+          });
+        });
+      }
     } else {
+      if (this.stage && typeof this.stage.setRiserVisible === 'function') {
+        this.stage.setRiserVisible(true);
+      }
       // No drum kit: DO NOT reserve central space ("no reservar ese espacio")!
       // Other instruments should occupy and cover the central stage area.
       placePercussion(false);
       const leftItems = [...basses, ...keyboards, ...strings, ...leftAuxiliaries];
       const rightItems = [...guitars, ...winds, ...rightAuxiliaries];
+      const hasCenterTimpani = timpaniUnits.length > 0;
+      const centerClearance = hasCenterTimpani ? 2.15 : 0.35;
       const bassWidth = this._measureSectionWidth(basses, 3.75, 0.3);
       const keyboardAreaWidth = Math.max(
         this._measureSectionWidth(keyboards, 3.85, 0.25),
@@ -675,8 +847,12 @@ export class SceneManager {
         this._measureSectionWidth(rightAuxiliaries)
       );
       const hasBothSides = leftItems.length > 0 && rightItems.length > 0;
-      const leftEdge = hasBothSides ? -0.35 : leftWidth / 2 - (keyboards.length ? 0.8 : 0);
-      const rightEdge = hasBothSides ? 0.35 : -rightWidth / 2;
+      const leftEdge = hasBothSides
+        ? -centerClearance
+        : (hasCenterTimpani ? -centerClearance : leftWidth / 2 - (keyboards.length ? 0.8 : 0));
+      const rightEdge = hasBothSides
+        ? centerClearance
+        : (hasCenterTimpani ? centerClearance : -rightWidth / 2);
       const bassLayout = placeBasses('right', leftEdge, 1.85);
       const keyboardEdge = leftEdge;
       const keyboardFront = basses.length ? bassLayout.backEdge - 0.2 : 1.85;
@@ -706,6 +882,7 @@ export class SceneManager {
       });
     }
 
+    this._resolveInstrumentCollisions(units, placements);
     this._constrainPlacementsToStage(units, placements);
 
     const cameraTargets = new Map();
@@ -713,7 +890,7 @@ export class SceneManager {
 
     // 1. Pass 1: Compute candidate target positions and identify which instruments sit on the drum riser platform.
     // Constrain instruments on the tarima strictly within its original fixed bounds ("que no salgan").
-    const riserPercussion = ['drums', 'timbales', 'congas', 'cabasa', 'tambourine', 'maracas', 'guiro', 'whistle', 'triangle'];
+    const riserPercussion = ['drums', 'timbales', 'congas', 'cabasa', 'tambourine', 'maracas', 'guiro', 'whistle', 'triangle', 'clap'];
     const riserMargin = 0.12; // Safety margin from the deck edges so feet/stands sit solidly inside
     const riserMinX = -2.40;
     const riserMaxX = 2.40;
@@ -731,12 +908,12 @@ export class SceneManager {
         const home = this.instrumentHomeTransforms.get(key);
         const family = this._getInstrumentFamily(key);
         const isRiserPercussion = riserPercussion.includes(family);
-        const onRiserByCoords = placement.z <= 1.35 && placement.x >= -2.30 && placement.x <= 2.30;
+        const onRiserByCoords = !isSoloPiano && placement.z <= 1.35 && placement.x >= -2.30 && placement.x <= 2.30;
         const isRiserInstrument = isRiserPercussion || onRiserByCoords;
-        const riserElevation = isRiserPercussion
-          ? 0
-          : (onRiserByCoords ? 0.20 : this.getStageFloorElevation(placement.x, placement.z));
-        const baseY = (placement.y !== undefined ? placement.y : home.y) + riserElevation;
+        const riserElevation = onRiserByCoords ? 0.20 : this.getStageFloorElevation(placement.x, placement.z);
+        const baseY = placement.y !== undefined
+          ? placement.y
+          : (home.y + riserElevation);
         const targetPos = new THREE.Vector3(placement.x, baseY, placement.z);
 
         if (isRiserInstrument) {
@@ -784,24 +961,30 @@ export class SceneManager {
 
         // For instruments on the floor, ensure they maintain clean clearance without being thrown sideways
         if (!riserInstruments.has(key)) {
-          instrument.group.updateWorldMatrix(true, true);
-          const box = new THREE.Box3().setFromObject(instrument.group);
-          const size = box.getSize(new THREE.Vector3());
-          const halfWidth = Math.max(0.20, size.x * 0.5);
-          const halfDepth = Math.max(0.20, size.z * 0.5);
+          if (!isSoloPiano) {
+            instrument.group.updateWorldMatrix(true, true);
+            const box = new THREE.Box3().setFromObject(instrument.group);
+            const size = box.getSize(new THREE.Vector3());
+            const halfWidth = Math.max(0.20, size.x * 0.5);
+            const halfDepth = Math.max(0.20, size.z * 0.5);
 
-          // If the instrument is in front of the tarima (front area of the stage):
-          // Maintain clean forward clearance in Z so rear feet don't clip the front edge of the tarima (Z = 1.45).
-          // Do NOT push it sideways to X = +/- 3.5! Keep it covering the central stage area!
-          if (targetPosition.z > 1.20) {
-            targetPosition.z = Math.max(targetPosition.z, riserMaxZ + halfDepth + 0.12);
-          } else {
-            // If the instrument is beside the tarima (Z <= 1.20, e.g. beside drum kit):
-            // Maintain clean lateral clearance outside the side edges of the tarima.
-            if (targetPosition.x < 0) {
-              targetPosition.x = Math.min(targetPosition.x, riserMinX - halfWidth - 0.20);
+            // If the instrument is in front of the tarima (front area of the stage):
+            // Maintain clean forward clearance in Z so rear feet don't clip the front edge of the tarima (Z = 1.45).
+            // Do NOT push it sideways to X = +/- 3.5! Keep it covering the central stage area!
+            if (targetPosition.z > riserMaxZ) {
+              targetPosition.z = Math.max(targetPosition.z, riserMaxZ + halfDepth + 0.12);
+            } else if (targetPosition.z >= (riserMinZ - halfDepth)) {
+              // If the instrument is beside the tarima:
+              // Maintain clean lateral clearance outside the side edges of the tarima.
+              if (targetPosition.x < 0) {
+                targetPosition.x = Math.min(targetPosition.x, riserMinX - halfWidth - 0.20);
+              } else {
+                targetPosition.x = Math.max(targetPosition.x, riserMaxX + halfWidth + 0.20);
+              }
             } else {
-              targetPosition.x = Math.max(targetPosition.x, riserMaxX + halfWidth + 0.20);
+              // If the instrument is behind the tarima:
+              // Maintain clean rear clearance behind the rear edge of the tarima.
+              targetPosition.z = Math.min(targetPosition.z, riserMinZ - halfDepth - 0.12);
             }
           }
         }
@@ -986,7 +1169,11 @@ export class SceneManager {
       timbales: 'drum',
       harp: 'harp',
       harmonica: 'harmonica',
-      accordion: 'accordion'
+      accordion: 'accordion',
+      banjo: 'guitar',
+      timpani: 'drum',
+      recorder: 'flute',
+      clap: 'drum'
     };
     const spotName = spotMap[baseInst] || 'piano';
     this.stage.pulseInstrumentSpotlight(spotName, velocity, duration);
@@ -999,6 +1186,15 @@ export class SceneManager {
 
     if (instObj && typeof instObj.onNoteOff === 'function') {
       instObj.onNoteOff(midiPitch, force);
+    }
+  }
+
+  // Handle MIDI Control Change (e.g. CC64 sustain pedal, CC67 soft pedal)
+  handleControlChange(channel, controller, value, instrument = 'piano') {
+    const targetKey = this.allInstruments[instrument] ? instrument : 'piano';
+    const instObj = this.allInstruments[targetKey];
+    if (instObj && typeof instObj.onControlChange === 'function') {
+      instObj.onControlChange(controller, value);
     }
   }
 

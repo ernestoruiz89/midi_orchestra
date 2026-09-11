@@ -68,8 +68,8 @@ export class Saxophone3D {
 
     // Positioned front-right stage (Woodwind / Sax section)
     this.group.position.set(3.4, 1.25, 1.8);
-    // Angled to project sound toward the conductor and audience
-    this.group.rotation.set(0.04, -Math.PI * 0.18, 0.06);
+    // Angled to project sound toward the conductor and audience (body on left, keys & bell on right)
+    this.group.rotation.set(0.04, Math.PI * 0.38, 0.02);
 
     this.keyPads = [];
     this.auxKeys = [];
@@ -230,22 +230,18 @@ export class Saxophone3D {
     return geom;
   }
 
-  _createBarrelRollerGeometry(length, midRadius, endRadius) {
+  _createBarrelRollerGeometry(length = 0.0122, midRadius = 0.0019, endRadius = 0.00155) {
     const points = [];
     const halfLen = length / 2;
-    const segments = 12;
+    const segments = 14;
     points.push(new THREE.Vector2(0, -halfLen));
-    points.push(new THREE.Vector2(endRadius * 0.7, -halfLen));
-    points.push(new THREE.Vector2(endRadius, -halfLen + 0.0004));
-    for (let i = 1; i < segments; i++) {
+    for (let i = 0; i <= segments; i++) {
       const t = i / segments;
       const y = -halfLen + length * t;
       const factor = 4 * t * (1 - t);
       const r = endRadius + (midRadius - endRadius) * factor;
       points.push(new THREE.Vector2(r, y));
     }
-    points.push(new THREE.Vector2(endRadius, halfLen - 0.0004));
-    points.push(new THREE.Vector2(endRadius * 0.7, halfLen));
     points.push(new THREE.Vector2(0, halfLen));
     const geom = new THREE.LatheGeometry(points, 20);
     geom.computeVertexNormals();
@@ -253,37 +249,41 @@ export class Saxophone3D {
   }
 
   _createEbSpatulaShape() {
+    // Upper crescent with convex top dome, carved pocket & wrapping bracket ears for roller
     const s = new THREE.Shape();
-    const slope = Math.tan(-0.31);
-    const midX = 0.01425;
-    // Counter-clockwise: start inner bottom, go right, up outer ear, left along top arc
-    s.moveTo(0.0030, 0.0000);
-    s.lineTo(0.0080, 0.0000);
-    s.lineTo(0.0085, (0.0085 - midX) * slope + 0.0016);
-    s.lineTo(0.0200, (0.0200 - midX) * slope + 0.0016);
-    s.lineTo(0.0205, -0.0035);
-    s.lineTo(0.0235, -0.0035);
-    s.quadraticCurveTo(0.0250, 0.0020, 0.0210, 0.0065);
-    s.quadraticCurveTo(0.0130, 0.0110, 0.0055, 0.0040);
-    s.lineTo(0.0030, 0.0020);
+    const rollerAngle = -0.349;
+    const slope = Math.tan(rollerAngle);
+    const rollerMidX = 0.0145;
+
+    s.moveTo(0.0035, 0.0025);
+    s.quadraticCurveTo(0.0060, 0.0065, 0.0125, 0.0125);
+    s.quadraticCurveTo(0.0210, 0.0090, 0.0245, 0.0035);
+    s.quadraticCurveTo(0.0255, -0.0020, 0.0240, -0.0055);
+    s.lineTo(0.0210, -0.0055);
+    s.lineTo(0.0210, (0.0210 - rollerMidX) * slope + 0.0024);
+    s.lineTo(0.0080, (0.0080 - rollerMidX) * slope + 0.0024);
+    s.lineTo(0.0080, 0.000);
+    s.lineTo(0.0035, 0.000);
     s.closePath();
     return s;
   }
 
   _createCSpatulaShape() {
+    // Lower crescent with convex bottom dome, carved pocket & wrapping bracket ears for roller
     const s = new THREE.Shape();
-    const slope = Math.tan(-0.31);
-    const midX = 0.01425;
-    // Counter-clockwise: start inner bottom, go right along bottom arc, up outer ear, left along notch
-    s.moveTo(0.0030, -0.0020);
-    s.lineTo(0.0055, -0.0040);
-    s.quadraticCurveTo(0.0130, -0.0110, 0.0210, -0.0065);
-    s.quadraticCurveTo(0.0250, -0.0020, 0.0235, 0.0035);
-    s.lineTo(0.0205, 0.0035);
-    s.lineTo(0.0200, (0.0200 - midX) * slope - 0.0016);
-    s.lineTo(0.0085, (0.0085 - midX) * slope - 0.0016);
-    s.lineTo(0.0080, 0.0000);
-    s.lineTo(0.0030, 0.0000);
+    const rollerAngle = -0.349;
+    const slope = Math.tan(rollerAngle);
+    const rollerMidX = 0.0145;
+
+    s.moveTo(0.0035, 0.000);
+    s.lineTo(0.0080, 0.000);
+    s.lineTo(0.0080, (0.0080 - rollerMidX) * slope - 0.0024);
+    s.lineTo(0.0210, (0.0210 - rollerMidX) * slope - 0.0024);
+    s.lineTo(0.0210, -0.0015);
+    s.lineTo(0.0240, -0.0015);
+    s.quadraticCurveTo(0.0255, -0.0060, 0.0210, -0.0115);
+    s.quadraticCurveTo(0.0125, -0.0150, 0.0060, -0.0080);
+    s.lineTo(0.0035, -0.0025);
     s.closePath();
     return s;
   }
@@ -996,17 +996,17 @@ export class Saxophone3D {
     sax.add(upperRod);
     [0.015, 0.092, 0.170].forEach(py => buildPost(upperRodPos, py));
 
-    // Lower Stack Hinge Rod (Mano Derecha)
-    const lowerRodPos = { x: 0.040, z: 0.016 };
-    const lowerRodLen = 0.155;
-    const lowerRodY = -0.115;
+    // Lower Stack Hinge Rod (Mano Derecha - Termina limpio en la llave de Re para despejar la sección del meñique)
+    const lowerRodPos = { x: -0.034, z: 0.016 };
+    const lowerRodLen = 0.135;
+    const lowerRodY = -0.112;
     const lowerRod = new THREE.Mesh(
       new THREE.CylinderGeometry(0.0018, 0.0018, lowerRodLen, 12),
       this.nickelRodsMaterial
     );
     lowerRod.position.set(lowerRodPos.x, lowerRodY, lowerRodPos.z);
     sax.add(lowerRod);
-    [-0.040, -0.115, -0.190].forEach(py => buildPost(lowerRodPos, py));
+    [-0.050, -0.115, -0.175].forEach(py => buildPost(lowerRodPos, py));
 
     // Left Palm Keys Rod
     const palmRodPos = { x: -0.032, z: 0.010 };
@@ -1031,24 +1031,25 @@ export class Saxophone3D {
     // ==========================================
     // 7. PRIMARY FINGER BUTTONS & ARTICULATED MECHANISM
     // ==========================================
-    const keyAngle = 0.36; // Radian azimuth angle of front finger stack
-    const ux = Math.sin(keyAngle);
-    const uz = Math.cos(keyAngle);
+    const upperKeyAngle = 0.36; // Radian azimuth angle of front upper finger stack (mano izquierda)
+    const lowerKeyAngle = -0.36; // Radian azimuth angle of lower finger stack in white box (mano derecha)
 
     const stackKeys = [
-      // UPPER STACK (Left Hand: B, Bis, A, G)
-      { id: 'B',   name: 'B',      y: 0.140, midiThresh: 71, cupR: 0.0132, pearlR: 0.0105, rod: upperRodPos, isBis: false },
-      { id: 'Bis', name: 'Bis Bb', y: 0.115, midiThresh: 70, cupR: 0.0084, pearlR: 0.0068, rod: upperRodPos, isBis: true },
-      { id: 'A',   name: 'A',      y: 0.090, midiThresh: 69, cupR: 0.0136, pearlR: 0.0105, rod: upperRodPos, isBis: false },
-      { id: 'G',   name: 'G',      y: 0.040, midiThresh: 67, cupR: 0.0142, pearlR: 0.0105, rod: upperRodPos, isBis: false },
-      // LOWER STACK (Right Hand: F, E, D)
-      { id: 'F',   name: 'F',      y: -0.065, midiThresh: 65, cupR: 0.0148, pearlR: 0.0110, rod: lowerRodPos, isBis: false },
-      { id: 'E',   name: 'E',      y: -0.115, midiThresh: 64, cupR: 0.0152, pearlR: 0.0110, rod: lowerRodPos, isBis: false },
-      { id: 'D',   name: 'D',      y: -0.165, midiThresh: 62, cupR: 0.0158, pearlR: 0.0110, rod: lowerRodPos, isBis: false }
+      // UPPER STACK (Left Hand: B, Bis, A, G) - rod a la derecha, apertura hacia fuera con rotación positiva amplificada
+      { id: 'B',   name: 'B',      y: 0.140, midiThresh: 71, cupR: 0.0132, pearlR: 0.0105, rod: upperRodPos, angle: upperKeyAngle, restAngle: 0.200, pressedAngle: 0.000, isBis: false },
+      { id: 'Bis', name: 'Bis Bb', y: 0.115, midiThresh: 70, cupR: 0.0084, pearlR: 0.0068, rod: upperRodPos, angle: upperKeyAngle, restAngle: 0.200, pressedAngle: 0.000, isBis: true },
+      { id: 'A',   name: 'A',      y: 0.090, midiThresh: 69, cupR: 0.0136, pearlR: 0.0105, rod: upperRodPos, angle: upperKeyAngle, restAngle: 0.200, pressedAngle: 0.000, isBis: false },
+      { id: 'G',   name: 'G',      y: 0.040, midiThresh: 67, cupR: 0.0142, pearlR: 0.0105, rod: upperRodPos, angle: upperKeyAngle, restAngle: 0.200, pressedAngle: 0.000, isBis: false },
+      // LOWER STACK (Right Hand: F, E, D) - apertura hacia fuera con rotación negativa amplificada (4mm de recorrido)
+      { id: 'F',   name: 'F',      y: -0.065, midiThresh: 65, cupR: 0.0148, pearlR: 0.0110, rod: lowerRodPos, angle: lowerKeyAngle, restAngle: -0.200, pressedAngle: 0.000, isBis: false },
+      { id: 'E',   name: 'E',      y: -0.115, midiThresh: 64, cupR: 0.0152, pearlR: 0.0110, rod: lowerRodPos, angle: lowerKeyAngle, restAngle: -0.200, pressedAngle: 0.000, isBis: false },
+      { id: 'D',   name: 'D',      y: -0.165, midiThresh: 62, cupR: 0.0158, pearlR: 0.0110, rod: lowerRodPos, angle: lowerKeyAngle, restAngle: -0.200, pressedAngle: 0.000, isBis: false }
     ];
 
     stackKeys.forEach((k, idx) => {
       const rBody = getSaxRadius(k.y);
+      const ux = Math.sin(k.angle);
+      const uz = Math.cos(k.angle);
 
       // --- 1. STATIONARY TONE HOLE CHIMNEY (Firmly Soldered to Sax Body) ---
       const chBaseX = ux * rBody;
@@ -1060,7 +1061,7 @@ export class Saxophone3D {
         this.brassMaterial
       );
       chimney.position.set(chBaseX + ux * 0.00275, k.y, chBaseZ + uz * 0.00275);
-      chimney.rotation.y = keyAngle;
+      chimney.rotation.y = k.angle;
       sax.add(chimney);
 
       // Turned sealing rim lip at top of chimney
@@ -1069,7 +1070,7 @@ export class Saxophone3D {
         this.brassMaterial
       );
       chimneyLip.position.set(chBaseX + ux * 0.0055, k.y, chBaseZ + uz * 0.0055);
-      chimneyLip.rotation.y = keyAngle;
+      chimneyLip.rotation.y = k.angle;
       sax.add(chimneyLip);
 
       // Dark acoustic bore disc inside the chimney
@@ -1078,16 +1079,15 @@ export class Saxophone3D {
         this.boreMaterial
       );
       boreDisc.position.set(chBaseX + ux * 0.0012, k.y, chBaseZ + uz * 0.0012);
-      boreDisc.rotation.y = keyAngle;
+      boreDisc.rotation.y = k.angle;
       sax.add(boreDisc);
 
       // --- 2. ARTICULATED KEY MECHANISM (Rotates on Axle Rod) ---
       const keyGroup = new THREE.Group();
       keyGroup.position.set(k.rod.x, k.y, k.rod.z);
 
-      // Resting open position (+0.07 rad gives ~2.0mm realistic pad lift)
-      const restAngle = 0.070;
-      keyGroup.rotation.y = restAngle;
+      // Resting open position (lifts pad outward from body)
+      keyGroup.rotation.y = k.restAngle;
 
       // Cup coordinates in closed state (when rotation.y = 0)
       const cupWorldX = ux * (rBody + 0.0070);
@@ -1135,7 +1135,7 @@ export class Saxophone3D {
       // Cup & Touch Assembly (Rotated to align with tone hole face)
       const cupGroup = new THREE.Group();
       cupGroup.position.set(lx, 0, lz);
-      cupGroup.rotation.y = keyAngle;
+      cupGroup.rotation.y = k.angle;
 
       // Brass Key Cup (Turned exterior cup body, spans z: -0.0018 to +0.0018)
       const cup = new THREE.Mesh(
@@ -1175,10 +1175,11 @@ export class Saxophone3D {
       collar.position.z = 0.0026;
       cupGroup.add(collar);
 
-      // Concave Mother-of-Pearl Finger Button Inlay (Pure iridescent pearl bowl)
+      // Concave Mother-of-Pearl Finger Button Inlay (Pure iridescent pearl bowl with independent touch luminescence)
+      const pearlMat = this.pearlMaterial.clone();
       const pearl = new THREE.Mesh(
         this._createPearlGeometry(k.pearlR, 0.0014),
-        this.pearlMaterial
+        pearlMat
       );
       pearl.position.z = 0.0020; // Elevated safely in front of cup face
       cupGroup.add(pearl);
@@ -1190,8 +1191,9 @@ export class Saxophone3D {
       this.keyPads.push({
         id: k.id,
         group: keyGroup,
-        restAngle: restAngle,
-        pressedAngle: 0.000,
+        pearlMesh: pearl,
+        restAngle: k.restAngle,
+        pressedAngle: k.pressedAngle,
         rotAxis: 'y',
         baseZ: keyGroup.position.z,
         baseX: keyGroup.position.x,
@@ -1285,33 +1287,43 @@ export class Saxophone3D {
 
     // ==========================================
     // RIGHT HAND PINKY TABLE: LOW Eb & LOW C SPATULAS & CUPS
-    // (Faithfully sculpted according to photographic reference)
+    // (Sculpted to photo reference & MIDIs2Jam2 oval pair silhouette)
     // ==========================================
     const rightPinkyGroup = new THREE.Group();
-    // Positioned beside the Low D key cup matching photographic reference
-    rightPinkyGroup.position.set(0.008, -0.182, 0.038);
-    rightPinkyGroup.rotation.y = keyAngle;
+    // Positioned in the RED BOX on the left flank below D key (y = -0.204, azimuth = -1.80)
+    const pinkyAzimuth = -1.80;
+    const pinkyY = -0.204;
+    const rTubePinky = getSaxRadius(pinkyY);
+    const cosPA = Math.cos(pinkyAzimuth);
+    const sinPA = Math.sin(pinkyAzimuth);
+    const baseSaxX = rTubePinky * sinPA;
+    const baseSaxZ = rTubePinky * cosPA;
+    const baseRotX = -0.0155 * cosPA + (-0.017) * sinPA;
+    const baseRotZ = -(-0.0155) * sinPA + (-0.017) * cosPA;
+    rightPinkyGroup.position.set(baseSaxX - baseRotX, pinkyY, baseSaxZ - baseRotZ);
+    rightPinkyGroup.rotation.y = pinkyAzimuth;
 
     const spatulaExtrudeSettings = {
-      depth: 0.0018,
+      depth: 0.0022,
       bevelEnabled: true,
       bevelSegments: 4,
       steps: 1,
-      bevelSize: 0.0005,
-      bevelThickness: 0.0005
+      bevelSize: 0.0006,
+      bevelThickness: 0.0006
     };
 
-    // 1. Turned Brass Mounting Post soldered to body tube with Spherical Ball Finial
-    const hingeX = -0.008;
-    const postTopY = 0.013; // Sits just above upper spatula sleeve, level with D button
+    // Hinge axle is situated on the left of the spatulas
+    const hingeX = -0.0155;
+    const postTopY = 0.021; // Level with D button center (y = -0.165)
+    const postBotY = -0.025;
 
-    // Post horizontal stem extending from body tube out to hinge
-    const mountPostStem = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.0024, 0.0030, 0.016, 12).rotateX(Math.PI / 2),
+    // 1. Turned Brass Mounting Standoff soldered to body tube with Spherical Ball Finial
+    const topStandoff = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.0024, 0.0028, 0.017, 12).rotateX(Math.PI / 2),
       this.brassMaterial
     );
-    mountPostStem.position.set(hingeX, postTopY, -0.008);
-    rightPinkyGroup.add(mountPostStem);
+    topStandoff.position.set(hingeX, postTopY, -0.0085);
+    rightPinkyGroup.add(topStandoff);
 
     // Turned spherical ball finial on top of the post
     const ballFinial = new THREE.Mesh(
@@ -1323,7 +1335,7 @@ export class Saxophone3D {
 
     // Turned neck/collar under the ball
     const finialCollar = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.0030, 0.0030, 0.0022, 14),
+      new THREE.CylinderGeometry(0.0030, 0.0030, 0.0020, 14),
       this.brassMaterial
     );
     finialCollar.position.set(hingeX, postTopY + 0.0010, 0);
@@ -1331,26 +1343,42 @@ export class Saxophone3D {
 
     // Hinge top socket
     const topSocket = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.0034, 0.0034, 0.0036, 14),
+      new THREE.CylinderGeometry(0.0034, 0.0034, 0.0032, 14),
       this.brassMaterial
     );
-    topSocket.position.set(hingeX, postTopY - 0.0018, 0);
+    topSocket.position.set(hingeX, postTopY - 0.0016, 0);
     rightPinkyGroup.add(topSocket);
+
+    // Bottom horizontal standoff arm from body cone to lower post
+    const botStandoff = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.0024, 0.0028, 0.017, 12).rotateX(Math.PI / 2),
+      this.brassMaterial
+    );
+    botStandoff.position.set(hingeX, postBotY, -0.0085);
+    rightPinkyGroup.add(botStandoff);
+
+    // Bottom acorn cap / socket
+    const botCap = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.0034, 0.0024, 0.0038, 14),
+      this.brassMaterial
+    );
+    botCap.position.set(hingeX, postBotY - 0.0019, 0);
+    rightPinkyGroup.add(botCap);
 
     // 2. Vertical Mechanical Pivot Axle Rod (Polished Nickel)
     const pinkyAxle = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.0016, 0.0016, 0.046, 12),
+      new THREE.CylinderGeometry(0.0015, 0.0015, postTopY - postBotY + 0.006, 12),
       this.nickelRodsMaterial
     );
-    pinkyAxle.position.set(hingeX, -0.009, 0);
+    pinkyAxle.position.set(hingeX, (postTopY + postBotY) / 2, 0);
     rightPinkyGroup.add(pinkyAxle);
 
     // 3. Tempered Blued-Steel Needle Spring running vertically behind the spatulas
     const pinkySpring = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.00045, 0.00045, 0.030, 6),
+      new THREE.CylinderGeometry(0.00045, 0.00045, 0.038, 6),
       this.springMaterial
     );
-    pinkySpring.position.set(hingeX + 0.0036, -0.002, -0.0025);
+    pinkySpring.position.set(hingeX + 0.0036, 0.002, -0.0025);
     rightPinkyGroup.add(pinkySpring);
 
     // Spring catch pin with miniature ball tip extending from lower sleeve
@@ -1358,28 +1386,31 @@ export class Saxophone3D {
       new THREE.CylinderGeometry(0.0008, 0.0008, 0.0045, 8).rotateX(Math.PI / 2),
       this.brassMaterial
     );
-    springCatchPin.position.set(hingeX + 0.0025, -0.010, -0.002);
+    springCatchPin.position.set(hingeX + 0.0025, -0.012, -0.002);
     rightPinkyGroup.add(springCatchPin);
 
     const springCatchBall = new THREE.Mesh(
       new THREE.SphereGeometry(0.0011, 8, 8),
       this.brassMaterial
     );
-    springCatchBall.position.set(hingeX + 0.0025, -0.010, -0.0045);
+    springCatchBall.position.set(hingeX + 0.0025, -0.012, -0.0042);
     rightPinkyGroup.add(springCatchBall);
 
-    // Common roller direction vector (tilted ~ -18° downwards to the right)
-    const rollerSlope = -0.31;
-    const rollerDir = new THREE.Vector3(Math.cos(rollerSlope), Math.sin(rollerSlope), 0).normalize();
+    // Common roller direction vector (tilted -20° downwards to the right)
+    const rollerAngle = -0.349;
+    const rollerDir = new THREE.Vector3(Math.cos(rollerAngle), Math.sin(rollerAngle), 0).normalize();
     const rollerQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), rollerDir);
+    const rollerLen = 0.0122;
+    const rollerR = 0.0019;
+    const rollerMidX = 0.0145; // Offset from hinge sleeve
 
     // 4. Low Eb Spatula Group (Upper spatula with upper barrel roller)
     const ebSpatulaGroup = new THREE.Group();
-    ebSpatulaGroup.position.set(hingeX, 0.0036, 0);
+    ebSpatulaGroup.position.set(hingeX, 0.0048, 0);
 
     // Upper hinge sleeve wrapping around vertical axle
     const ebSleeve = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.0033, 0.0033, 0.0070, 14),
+      new THREE.CylinderGeometry(0.0033, 0.0033, 0.0088, 14),
       this.brassMaterial
     );
     ebSpatulaGroup.add(ebSleeve);
@@ -1388,30 +1419,30 @@ export class Saxophone3D {
     const ebGeom = new THREE.ExtrudeGeometry(this._createEbSpatulaShape(), spatulaExtrudeSettings);
     ebGeom.computeVertexNormals();
     const ebMesh = new THREE.Mesh(ebGeom, this.brassMaterial);
-    ebMesh.position.set(0, 0, 0.0005);
+    ebMesh.position.set(0, 0, 0.0006);
     ebSpatulaGroup.add(ebMesh);
 
     // Upper Black Ebonite Barrel Roller
-    const ebRollerGeom = this._createBarrelRollerGeometry(0.0115, 0.0016, 0.00135);
-    const ebRoller = new THREE.Mesh(ebRollerGeom, this.eboniteMaterial);
+    const ebRollerGeom = this._createBarrelRollerGeometry(rollerLen, rollerR, rollerR * 0.82);
+    const ebRoller = new THREE.Mesh(ebRollerGeom, this.eboniteMaterial.clone());
     ebRoller.quaternion.copy(rollerQuat);
-    ebRoller.position.set(0.01425, -0.0016, 0.0022);
+    ebRoller.position.set(rollerMidX, -0.0018, 0.0028);
     ebSpatulaGroup.add(ebRoller);
 
     // Roller axle pin (Nickel)
     const ebRollerPin = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.00055, 0.00055, 0.0140, 8),
+      new THREE.CylinderGeometry(0.0006, 0.0006, rollerLen + 0.003, 8),
       this.nickelRodsMaterial
     );
     ebRollerPin.quaternion.copy(rollerQuat);
-    ebRollerPin.position.set(0.01425, -0.0016, 0.0022);
+    ebRollerPin.position.set(rollerMidX, -0.0018, 0.0028);
     ebSpatulaGroup.add(ebRollerPin);
 
     rightPinkyGroup.add(ebSpatulaGroup);
 
     // Spacer collar between the two sleeves
     const midSpacer = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.0026, 0.0026, 0.0012, 12),
+      new THREE.CylinderGeometry(0.0026, 0.0026, 0.0016, 12),
       this.brassMaterial
     );
     midSpacer.position.set(hingeX, 0.000, 0);
@@ -1419,11 +1450,11 @@ export class Saxophone3D {
 
     // 5. Low C Spatula Group (Lower spatula with lower barrel roller)
     const cSpatulaGroup = new THREE.Group();
-    cSpatulaGroup.position.set(hingeX, -0.0036, 0);
+    cSpatulaGroup.position.set(hingeX, -0.0048, 0);
 
     // Lower hinge sleeve wrapping around vertical axle
     const cSleeve = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.0033, 0.0033, 0.0070, 14),
+      new THREE.CylinderGeometry(0.0033, 0.0033, 0.0088, 14),
       this.brassMaterial
     );
     cSpatulaGroup.add(cSleeve);
@@ -1432,23 +1463,23 @@ export class Saxophone3D {
     const cGeom = new THREE.ExtrudeGeometry(this._createCSpatulaShape(), spatulaExtrudeSettings);
     cGeom.computeVertexNormals();
     const cMesh = new THREE.Mesh(cGeom, this.brassMaterial);
-    cMesh.position.set(0, 0, 0.0005);
+    cMesh.position.set(0, 0, 0.0006);
     cSpatulaGroup.add(cMesh);
 
     // Lower Black Ebonite Barrel Roller (Parallel to upper roller, snug 0.8mm clearance)
-    const cRollerGeom = this._createBarrelRollerGeometry(0.0115, 0.0016, 0.00135);
-    const cRoller = new THREE.Mesh(cRollerGeom, this.eboniteMaterial);
+    const cRollerGeom = this._createBarrelRollerGeometry(rollerLen, rollerR, rollerR * 0.82);
+    const cRoller = new THREE.Mesh(cRollerGeom, this.eboniteMaterial.clone());
     cRoller.quaternion.copy(rollerQuat);
-    cRoller.position.set(0.01425, 0.0016, 0.0022);
+    cRoller.position.set(rollerMidX, 0.0018, 0.0028);
     cSpatulaGroup.add(cRoller);
 
     // Roller axle pin (Nickel)
     const cRollerPin = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.00055, 0.00055, 0.0140, 8),
+      new THREE.CylinderGeometry(0.0006, 0.0006, rollerLen + 0.003, 8),
       this.nickelRodsMaterial
     );
     cRollerPin.quaternion.copy(rollerQuat);
-    cRollerPin.position.set(0.01425, 0.0016, 0.0022);
+    cRollerPin.position.set(rollerMidX, 0.0018, 0.0028);
     cSpatulaGroup.add(cRollerPin);
 
     rightPinkyGroup.add(cSpatulaGroup);
@@ -1457,8 +1488,8 @@ export class Saxophone3D {
 
     // --- Low Eb and Low C Tone Hole Chimneys & Articulated Key Cups ---
     const lowerBodyKeys = [
-      { id: 'lowEb', y: -0.208, x: 0.041, z: 0.014, radius: 0.0155, midiThresh: 63, spatulaGroup: ebSpatulaGroup },
-      { id: 'lowC',  y: -0.252, x: 0.044, z: 0.016, radius: 0.0170, midiThresh: 60, spatulaGroup: cSpatulaGroup }
+      { id: 'lowEb', y: -0.208, x: 0.041, z: 0.014, radius: 0.0155, midiThresh: 63, spatulaGroup: ebSpatulaGroup, roller: ebRoller },
+      { id: 'lowC',  y: -0.252, x: 0.044, z: 0.016, radius: 0.0170, midiThresh: 60, spatulaGroup: cSpatulaGroup, roller: cRoller }
     ];
 
     lowerBodyKeys.forEach(lbk => {
@@ -1515,6 +1546,7 @@ export class Saxophone3D {
         id: lbk.id,
         group: cupGroup,
         spatulaGroup: lbk.spatulaGroup,
+        rollerMesh: lbk.roller,
         baseX: lbk.x,
         midiThresh: lbk.midiThresh,
         isLowerBodyKey: true
@@ -1579,7 +1611,7 @@ export class Saxophone3D {
     // Touch cup & pearl
     const fCupGroup = new THREE.Group();
     fCupGroup.position.set(-0.022, 0.006, 0.012);
-    fCupGroup.rotation.y = keyAngle;
+    fCupGroup.rotation.y = upperKeyAngle;
 
     const fCup = new THREE.Mesh(
       new THREE.CylinderGeometry(0.0065, 0.0060, 0.0032, 18).rotateX(Math.PI / 2),
@@ -1647,25 +1679,119 @@ export class Saxophone3D {
     }
   }
 
-  onNoteOn(midiPitch, velocity = 0.8) {
+  _getFingering(midiPitch) {
+    let p = midiPitch;
+    while (p < 58) p += 12;
+    while (p > 90) p -= 12;
+
+    const isOctave = p >= 73; // D5 and above uses octave key
+    const pitchInOctave = p % 12;
+
+    const active = {
+      B: false,
+      Bis: false,
+      A: false,
+      G: false,
+      F: false,
+      E: false,
+      D: false,
+      lowC: false,
+      lowEb: false,
+      octave: isOctave,
+      bellKeys: p < 60,
+      palmKeys: p >= 86
+    };
+
+    if (p < 60) {
+      // Low Bb / Low B: all finger keys + low C + bell keys
+      active.B = active.A = active.G = active.F = active.E = active.D = true;
+      active.lowC = true;
+      active.bellKeys = true;
+    } else if (p === 60) {
+      // Low C: all finger keys + low C spatula
+      active.B = active.A = active.G = active.F = active.E = active.D = true;
+      active.lowC = true;
+    } else if (p === 61) {
+      // Low C#: open
+    } else if (p >= 86) {
+      // Altissimo / Palm register
+      active.palmKeys = true;
+      if (p >= 88) active.B = true;
+    } else {
+      // Standard chromatic saxophone fingerings (replicated in octaves 4 & 5):
+      switch (pitchInOctave) {
+        case 2: // D (62, 74)
+          active.B = active.A = active.G = active.F = active.E = active.D = true;
+          break;
+        case 3: // Eb (63, 75)
+          active.B = active.A = active.G = active.F = active.E = active.D = true;
+          active.lowEb = true;
+          break;
+        case 4: // E (64, 76)
+          active.B = active.A = active.G = active.F = active.E = true;
+          break;
+        case 5: // F (65, 77)
+          active.B = active.A = active.G = active.F = true;
+          break;
+        case 6: // F# (66, 78)
+          active.B = active.A = active.G = active.E = true;
+          break;
+        case 7: // G (67, 79)
+          active.B = active.A = active.G = true;
+          break;
+        case 8: // G# (68, 80)
+          active.B = active.A = active.G = true;
+          break;
+        case 9: // A (69, 81)
+          active.B = active.A = true;
+          break;
+        case 10: // Bb (70, 82)
+          active.B = active.Bis = true;
+          break;
+        case 11: // B (71, 83)
+          active.B = true;
+          break;
+        case 0: // C (72, 84)
+          active.A = true; // Middle finger C
+          break;
+        case 1: // C# (73, 85)
+          // Open
+          break;
+      }
+    }
+
+    return active;
+  }
+
+  onNoteOn(midiPitch, velocity = 0.8, eventTime = null, trackIndex = null, duration = 0.5) {
     const vel = Math.max(0.3, Math.min(1.0, velocity));
+    const holdDuration = Math.max(0.18, Math.min(1.4, duration ? duration * 0.82 : 0.38));
 
     if (this.airIntake) {
       this.airIntake.start(vel);
     }
 
+    const fingering = this._getFingering(midiPitch);
+
     if (this.octaveKey) {
-      const octaveOpen = midiPitch >= 71;
       gsap.killTweensOf(this.octaveKey.rotation);
       gsap.to(this.octaveKey.rotation, {
-        x: octaveOpen ? -0.14 : 0,
-        duration: 0.05,
-        ease: 'power2.out'
+        x: fingering.octave ? -0.26 : 0,
+        duration: 0.04,
+        ease: 'power2.out',
+        onComplete: () => {
+          gsap.to(this.octaveKey.rotation, {
+            x: 0,
+            duration: 0.12,
+            delay: holdDuration,
+            ease: 'power1.in'
+          });
+        }
       });
     }
 
     this.keyPads.forEach((k) => {
-      const isDown = midiPitch <= k.midiThresh;
+      const isDown = !!fingering[k.id];
       const targetRot = isDown ? k.pressedAngle : k.restAngle;
 
       gsap.killTweensOf(k.group.rotation);
@@ -1677,17 +1803,34 @@ export class Saxophone3D {
           gsap.to(k.group.rotation, {
             y: k.restAngle,
             duration: 0.14,
-            delay: 0.05,
+            delay: holdDuration,
             ease: 'power1.in'
           });
         }
       });
+
+      // Pearl button touch luminescence / golden iridescent sheen
+      if (k.pearlMesh && k.pearlMesh.material) {
+        gsap.killTweensOf(k.pearlMesh.material);
+        if (isDown) {
+          k.pearlMesh.material.emissive.setHex(0xffaa22);
+          k.pearlMesh.material.emissiveIntensity = 1.6 * vel;
+          gsap.to(k.pearlMesh.material, {
+            emissiveIntensity: 0.0,
+            duration: 0.16,
+            delay: holdDuration,
+            ease: 'power1.in'
+          });
+        } else {
+          k.pearlMesh.material.emissiveIntensity = 0.0;
+        }
+      }
     });
 
     this.auxKeys.forEach(ak => {
       if (ak.isBellKey) {
-        const isClosed = midiPitch < 60;
-        const targetX = isClosed ? ak.baseX * 0.95 : ak.baseX;
+        const isClosed = fingering.bellKeys;
+        const targetX = isClosed ? ak.baseX * 0.93 : ak.baseX;
         gsap.killTweensOf(ak.group.position);
         gsap.to(ak.group.position, {
           x: targetX,
@@ -1696,15 +1839,15 @@ export class Saxophone3D {
           onComplete: () => {
             gsap.to(ak.group.position, {
               x: ak.baseX,
-              duration: 0.12,
-              delay: 0.05,
+              duration: 0.14,
+              delay: holdDuration,
               ease: 'power1.in'
             });
           }
         });
       } else if (ak.isLowerBodyKey) {
-        const isClosed = midiPitch <= ak.midiThresh;
-        const targetX = isClosed ? ak.baseX * 0.96 : ak.baseX;
+        const isClosed = ak.id === 'lowC' ? fingering.lowC : (ak.id === 'lowEb' ? fingering.lowEb : false);
+        const targetX = isClosed ? ak.baseX * 0.93 : ak.baseX;
         gsap.killTweensOf(ak.group.position);
         gsap.to(ak.group.position, {
           x: targetX,
@@ -1713,27 +1856,47 @@ export class Saxophone3D {
           onComplete: () => {
             gsap.to(ak.group.position, {
               x: ak.baseX,
-              duration: 0.12,
-              delay: 0.05,
+              duration: 0.14,
+              delay: holdDuration,
               ease: 'power1.in'
             });
           }
         });
+
+        // Spatula inward physical depression (-0.28 rad / 4mm travel)
         if (ak.spatulaGroup) {
           gsap.killTweensOf(ak.spatulaGroup.rotation);
+          const targetSpatulaRot = isClosed ? -0.28 : 0.0;
           gsap.to(ak.spatulaGroup.rotation, {
-            x: isClosed ? -0.15 : 0,
+            y: targetSpatulaRot,
             duration: 0.04,
             ease: 'power2.out',
             onComplete: () => {
               gsap.to(ak.spatulaGroup.rotation, {
-                x: 0,
-                duration: 0.12,
-                delay: 0.05,
+                y: 0.0,
+                duration: 0.14,
+                delay: holdDuration,
                 ease: 'power1.in'
               });
             }
           });
+        }
+
+        // Roller touch sheen highlight
+        if (ak.rollerMesh && ak.rollerMesh.material) {
+          gsap.killTweensOf(ak.rollerMesh.material);
+          if (isClosed) {
+            ak.rollerMesh.material.emissive.setHex(0xffaa22);
+            ak.rollerMesh.material.emissiveIntensity = 1.5 * vel;
+            gsap.to(ak.rollerMesh.material, {
+              emissiveIntensity: 0.0,
+              duration: 0.16,
+              delay: holdDuration,
+              ease: 'power1.in'
+            });
+          } else {
+            ak.rollerMesh.material.emissiveIntensity = 0.0;
+          }
         }
       }
     });
@@ -1743,7 +1906,7 @@ export class Saxophone3D {
       gsap.killTweensOf(this.saxBody.rotation);
 
       gsap.to(this.saxBody.position, {
-        y: 0.008 * vel,
+        y: 0.012 * vel,
         duration: 0.05,
         ease: 'power2.out',
         yoyo: true,
@@ -1751,7 +1914,7 @@ export class Saxophone3D {
       });
 
       gsap.to(this.saxBody.rotation, {
-        x: -0.016 * vel,
+        x: -0.024 * vel,
         duration: 0.06,
         ease: 'power2.out',
         yoyo: true,
@@ -1763,21 +1926,21 @@ export class Saxophone3D {
     if (idleRing) {
       idleRing.position.set(0, this.bellOpeningHeight, 0);
       idleRing.scale.set(1, 1, 1);
-      idleRing.material.opacity = 0.26 * vel;
+      idleRing.material.opacity = 0.38 * vel;
 
       gsap.killTweensOf(idleRing.position);
       gsap.killTweensOf(idleRing.scale);
       gsap.killTweensOf(idleRing.material);
 
       gsap.to(idleRing.position, {
-        y: this.bellOpeningHeight + 0.45,
+        y: this.bellOpeningHeight + 0.50,
         duration: 0.58,
         ease: 'power1.out'
       });
       gsap.to(idleRing.scale, {
-        x: 2.6,
-        y: 2.6,
-        z: 2.6,
+        x: 2.8,
+        y: 2.8,
+        z: 2.8,
         duration: 0.58,
         ease: 'power1.out'
       });
@@ -1796,7 +1959,7 @@ export class Saxophone3D {
     if (this.octaveKey) {
       gsap.to(this.octaveKey.rotation, {
         x: 0,
-        duration: 0.08,
+        duration: 0.10,
         ease: 'power1.out'
       });
     }
@@ -1806,6 +1969,13 @@ export class Saxophone3D {
         duration: 0.10,
         ease: 'power1.out'
       });
+      if (k.pearlMesh && k.pearlMesh.material) {
+        gsap.to(k.pearlMesh.material, {
+          emissiveIntensity: 0.0,
+          duration: 0.12,
+          ease: 'power1.out'
+        });
+      }
     });
     this.auxKeys.forEach(ak => {
       if (ak.isLowerBodyKey) {
@@ -1816,11 +1986,24 @@ export class Saxophone3D {
         });
         if (ak.spatulaGroup) {
           gsap.to(ak.spatulaGroup.rotation, {
-            x: 0,
+            y: 0,
             duration: 0.10,
             ease: 'power1.out'
           });
         }
+        if (ak.rollerMesh && ak.rollerMesh.material) {
+          gsap.to(ak.rollerMesh.material, {
+            emissiveIntensity: 0.0,
+            duration: 0.10,
+            ease: 'power1.out'
+          });
+        }
+      } else if (ak.isBellKey) {
+        gsap.to(ak.group.position, {
+          x: ak.baseX,
+          duration: 0.10,
+          ease: 'power1.out'
+        });
       }
     });
   }

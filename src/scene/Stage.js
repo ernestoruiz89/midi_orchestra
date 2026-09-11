@@ -373,8 +373,8 @@ export class Stage {
     const spotMap = {
       piano_spot: ['piano', 'synth'],
       bass_spot: ['bass', 'doubleBass'],
-      drum_spot: ['drums', 'xylophone', 'cabasa', 'timbales', 'bongoCongas', 'tambourine', 'triangle', 'maracas', 'guiro', 'whistle'],
-      guitar_spot: ['guitar', 'acousticGuitar'],
+      drum_spot: ['drums', 'xylophone', 'cabasa', 'timbales', 'bongoCongas', 'tambourine', 'triangle', 'maracas', 'guiro', 'whistle', 'timpani', 'clap'],
+      guitar_spot: ['guitar', 'acousticGuitar', 'banjo'],
       trumpet_spot: ['trumpet', 'sax', 'frenchHorn'],
       violin_spot: 'violin',
       cello_spot: 'cello',
@@ -447,8 +447,8 @@ export class Stage {
     const spotFamilies = {
       piano_spot: ['piano', 'synth'],
       bass_spot: ['bass', 'doubleBass'],
-      drum_spot: ['drums', 'xylophone', 'cabasa', 'timbales', 'bongoCongas', 'tambourine', 'triangle', 'maracas', 'guiro', 'whistle'],
-      guitar_spot: ['guitar', 'acousticGuitar'],
+      drum_spot: ['drums', 'xylophone', 'cabasa', 'timbales', 'bongoCongas', 'tambourine', 'triangle', 'maracas', 'guiro', 'whistle', 'clap'],
+      guitar_spot: ['guitar', 'acousticGuitar', 'banjo'],
       trumpet_spot: ['trumpet', 'sax', 'frenchHorn'],
       violin_spot: ['violin'],
       cello_spot: ['cello'],
@@ -485,6 +485,13 @@ export class Stage {
 
   resetRiserBounds() {
     this.riserBounds = { ...this.defaultRiserBounds };
+  }
+
+  setRiserVisible(visible) {
+    if (this.drumRiser) this.drumRiser.visible = visible;
+    if (this.drumRiserFrontTrim) this.drumRiserFrontTrim.visible = visible;
+    if (this.drumRiserLeftTrim) this.drumRiserLeftTrim.visible = visible;
+    if (this.drumRiserRightTrim) this.drumRiserRightTrim.visible = visible;
   }
 
   pulseInstrumentSpotlight(instrumentName, velocity = 0.8, duration = 0.5) {
