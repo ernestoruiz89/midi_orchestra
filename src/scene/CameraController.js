@@ -222,25 +222,25 @@ export class CameraController {
       const isGrand = Boolean(instrumentGroup?.userData?.isGrandPiano);
       if (isGrand) {
         // Concert Grand Piano Presets:
-        // Main view: 3/4 concert overview framing the rim, propped-open lid, golden harp, keys & bench
+        // Main view: elevated front-centered view framing keyboard, music score, soundboard & propped lid
         this.presets[name] = {
-          pos: localToWorld(1.75, 1.45, 1.75),
-          target: localToWorld(-0.15, 0.78, -0.25)
+          pos: localToWorld(0.0, 2.20, 1.62),
+          target: localToWorld(0.0, 0.92, -0.38)
         };
         // Top-down bird's-eye view looking directly into the open harp, soundboard, and keys
         this.presets[`${name}_topdown`] = {
-          pos: localToWorld(0.70, 2.65, 0.35),
-          target: localToWorld(-0.10, 0.75, -0.45)
+          pos: localToWorld(0.0, 2.65, 0.65),
+          target: localToWorld(0.0, 0.78, -0.45)
         };
         // Close-up: pianist perspective framing both the 88 keys and the full classical sheet music score
         this.presets[`${name}_closeup`] = {
-          pos: localToWorld(0.0, 1.28, 0.98),
-          target: localToWorld(0.0, 0.90, 0.05)
+          pos: localToWorld(0.0, 1.35, 1.05),
+          target: localToWorld(0.0, 0.88, 0.05)
         };
-        // Sweep view: profile view along curved rim
+        // Sweep view: 3/4 concert overview framing the rim, propped-open lid, golden harp, keys & bench
         this.presets[`${name}_sweep`] = {
-          pos: localToWorld(-1.85, 1.35, 0.45),
-          target: localToWorld(0.15, 0.85, -0.35)
+          pos: localToWorld(1.75, 1.45, 1.75),
+          target: localToWorld(-0.15, 0.78, -0.25)
         };
         return;
       }
