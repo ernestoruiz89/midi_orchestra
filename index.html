@@ -167,6 +167,7 @@
     <button class="cam-btn" data-preset="acousticGuitar" title="Acoustic Guitar Close-up" data-i18n="camera.acousticGuitar" data-i18n-title="camera.acousticGuitarTitle">🎼 Acoustic</button>
     <button class="cam-btn" data-preset="bass" title="Electric Bass Close-up" data-i18n="camera.bass" data-i18n-title="camera.bassTitle">🎸 Bass</button>
     <button class="cam-btn" data-preset="trumpet" title="Trumpet Close-up" data-i18n="camera.trumpet" data-i18n-title="camera.trumpetTitle">🎺 Trumpet</button>
+    <button class="cam-btn" data-preset="trombone" title="Trombone Close-up" data-i18n="camera.trombone" data-i18n-title="camera.tromboneTitle">🎺 Trombone</button>
     <button class="cam-btn" data-preset="frenchHorn" title="French Horn Close-up" data-i18n="camera.frenchHorn" data-i18n-title="camera.frenchHornTitle">📯 French Horn</button>
     <button class="cam-btn" data-preset="sax" title="Alto Saxophone Close-up" data-i18n="camera.sax" data-i18n-title="camera.saxTitle">🎷 Sax</button>
     <button class="cam-btn" data-preset="clarinet" title="Clarinet Close-up" data-i18n="camera.clarinet" data-i18n-title="camera.clarinetTitle">🪵 Clarinet</button>
@@ -176,6 +177,7 @@
     <button class="cam-btn" data-preset="flute" title="Concert Flute Close-up" data-i18n="camera.flute" data-i18n-title="camera.fluteTitle">🪈 Flute</button>
     <button class="cam-btn" data-preset="recorder" title="Recorder Close-up" data-i18n="camera.recorder" data-i18n-title="camera.recorderTitle">🪈 Flauta Dulce</button>
     <button class="cam-btn" data-preset="xylophone" title="Xylophone Close-up" data-i18n="camera.xylophone" data-i18n-title="camera.xylophoneTitle">🪵 Xylophone</button>
+    <button class="cam-btn" data-preset="tubularBells" title="Tubular Bells Close-up" data-i18n="camera.tubularBells" data-i18n-title="camera.tubularBellsTitle">🔔 Tubular Bells</button>
     <button class="cam-btn" data-preset="cabasa" title="Cabasa Close-up" data-i18n="camera.cabasa" data-i18n-title="camera.cabasaTitle">🪇 Cabasa</button>
     <button class="cam-btn" data-preset="tambourine" title="Tambourine Close-up" data-i18n="camera.tambourine" data-i18n-title="camera.tambourineTitle">🪘 Tambourine</button>
     <button class="cam-btn" data-preset="maracas" title="Maracas Close-up" data-i18n="camera.maracas" data-i18n-title="camera.maracasTitle">🪇 Maracas</button>
@@ -542,6 +544,20 @@
           </div>
         </div>
 
+        <!-- Trombone Channel -->
+        <div class="mixer-strip" data-inst="trombone">
+          <div class="strip-header">
+            <span class="strip-icon">🎺</span>
+            <span class="strip-name" data-i18n="instruments.trombone">Trombone</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-trombone"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.85" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
         <!-- French Horn Channel -->
         <div class="mixer-strip" data-inst="frenchHorn">
           <div class="strip-header">
@@ -788,6 +804,20 @@
           </div>
           <div class="vu-meter"><div class="vu-fill" id="vu-mix-xylophone_2"></div></div>
           <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.60" />
+          <div class="strip-buttons">
+            <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
+            <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>
+          </div>
+        </div>
+
+        <!-- Tubular Bells Channel -->
+        <div class="mixer-strip" data-inst="tubularBells">
+          <div class="strip-header">
+            <span class="strip-icon">🔔</span>
+            <span class="strip-name" data-i18n="instruments.tubularBells">Tubular Bells</span>
+          </div>
+          <div class="vu-meter"><div class="vu-fill" id="vu-mix-tubularBells"></div></div>
+          <input type="range" class="vertical-slider" min="0" max="1" step="0.01" value="0.70" />
           <div class="strip-buttons">
             <button class="btn-mute" title="Mute" data-i18n-title="mixer.muteTitle">M</button>
             <button class="btn-solo" title="Solo" data-i18n-title="mixer.soloTitle">S</button>

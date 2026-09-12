@@ -28,6 +28,7 @@ export const DEFAULT_GM_PROGRAMS = {
   bass: 33,
   doubleBass: 32,
   trumpet: 56,
+  trombone: 57,
   frenchHorn: 60,
   sax: 66,
   clarinet: 71,
@@ -35,6 +36,7 @@ export const DEFAULT_GM_PROGRAMS = {
   cello: 42,
   flute: 73,
   xylophone: 13,
+  tubularBells: 14,
   synth: 80,
   cabasa: 69,
   congas: 63,
@@ -61,7 +63,7 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
   // 0-7: Piano
   0: 'piano', 1: 'piano', 2: 'piano', 3: 'piano', 4: 'piano', 5: 'piano', 6: 'piano', 7: 'piano',
   // 8-15: Chromatic Percussion
-  8: 'xylophone', 9: 'xylophone', 10: 'xylophone', 11: 'xylophone', 12: 'xylophone', 13: 'xylophone', 14: 'xylophone', 15: 'xylophone',
+  8: 'xylophone', 9: 'xylophone', 10: 'xylophone', 11: 'xylophone', 12: 'xylophone', 13: 'xylophone', 14: 'tubularBells', 15: 'xylophone',
   // 16-23: Organ, Accordion & Harmonica
   16: 'piano', 17: 'piano', 18: 'piano', 19: 'piano', 20: 'piano', 21: 'accordion', 22: 'harmonica', 23: 'accordion',
   // 24-31: Guitar
@@ -73,7 +75,7 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
   // 48-55: Ensemble
   48: 'violin', 49: 'violin', 50: 'synth', 51: 'synth', 52: 'flute', 53: 'flute', 54: 'synth', 55: 'drums',
   // 56-63: Brass
-  56: 'trumpet', 57: 'trumpet', 58: 'trumpet', 59: 'trumpet', 60: 'frenchHorn', 61: 'trumpet', 62: 'trumpet', 63: 'trumpet',
+  56: 'trumpet', 57: 'trombone', 58: 'trumpet', 59: 'trumpet', 60: 'frenchHorn', 61: 'trumpet', 62: 'trumpet', 63: 'trumpet',
   // 64-71: Reed
   64: 'sax', 65: 'sax', 66: 'sax', 67: 'sax',
   // 68-71: Pipes / Reeds
@@ -96,7 +98,7 @@ export const GM_PROGRAM_TO_INSTRUMENT = {
 
 const VALID_3D_INSTRUMENTS = new Set([
   'piano', 'drums', 'bass', 'doubleBass', 'guitar', 'acousticGuitar',
-  'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'synth', 'cabasa', 'congas', 'timbales',
+  'trumpet', 'trombone', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'tubularBells', 'synth', 'cabasa', 'congas', 'timbales',
   'tambourine', 'maracas', 'whistle', 'guiro', 'triangle', 'harp', 'harmonica', 'accordion', 'banjo', 'timpani', 'recorder', 'clap'
 ]);
 
@@ -159,11 +161,13 @@ export class MidiPlayer {
       bass: 0,
       doubleBass: 0,
       trumpet: 0,
+      trombone: 0,
       sax: 0,
       violin: 0,
       cello: 0,
       flute: 0,
       xylophone: 0,
+      tubularBells: 0,
       synth: 0,
       frenchHorn: 0,
       clarinet: 0,
@@ -437,7 +441,10 @@ export class MidiPlayer {
     if (/\b(timpani|timbal\s*sinf[oó]nico|timbales\s*sinf[oó]nicos|kettle\s*drums?|pauken)\b/i.test(trackName)) {
       return 'timpani';
     }
-    if (/\b(timbal|timbale|timbales|pailas?|agogo|cencerro|mambo\s*bell)\b/i.test(trackName)) {
+    if (/\b(cowbell|cencerro|mambo\s*bell)\b/i.test(trackName)) {
+      return 'drums';
+    }
+    if (/\b(timbal|timbale|timbales|pailas?|agogo)\b/i.test(trackName)) {
       return 'timbales';
     }
     if (/\b(reverse\s*cymbal|rev\s*cymbal|platillo\s*invertido|cymbal\s*reverse)\b/i.test(trackName)) {
@@ -480,8 +487,13 @@ export class MidiPlayer {
       return 'frenchHorn';
     }
 
+    // Trombone / Trombón de Varas:
+    if (/\b(trombone|tromb[oó]n|tbone|posaune)\b/i.test(trackName)) {
+      return 'trombone';
+    }
+
     // I. Trumpet / Brass:
-    if (/\b(trumpet|trompeta|brass|horns?|tuba|trombone|tromb[oó]n|cornet|metales)\b/i.test(trackName)) {
+    if (/\b(trumpet|trompeta|brass|horns?|tuba|cornet|metales)\b/i.test(trackName)) {
       return 'trumpet';
     }
 
@@ -508,6 +520,11 @@ export class MidiPlayer {
     // K. Flute / Woodwinds:
     if (/\b(flute|flauta|piccolo|pan\s*flute|oboe|bassoon|fagot|whistle|ocarina|woodwinds?)\b/i.test(trackName)) {
       return 'flute';
+    }
+
+    // L0. Tubular Bells / Orchestral Chimes:
+    if (/\b(tubular\s*bells?|campanas?\s*tubulares?|orchestral\s*chimes?|campanas?\s*de\s*concierto)\b/i.test(trackName)) {
+      return 'tubularBells';
     }
 
     // L. Xylophone / Chromatic Mallets:
@@ -547,18 +564,26 @@ export class MidiPlayer {
       }
       return 'bass';
     }
-    if (instFamily.includes('strings') || instFamily.includes('orchestral')) {
-      if (instName.includes('cello')) return 'cello';
-      if (instName.includes('contrabass') || instName.includes('double bass')) return 'doubleBass';
-      return 'violin';
-    }
     if (instFamily.includes('brass')) {
-      if (instName.includes('horn') || instName.includes('french')) return 'frenchHorn';
+      if (instName.includes('horn')) return 'frenchHorn';
+      if (instName.includes('trombone')) return 'trombone';
+      if (instName.includes('trumpet') || instName.includes('cornet')) return 'trumpet';
       return 'trumpet';
     }
     if (instFamily.includes('reed')) {
-      if (instName.includes('sax')) return 'sax';
       if (instName.includes('clarinet')) return 'clarinet';
+      if (instName.includes('sax')) return 'sax';
+      return 'sax';
+    }
+    if (instFamily.includes('string')) {
+      if (instName.includes('harp')) return 'harp';
+      if (instName.includes('cello')) return 'cello';
+      if (instName.includes('contrabass') || instName.includes('double bass')) return 'doubleBass';
+      if (instName.includes('violin') || instName.includes('viola')) return 'violin';
+      return 'violin';
+    }
+    if (instFamily.includes('flute')) {
+      if (instName.includes('recorder')) return 'recorder';
       return 'flute';
     }
     if (instFamily.includes('pipe') || instFamily.includes('woodwind')) {
@@ -569,6 +594,7 @@ export class MidiPlayer {
       return 'synth';
     }
     if (instFamily.includes('chromatic') || instFamily.includes('mallet')) {
+      if (instName.includes('tubular') || instName.includes('chime')) return 'tubularBells';
       return 'xylophone';
     }
     if (instFamily.includes('percuss') || instFamily.includes('drum')) {
@@ -589,9 +615,13 @@ export class MidiPlayer {
     if (hasCongasNote) {
       list.add('congas');
     }
-    const hasTimbalesNote = this.events.some(e => (e.instrument === 'drums' && (e.midi === 56 || (e.midi >= 65 && e.midi <= 68))) || e.instrument === 'timbales');
+    const hasTimbalesNote = this.events.some(e => (e.instrument === 'drums' && (e.midi >= 65 && e.midi <= 68)) || e.instrument === 'timbales');
     if (hasTimbalesNote) {
       list.add('timbales');
+    }
+    const hasCowbellNote = this.events.some(e => (e.instrument === 'drums' && e.midi === 56) || e.instrument === 'cowbell');
+    if (hasCowbellNote) {
+      list.add('cowbell');
     }
     const hasTambourineNote = this.events.some(e => (e.instrument === 'drums' && e.midi === 54) || e.instrument === 'tambourine');
     if (hasTambourineNote) {
@@ -618,6 +648,10 @@ export class MidiPlayer {
       list.add('clap');
     }
     return Array.from(list);
+  }
+
+  hasCowbell() {
+    return this.events.some(e => (e.instrument === 'drums' && e.midi === 56) || e.instrument === 'cowbell');
   }
 
   /**
@@ -693,9 +727,16 @@ export class MidiPlayer {
           end: event.time + Math.max(0, event.duration || 0.1)
         });
       }
-      if (event.instrument === 'drums' && (event.midi === 56 || (event.midi >= 65 && event.midi <= 68))) {
+      if (event.instrument === 'drums' && (event.midi >= 65 && event.midi <= 68)) {
         if (!notesByInstance.has('timbales')) notesByInstance.set('timbales', []);
         notesByInstance.get('timbales').push({
+          start: event.time,
+          end: event.time + Math.max(0, event.duration || 0.1)
+        });
+      }
+      if (event.instrument === 'drums' && event.midi === 56) {
+        if (!notesByInstance.has('cowbell')) notesByInstance.set('cowbell', []);
+        notesByInstance.get('cowbell').push({
           start: event.time,
           end: event.time + Math.max(0, event.duration || 0.1)
         });
@@ -1166,7 +1207,7 @@ export class MidiPlayer {
             }
             this.onNoteOn('congas', ev.midi, ev.name || 'Congas', ev.velocity, ev.duration, 'congas', 0, ev.time, ev.trackIndex);
           }
-          if (ev.instrument === 'drums' && (ev.midi === 56 || (ev.midi >= 65 && ev.midi <= 68))) {
+          if (ev.instrument === 'drums' && (ev.midi >= 65 && ev.midi <= 68)) {
             if (this.instrumentActivity['timbales'] !== undefined) {
               this.instrumentActivity['timbales'] = Math.max(this.instrumentActivity['timbales'], ev.velocity);
             }
@@ -1234,7 +1275,7 @@ export class MidiPlayer {
           if (ev.instrument === 'drums' && ev.midi >= 60 && ev.midi <= 64) {
             this.onNoteOff('congas', ev.midi, ev.name || 'Congas', false, 'congas', 0);
           }
-          if (ev.instrument === 'drums' && (ev.midi === 56 || (ev.midi >= 65 && ev.midi <= 68))) {
+          if (ev.instrument === 'drums' && (ev.midi >= 65 && ev.midi <= 68)) {
             this.onNoteOff('timbales', ev.midi, ev.name || 'Timbales', false, 'timbales', 0);
           }
           if (ev.instrument === 'drums' && ev.midi === 54) {
@@ -1295,7 +1336,7 @@ export class MidiPlayer {
   _releaseAllVisuals() {
     if (this.onNoteOff) {
       const allInsts = [
-        'piano', 'drums', 'guitar', 'bass', 'doubleBass', 'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'synth', 'cabasa', 'congas', 'timbales',
+        'piano', 'drums', 'guitar', 'bass', 'doubleBass', 'trumpet', 'trombone', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute', 'xylophone', 'tubularBells', 'synth', 'cabasa', 'congas', 'timbales',
         'tambourine', 'maracas', 'whistle', 'guiro', 'triangle',
         'harp', 'harmonica', 'accordion', 'banjo', 'timpani', 'recorder', 'clap',
         'acousticGuitar', 'piano_2', 'piano_3', 'piano_4', 'guitar_2', 'guitar_3', 'guitar_4',

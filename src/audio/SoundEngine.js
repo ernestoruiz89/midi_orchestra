@@ -27,7 +27,7 @@ export const GM_PROGRAM_MAP = {
   11: { sf: 'vibraphone', bus: 'xylophone' },
   12: { sf: 'marimba', bus: 'xylophone' },
   13: { sf: 'xylophone', bus: 'xylophone' },
-  14: { sf: 'tubular_bells', bus: 'xylophone' },
+  14: { sf: 'tubular_bells', bus: 'tubularBells' },
   15: { sf: 'dulcimer', bus: 'xylophone' },
 
   // Organs, Accordion & Harmonica (16-23)
@@ -82,7 +82,7 @@ export const GM_PROGRAM_MAP = {
 
   // Brass (56-63)
   56: { sf: 'trumpet', bus: 'trumpet' },
-  57: { sf: 'trombone', bus: 'trumpet' },
+  57: { sf: 'trombone', bus: 'trombone' },
   58: { sf: 'tuba', bus: 'trumpet' },
   59: { sf: 'muted_trumpet', bus: 'trumpet' },
   60: { sf: 'french_horn', bus: 'frenchHorn' },
@@ -198,7 +198,7 @@ export class SoundEngine {
       'cello_2', 'flute', 'flute_2', 'xylophone', 'xylophone_2', 'synth',
       'synth_2', 'synth_3', 'synth_4', 'frenchHorn', 'clarinet', 'cabasa',
       'congas', 'timbales', 'tambourine', 'maracas', 'whistle', 'guiro',
-      'triangle', 'harp', 'harmonica', 'accordion', 'banjo', 'timpani', 'recorder', 'clap',
+      'triangle', 'harp', 'harmonica', 'accordion', 'banjo', 'timpani', 'recorder', 'clap', 'tubularBells', 'trombone',
     ].map(instrument => [instrument, 1]));
 
     this.muted = {};
@@ -565,7 +565,7 @@ export class SoundEngine {
       'piano', 'drums', 'bass', 'doubleBass', 'guitar', 'acousticGuitar', 'trumpet', 'sax', 'violin', 'cello', 'flute', 'xylophone', 'synth',
       'frenchHorn', 'clarinet', 'cabasa', 'congas', 'timbales',
       'tambourine', 'maracas', 'whistle', 'guiro', 'triangle',
-      'harp', 'harmonica', 'accordion', 'banjo', 'timpani', 'recorder', 'clap'
+      'harp', 'harmonica', 'accordion', 'banjo', 'timpani', 'recorder', 'clap', 'tubularBells', 'trombone'
     ];
     this.nativeInputs = {};
 
@@ -599,6 +599,7 @@ export class SoundEngine {
       case 'synth': return -0.35;
       case 'drums': return 0.0;
       case 'xylophone': return 0.05;
+      case 'tubularBells': return 0.25;
       case 'flute': return 0.18;
       case 'recorder': return 0.20;
       case 'guitar': return 0.28;
@@ -606,6 +607,7 @@ export class SoundEngine {
       case 'banjo': return 0.20;
       case 'sax': return 0.35;
       case 'trumpet': return 0.45;
+      case 'trombone': return 0.42;
       case 'frenchHorn': return 0.40;
       case 'clarinet': return 0.22;
       case 'timbales': return -0.15;
@@ -1278,11 +1280,23 @@ export class SoundEngine {
       envelope: { attack: 0.001, decay: 1.2, sustain: 0.02, release: 0.8 }
     }).connect(this.channels.xylophone);
 
+    // Tubular Bells / Chimes: Resonant bell harmonic model
+    this.synths.tubularBells = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.001, decay: 2.8, sustain: 0.04, release: 2.2 }
+    }).connect(this.channels.tubularBells);
+
     // French Horn: Warm brass model
     this.synths.frenchHorn = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'sawtooth' },
       envelope: { attack: 0.08, decay: 0.4, sustain: 0.7, release: 0.6 }
     }).connect(this.channels.frenchHorn);
+
+    // Trombone: Warm rich tenor brass model
+    this.synths.trombone = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'sawtooth' },
+      envelope: { attack: 0.05, decay: 0.35, sustain: 0.8, release: 0.4 }
+    }).connect(this.channels.trombone);
 
     // Clarinet: Warm hollow reed model
     this.synths.clarinet = new Tone.PolySynth(Tone.Synth, {
@@ -1389,11 +1403,13 @@ export class SoundEngine {
           cello: 'cello',
           flute: 'flute',
           xylophone: 'xylophone',
+          tubularBells: 'tubular_bells',
           synth: 'lead_1_square',
           harmonica: 'harmonica',
           accordion: 'accordion',
           harp: 'orchestral_harp',
           frenchHorn: 'french_horn',
+          trombone: 'trombone',
           clarinet: 'clarinet',
           banjo: 'banjo',
           timpani: 'timpani',
@@ -1771,7 +1787,9 @@ export class SoundEngine {
       if (this.synths.doubleBass) this.synths.doubleBass.releaseAll();
       if (this.synths.flute) this.synths.flute.releaseAll();
       if (this.synths.xylophone) this.synths.xylophone.releaseAll();
+      if (this.synths.tubularBells) this.synths.tubularBells.releaseAll();
       if (this.synths.frenchHorn) this.synths.frenchHorn.releaseAll();
+      if (this.synths.trombone) this.synths.trombone.releaseAll();
       if (this.synths.clarinet) this.synths.clarinet.releaseAll();
       if (this.synths.harp) this.synths.harp.releaseAll();
       if (this.synths.harmonica) this.synths.harmonica.releaseAll();

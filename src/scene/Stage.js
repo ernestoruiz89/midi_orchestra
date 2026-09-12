@@ -373,7 +373,7 @@ export class Stage {
     const spotMap = {
       piano_spot: ['piano', 'synth'],
       bass_spot: ['bass', 'doubleBass'],
-      drum_spot: ['drums', 'xylophone', 'cabasa', 'timbales', 'bongoCongas', 'tambourine', 'triangle', 'maracas', 'guiro', 'whistle', 'timpani', 'clap'],
+      drum_spot: ['drums', 'xylophone', 'tubularBells', 'cabasa', 'timbales', 'bongoCongas', 'tambourine', 'triangle', 'maracas', 'guiro', 'whistle', 'timpani', 'clap'],
       guitar_spot: ['guitar', 'acousticGuitar', 'banjo'],
       trumpet_spot: ['trumpet', 'sax', 'frenchHorn'],
       violin_spot: 'violin',
@@ -447,7 +447,7 @@ export class Stage {
     const spotFamilies = {
       piano_spot: ['piano', 'synth'],
       bass_spot: ['bass', 'doubleBass'],
-      drum_spot: ['drums', 'xylophone', 'cabasa', 'timbales', 'bongoCongas', 'tambourine', 'triangle', 'maracas', 'guiro', 'whistle', 'clap'],
+      drum_spot: ['drums', 'xylophone', 'tubularBells', 'cabasa', 'timbales', 'bongoCongas', 'tambourine', 'triangle', 'maracas', 'guiro', 'whistle', 'clap'],
       guitar_spot: ['guitar', 'acousticGuitar', 'banjo'],
       trumpet_spot: ['trumpet', 'sax', 'frenchHorn'],
       violin_spot: ['violin'],

@@ -175,6 +175,7 @@ export class SceneManager {
       flute: { width: 1.85, depth: 1.05, priority: 56 },
       violin: { width: 1.7, depth: 1.1, priority: 62 },
       trumpet: { width: 1.65, depth: 1.05, priority: 54 },
+      trombone: { width: 1.7, depth: 1.5, priority: 56 },
       frenchHorn: { width: 1.6, depth: 1.2, priority: 55 },
       sax: { width: 1.55, depth: 1.1, priority: 58 },
       clarinet: { width: 1.4, depth: 1.1, priority: 57 },
@@ -191,6 +192,7 @@ export class SceneManager {
       harmonica: { width: 1.3, depth: 1.1, priority: 52 },
       banjo: { width: 1.65, depth: 1.3, priority: 73 },
       timpani: { width: 3.5, depth: 1.9, priority: 66 },
+      tubularBells: { width: 1.4, depth: 1.0, priority: 63 },
       recorder: { width: 1.4, depth: 1.0, priority: 55 },
       clap: { width: 1.1, depth: 1.0, priority: 50 }
     };
@@ -442,6 +444,8 @@ export class SceneManager {
    */
   layoutInstruments(activeInstrumentNames, prominenceByInstrument = {}, animate = true) {
     this.syncAssignedInstruments(activeInstrumentNames || []);
+    const isCowbellPresent = activeInstrumentNames?.includes('cowbell') || false;
+    this.updateCowbellVisibility(isCowbellPresent);
     const activeKeys = [...new Set(activeInstrumentNames || [])]
       .filter(key => this.allInstruments[key]);
     const signature = [...activeKeys]
@@ -463,11 +467,12 @@ export class SceneManager {
     const drumUnit = units.find(unit => unit.family === 'drums');
     const remaining = units.filter(unit => unit !== drumUnit);
 
-    // Dedicated percussion section: timbales, congas/bongos, cabasa, tambourine, maracas, guiro, whistle, triangle, timpani, clap
-    const percussionFamilies = ['timbales', 'congas', 'cabasa', 'tambourine', 'maracas', 'guiro', 'whistle', 'triangle', 'timpani', 'clap'];
+    // Dedicated percussion section: timbales, congas/bongos, cabasa, tambourine, maracas, guiro, whistle, triangle, timpani, clap, tubularBells
+    const percussionFamilies = ['timbales', 'congas', 'cabasa', 'tambourine', 'maracas', 'guiro', 'whistle', 'triangle', 'timpani', 'clap', 'tubularBells'];
     const timbalesUnits = remaining.filter(unit => unit.family === 'timbales');
     const congasUnits = remaining.filter(unit => unit.family === 'congas');
     const timpaniUnits = remaining.filter(unit => unit.family === 'timpani');
+    const tubularBellsUnits = remaining.filter(unit => unit.family === 'tubularBells');
     const cabasaUnits = remaining.filter(unit => unit.family === 'cabasa');
     const tambourineUnits = remaining.filter(unit => unit.family === 'tambourine');
     const triangleUnits = remaining.filter(unit => unit.family === 'triangle');
@@ -557,6 +562,15 @@ export class SceneManager {
           });
         });
 
+        // Tubular Bells: Centered behind the drum kit stage/riser
+        tubularBellsUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: 0.0 + idx * 0.40,
+            z: -2.85 - idx * 0.30,
+            y: 0.0
+          });
+        });
+
         // 5. Timpani when drums are present is deferred and placed upstage
         // after melodic/keyboard sections are positioned to guarantee complete spatial separation.
       } else {
@@ -638,6 +652,15 @@ export class SceneManager {
             y: 1.20
           });
         });
+
+        // Tubular Bells: Centered behind the drum stage/riser
+        tubularBellsUnits.forEach((unit, idx) => {
+          placements.set(unit.id, {
+            x: 0.0 + idx * 0.40,
+            z: -2.85 - idx * 0.30,
+            y: 0.0
+          });
+        });
       }
     };
 
@@ -649,7 +672,7 @@ export class SceneManager {
     const banjos = melodicUnits.filter(unit => unit.family === 'banjo');
     const basses = melodicUnits.filter(unit => unit.family === 'bass');
     const guitars = [...electricGuitars, ...acousticGuitars, ...banjos];
-    const winds = melodicUnits.filter(unit => ['trumpet', 'sax', 'flute', 'frenchHorn', 'clarinet', 'harmonica', 'recorder'].includes(unit.family));
+    const winds = melodicUnits.filter(unit => ['trumpet', 'trombone', 'sax', 'flute', 'frenchHorn', 'clarinet', 'harmonica', 'recorder'].includes(unit.family));
     const auxiliaries = melodicUnits.filter(unit =>
       !keyboards.includes(unit) && !strings.includes(unit) &&
       !guitars.includes(unit) && !basses.includes(unit) && !winds.includes(unit)
@@ -911,7 +934,7 @@ export class SceneManager {
         const home = this.instrumentHomeTransforms.get(key);
         const family = this._getInstrumentFamily(key);
         const isRiserPercussion = riserPercussion.includes(family);
-        const onRiserByCoords = !isSoloPiano && placement.z <= 1.35 && placement.x >= -2.30 && placement.x <= 2.30;
+        const onRiserByCoords = !isSoloPiano && placement.z >= riserMinZ && placement.z <= 1.35 && placement.x >= -2.30 && placement.x <= 2.30;
         const isRiserInstrument = isRiserPercussion || onRiserByCoords;
         const riserElevation = onRiserByCoords ? 0.20 : this.getStageFloorElevation(placement.x, placement.z);
         const baseY = placement.y !== undefined
@@ -975,14 +998,14 @@ export class SceneManager {
 
           if (stackTargetPosition.z > riserMaxZ) {
             stackTargetPosition.z = Math.max(stackTargetPosition.z, riserMaxZ + halfDepth + 0.12);
-          } else if (stackTargetPosition.z >= (riserMinZ - halfDepth)) {
+          } else if (stackTargetPosition.z < riserMinZ) {
+            stackTargetPosition.z = Math.min(stackTargetPosition.z, riserMinZ - halfDepth - 0.12);
+          } else {
             if (stackTargetPosition.x < 0) {
               stackTargetPosition.x = Math.min(stackTargetPosition.x, riserMinX - halfWidth - 0.20);
             } else {
               stackTargetPosition.x = Math.max(stackTargetPosition.x, riserMaxX + halfWidth + 0.20);
             }
-          } else {
-            stackTargetPosition.z = Math.min(stackTargetPosition.z, riserMinZ - halfDepth - 0.12);
           }
         }
       }
@@ -1007,7 +1030,11 @@ export class SceneManager {
             // Do NOT push it sideways to X = +/- 3.5! Keep it covering the central stage area!
             if (targetPosition.z > riserMaxZ) {
               targetPosition.z = Math.max(targetPosition.z, riserMaxZ + halfDepth + 0.12);
-            } else if (targetPosition.z >= (riserMinZ - halfDepth)) {
+            } else if (targetPosition.z < riserMinZ) {
+              // If the instrument is behind the tarima:
+              // Maintain clean rear clearance behind the rear edge of the tarima without displacing laterally.
+              targetPosition.z = Math.min(targetPosition.z, riserMinZ - halfDepth - 0.12);
+            } else {
               // If the instrument is beside the tarima:
               // Maintain clean lateral clearance outside the side edges of the tarima.
               if (targetPosition.x < 0) {
@@ -1015,10 +1042,6 @@ export class SceneManager {
               } else {
                 targetPosition.x = Math.max(targetPosition.x, riserMaxX + halfWidth + 0.20);
               }
-            } else {
-              // If the instrument is behind the tarima:
-              // Maintain clean rear clearance behind the rear edge of the tarima.
-              targetPosition.z = Math.min(targetPosition.z, riserMinZ - halfDepth - 0.12);
             }
           }
         }
@@ -1128,6 +1151,9 @@ export class SceneManager {
 
     this._applyInstrumentVisibility();
 
+    // Cowbell visibility on drum kit: only shown if activeSet contains 'cowbell'
+    this.updateCowbellVisibility(activeSet.has('cowbell'));
+
     // Update Camera Controller with current visible instruments
     if (this.cameraController) {
       this.cameraController.setActiveInstruments(activeSet);
@@ -1136,6 +1162,13 @@ export class SceneManager {
     // Update Stage spotlights
     if (this.stage && typeof this.stage.updateSpotlightsForActiveInstruments === 'function') {
       this.stage.updateSpotlightsForActiveInstruments(activeSet);
+    }
+  }
+
+  updateCowbellVisibility(visible) {
+    const drums = this.allInstruments['drums'];
+    if (drums && typeof drums.setCowbellVisible === 'function') {
+      drums.setCowbellVisible(visible);
     }
   }
 
@@ -1189,6 +1222,7 @@ export class SceneManager {
       bass: 'bass',
       doubleBass: 'bass',
       trumpet: 'trumpet',
+      trombone: 'trumpet',
       frenchHorn: 'trumpet',
       sax: 'trumpet',
       clarinet: 'flute',
@@ -1196,6 +1230,7 @@ export class SceneManager {
       cello: 'cello',
       flute: 'flute',
       xylophone: 'drum',
+      tubularBells: 'drum',
       synth: 'piano',
       cabasa: 'drum',
       tambourine: 'drum',

@@ -61,6 +61,9 @@ export class DrumKit3D {
     this.beaterPivot = null;
     this.kickFootboard = null;
     this.kickChain = null;
+    this.cowbellGroup = null;
+    this.cowbellPivot = null;
+    this.cowbellMesh = null;
     this.preparedStrikes = new Map();
     this.stickSelectionState = new Map();
 
@@ -81,6 +84,7 @@ export class DrumKit3D {
     this._buildSnare();
     this._buildHiHat();
     this._buildCymbals();
+    this._buildCowbell();
     this._buildDedicatedPieceSticks();
 
     this.scene.add(this.group);
@@ -175,6 +179,25 @@ export class DrumKit3D {
       color: 0xf2eee7,
       roughness: 0.78,
       metalness: 0.02
+    });
+
+    // Cast Bronze Cowbell: Matches B20 cymbal cast bronze alloy so it blends harmoniously
+    this.cowbellMaterial = new THREE.MeshStandardMaterial({
+      color: 0xdfa84a,
+      roughness: 0.28,
+      metalness: 0.88
+    });
+
+    // Polished bronze strike damping bar
+    this.cowbellRidgeMaterial = new THREE.MeshStandardMaterial({
+      color: 0xc8923a,
+      roughness: 0.22,
+      metalness: 0.90
+    });
+
+    // Deep warm bronze-shadow interior mouth cavity
+    this.cowbellCavityMaterial = new THREE.MeshBasicMaterial({
+      color: 0x1c1206
     });
 
     // Pre-create 'MIDI' drumhead textures
@@ -1844,6 +1867,98 @@ export class DrumKit3D {
   }
 
   /**
+   * Builds authentic 7" Rock Cowbell (LP Ridge Rider style) with mounting L-rod and clamp hardware.
+   * Positioned directly below splash1 cymbal and above rack toms, matching the user reference box.
+   */
+  _buildCowbell() {
+    const length = 0.17;
+    const mouthW = 0.088;
+    const mouthH = 0.052;
+    const baseW = 0.040;
+    const baseH = 0.024;
+
+    // Rest rotation: tilted forward toward drummer and angled slightly toward center
+    const restRotX = 0.28;
+    const restRotY = 0.35;
+    const restRotZ = -0.04;
+
+    this.cowbellGroup = new THREE.Group();
+    // Positioned floating directly below splash1 ([-0.35, 1.68, -0.42]) in the open pocket above toms
+    this.cowbellGroup.position.set(-0.35, 1.44, -0.33);
+    // Hidden by default: only displayed if the loaded MIDI contains cowbell (GM note 56)
+    this.cowbellGroup.visible = false;
+
+    // 1. Animated Tilting Pivot for Snappy Striking Physics
+    this.cowbellPivot = new THREE.Group();
+    this.cowbellPivot.rotation.set(restRotX, restRotY, restRotZ);
+
+    // Custom Tapered Box Geometry for pressed sheet-steel cowbell
+    const bellGeom = new THREE.BoxGeometry(1, 1, 1, 1, 1, 4);
+    const pos = bellGeom.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const z = pos.getZ(i); // -0.5 to +0.5
+      const t = z + 0.5; // 0 (narrow base at back) to 1 (wide open mouth)
+      const w = baseW + (mouthW - baseW) * t;
+      const h = baseH + (mouthH - baseH) * t;
+      pos.setX(i, pos.getX(i) * w);
+      pos.setY(i, pos.getY(i) * h);
+      pos.setZ(i, z * length);
+    }
+    bellGeom.computeVertexNormals();
+
+    // Dedicated material clone so strike flashing is isolated
+    this.cowbellMesh = new THREE.Mesh(bellGeom, this.cowbellMaterial.clone());
+    this.cowbellMesh.castShadow = true;
+    this.cowbellMesh.receiveShadow = true;
+    this.cowbellPivot.add(this.cowbellMesh);
+
+    // Recessed Dark Interior Cavity at the Mouth Opening
+    const cavityGeom = new THREE.PlaneGeometry(mouthW * 0.88, mouthH * 0.84);
+    const cavity = new THREE.Mesh(cavityGeom, this.cowbellCavityMaterial);
+    cavity.position.set(0, 0, length / 2 + 0.001);
+    this.cowbellPivot.add(cavity);
+
+    // Chrome Lip Protective Collar around Open Mouth Rim
+    const lipGeom = new THREE.BoxGeometry(mouthW * 1.025, mouthH * 1.025, 0.005);
+    const lip = new THREE.Mesh(lipGeom, this.chromeMaterial);
+    lip.position.set(0, 0, length / 2);
+    this.cowbellPivot.add(lip);
+
+    // Top Strike Damping Ridge (LP Rock Ridge Rider style)
+    const ridgeGeom = new THREE.BoxGeometry(0.020, 0.007, length * 0.72);
+    const ridge = new THREE.Mesh(ridgeGeom, this.cowbellRidgeMaterial);
+    ridge.position.set(0, (mouthH * 0.78) / 2 + 0.0035, 0.01);
+    ridge.castShadow = true;
+    this.cowbellPivot.add(ridge);
+
+    // Chrome Rivets securing the ridge bar
+    [-0.045, 0.065].forEach(rz => {
+      const rivet = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.0025, 0.0025, 0.003, 8),
+        this.chromeMaterial
+      );
+      rivet.position.set(0, (mouthH * 0.78) / 2 + 0.0075, rz);
+      this.cowbellPivot.add(rivet);
+    });
+
+
+    this.cowbellGroup.add(this.cowbellPivot);
+    this.group.add(this.cowbellGroup);
+
+    // Register Piece Target & Tangent for Dedicated Drumstick
+    const strikeLocal = new THREE.Vector3(
+      0,
+      (mouthH * 0.78) / 2 + 0.007 + DRUMSTICK_CONTACT_CLEARANCE,
+      0.025
+    ).applyEuler(new THREE.Euler(restRotX, restRotY, restRotZ));
+
+    this.pieceTargets['cowbell'] = this.cowbellGroup.position.clone().add(strikeLocal);
+    this.pieceTargetTangents['cowbell'] = new THREE.Vector3(1, 0, 0)
+      .applyEuler(new THREE.Euler(restRotX, restRotY, restRotZ))
+      .normalize();
+  }
+
+  /**
    * Dedicated Drumsticks System ("circular hacia el publico y las baquetas tambien"):
    * All drumsticks radiate outward from the drummer's center (0, 0.50, 0.38)
    * pointing outward in a circular fan towards each drumhead and cymbal!
@@ -1863,6 +1978,7 @@ export class DrumKit3D {
       'crash1',
       'crash2',
       'splash1',
+      'cowbell',
       'splash2',
       'ride',
       'china'
@@ -2047,6 +2163,9 @@ export class DrumKit3D {
 
     // Closed and open hi-hat strikes share the physical 'hihat' stick
     const stickPiece = (piece === 'hihatClosed' || piece === 'hihatOpen') ? 'hihat' : piece;
+    if (stickPiece === 'cowbell') {
+      this.setCowbellVisible(true);
+    }
 
     const vel = Math.max(0.35, Math.min(1.0, velocity));
     const stickKey = this._selectStickKey(stickPiece, eventTime, trackIndex);
@@ -2135,6 +2254,27 @@ export class DrumKit3D {
     if (cymbal) {
       this._animateCymbal(cymbal, vel);
     }
+
+    if (piece === 'cowbell') {
+      this.setCowbellVisible(true);
+      this._animateCowbell(vel);
+    }
+  }
+
+  /**
+   * Sets cowbell visibility on the drum kit (only shown if MIDI contains note 56)
+   */
+  setCowbellVisible(visible) {
+    if (this.cowbellGroup) {
+      this.cowbellGroup.visible = Boolean(visible);
+    }
+    if (!visible && this.pieceSticks['cowbell']?.pivot) {
+      this.pieceSticks['cowbell'].pivot.visible = false;
+    }
+  }
+
+  isCowbellVisible() {
+    return Boolean(this.cowbellGroup?.visible);
   }
 
   /**
@@ -2476,10 +2616,61 @@ export class DrumKit3D {
   }
 
   /**
+   * Snappy nodding recoil and elastic recovery for cowbell on strike
+   */
+  _animateCowbell(vel = 0.8) {
+    if (!this.cowbellPivot) return;
+    gsap.killTweensOf(this.cowbellPivot.rotation);
+    const nod = 0.14 * vel;
+    const twist = (Math.random() - 0.5) * 0.05 * vel;
+    gsap.timeline()
+      .to(this.cowbellPivot.rotation, {
+        x: 0.28 + nod,
+        z: -0.04 + twist,
+        duration: 0.035,
+        ease: 'power2.out'
+      })
+      .to(this.cowbellPivot.rotation, {
+        x: 0.28 - nod * 0.5,
+        z: -0.04 - twist * 0.4,
+        duration: 0.07,
+        ease: 'sine.inOut'
+      })
+      .to(this.cowbellPivot.rotation, {
+        x: 0.28 + nod * 0.2,
+        z: -0.04 + twist * 0.15,
+        duration: 0.09,
+        ease: 'sine.inOut'
+      })
+      .to(this.cowbellPivot.rotation, {
+        x: 0.28,
+        z: -0.04,
+        duration: 0.28,
+        ease: 'elastic.out(1, 0.4)'
+      });
+
+    // Subtle metallic highlight flash on impact
+    if (this.cowbellMesh && this.cowbellMesh.material) {
+      const origColor = 0xdfa84a;
+      const flashColor = 0xffe8ab;
+      gsap.killTweensOf(this.cowbellMesh.material.color);
+      this.cowbellMesh.material.color.setHex(flashColor);
+      gsap.to(this.cowbellMesh.material.color, {
+        r: ((origColor >> 16) & 255) / 255,
+        g: ((origColor >> 8) & 255) / 255,
+        b: (origColor & 255) / 255,
+        duration: 0.15,
+        ease: 'power2.out'
+      });
+    }
+  }
+
+  /**
    * Maps standard General MIDI drum note numbers to MIDIJam kit pieces:
    * 42 -> Closed Hi-Hat (stick strike on closed cymbals)
    * 44 -> Pedal Hi-Hat (foot pedal snap down, NO stick)
    * 46 -> Open Hi-Hat (stick strike on separated cymbals with loose sizzle)
+   * 56 -> Rock Cowbell (stick strike on cowbell mounted under splash1)
    */
   _mapPitchToPiece(pitch) {
     if (pitch === 'reverseCymbal' || pitch === 'reverse_cymbal' || pitch === 119) return 'reverseCymbal';
@@ -2497,6 +2688,7 @@ export class DrumKit3D {
     if (pitch === 49) return 'crash1';
     if (pitch === 57) return 'crash2';
     if (pitch === 55) return 'splash1';
+    if (pitch === 56 || pitch === 'cowbell') return 'cowbell';
     if (pitch === 52) return 'china';
     if (pitch === 51 || pitch === 59 || pitch === 53) return 'ride';
 
@@ -2661,6 +2853,10 @@ export class DrumKit3D {
       if (this.beaterPivot) {
         gsap.killTweensOf(this.beaterPivot.rotation);
         this.beaterPivot.rotation.x = BEATER_REST_ANGLE;
+      }
+      if (this.cowbellPivot) {
+        gsap.killTweensOf(this.cowbellPivot.rotation);
+        this.cowbellPivot.rotation.set(0.28, 0.35, -0.04);
       }
       if (this.drumRecoilNodes.kick?.node) {
         gsap.killTweensOf(this.drumRecoilNodes.kick.node.position);

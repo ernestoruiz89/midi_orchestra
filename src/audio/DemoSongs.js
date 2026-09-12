@@ -73,12 +73,18 @@ export class DemoSongs {
       { id: 'tango_fantasy', name: '🪗 Libertango & Celtic Harp Fantasy', genre: 'World / Fusion', bpm: 120 },
       { id: 'bluegrass_banjo', name: '🪕 Bluegrass Banjo Breakdown & Hoedown', genre: 'Country / Bluegrass', bpm: 136 },
       { id: 'zarathustra_timpani', name: '🪘 Strauss - Also sprach Zarathustra (Timpani Solo Fanfare)', genre: 'Sinfónico / Clásica', bpm: 96 },
-      { id: 'baroque_recorder', name: '🪈 Vivaldi - Baroque Concerto & Celtic Dance (Flauta Dulce)', genre: 'Barroco / Celta', bpm: 124 }
+      { id: 'baroque_recorder', name: '🪈 Vivaldi - Baroque Concerto & Celtic Dance (Flauta Dulce)', genre: 'Barroco / Celta', bpm: 124 },
+      { id: 'tchaikovsky_1812_bells', name: '🔔 Tchaikovsky - 1812 Overture & Symphonic Chimes (Campanas Tubulares)', genre: 'Sinfónico / Clásica', bpm: 112 },
+      { id: 'jazz_trombone_jam', name: '🎺 Duke & Basie - Big Band Swing Jam (Trombón de Varas)', genre: 'Big Band / Jazz', bpm: 126 }
     ];
   }
 
   static getSongData(songId) {
     switch (songId) {
+      case 'jazz_trombone_jam':
+        return this.createJazzTromboneJam();
+      case 'tchaikovsky_1812_bells':
+        return this.createTubularBellsOverture();
       case 'baroque_recorder':
         return this.createBaroqueRecorder();
       case 'zarathustra_timpani':
@@ -1467,6 +1473,392 @@ export class DemoSongs {
     addNote(recorder, m15 + 3.8 * beat, 0.8 * beat, 86, 0.85);
 
     return this._formatMidiStructure('🪈 Vivaldi - Baroque Concerto & Celtic Dance (Flauta Dulce)', bpm, totalDuration, tracks);
+  }
+
+  /**
+   * 10. TCHAIKOVSKY - 1812 OVERTURE & SYMPHONIC CHIMES (CAMPANAS TUBULARES SHOWCASE)
+   * Grand orchestral celebration featuring ceremonial bell tolling, carillon peals,
+   * roaring brass, thunderous timpani, and soaring strings.
+   */
+  static createTubularBellsOverture() {
+    const bpm = 112;
+    const beat = 60 / bpm; // ~0.536s
+    const bar = 4 * beat;   // ~2.143s
+    const totalBars = 16;
+    const totalDuration = totalBars * bar + 2.5;
+
+    const bells = [];
+    const timpani = [];
+    const trumpet = [];
+    const frenchHorn = [];
+    const violin = [];
+    const cello = [];
+
+    const tracks = [
+      { name: 'Campanas Tubulares de Concierto', instrument: 'tubularBells', channel: 0, programNumber: 14, notes: bells },
+      { name: 'Timbales Sinfónicos', instrument: 'timpani', channel: 1, programNumber: 47, notes: timpani },
+      { name: 'Trompeta de Oro', instrument: 'trumpet', channel: 2, programNumber: 56, notes: trumpet },
+      { name: 'Trompa Francesa Sinfónica', instrument: 'frenchHorn', channel: 3, programNumber: 60, notes: frenchHorn },
+      { name: 'Violines de Concierto', instrument: 'violin', channel: 4, programNumber: 40, notes: violin },
+      { name: 'Violonchelo Orquestal', instrument: 'cello', channel: 5, programNumber: 42, notes: cello }
+    ];
+
+    const addNote = (trackArray, timeSec, durSec, midiPitch, vel = 0.85) => {
+      trackArray.push({
+        time: timeSec,
+        duration: durSec,
+        midi: midiPitch,
+        name: midiToNote(midiPitch),
+        velocity: vel
+      });
+    };
+
+    // =========================================================================
+    // SECTION 1: CATHEDRAL HYMN & SLOW BELL TOLLING (Bars 0 - 3)
+    // =========================================================================
+    for (let b = 0; b < 4; b++) {
+      const bStart = b * bar;
+      const chords = [
+        { roots: [36, 48], violins: [60, 63, 67], brass: [48, 55, 60] },
+        { roots: [34, 46], violins: [58, 62, 65], brass: [46, 53, 58] },
+        { roots: [39, 51], violins: [63, 67, 70], brass: [51, 58, 63] },
+        { roots: [36, 48], violins: [60, 63, 67], brass: [48, 55, 60] }
+      ][b];
+
+      chords.roots.forEach(p => addNote(cello, bStart, 3.8 * beat, p, 0.75));
+      chords.violins.forEach(p => addNote(violin, bStart, 3.8 * beat, p, 0.70));
+      chords.brass.forEach(p => addNote(frenchHorn, bStart, 3.8 * beat, p, 0.78));
+
+      const tollPitch = [60, 63, 67, 72][b];
+      addNote(bells, bStart + 0 * beat, 3.6 * beat, tollPitch, 0.95);
+      addNote(bells, bStart + 2 * beat, 1.8 * beat, tollPitch + 7 <= 77 ? tollPitch + 7 : tollPitch - 5, 0.85);
+
+      addNote(timpani, bStart, 1.5 * beat, chords.roots[0], 0.72);
+    }
+
+    // =========================================================================
+    // SECTION 2: CEREMONIAL CARILLON & DESCENDING PEALS (Bars 4 - 7)
+    // =========================================================================
+    for (let b = 4; b < 8; b++) {
+      const bStart = b * bar;
+
+      addNote(frenchHorn, bStart, 1.8 * beat, 48, 0.82);
+      addNote(frenchHorn, bStart + 2 * beat, 1.8 * beat, 55, 0.84);
+      addNote(trumpet, bStart + 1 * beat, 0.8 * beat, 60, 0.85);
+      addNote(trumpet, bStart + 3 * beat, 0.8 * beat, 67, 0.88);
+
+      addNote(timpani, bStart + 0 * beat, 0.6 * beat, 36, 0.88);
+      addNote(timpani, bStart + 2 * beat, 0.6 * beat, 43, 0.85);
+
+      for (let s = 0; s < 4; s++) {
+        addNote(cello, bStart + s * beat, 0.45 * beat, 36, 0.80);
+      }
+    }
+
+    const m4 = 4 * bar;
+    [76, 74, 72, 71, 69, 67, 65, 64].forEach((p, idx) => {
+      addNote(bells, m4 + idx * 0.5 * beat, 0.9 * beat, p, 0.92);
+    });
+
+    const m5 = 5 * bar;
+    [60, 67, 72, 67, 63, 68, 73, 68].forEach((p, idx) => {
+      addNote(bells, m5 + idx * 0.5 * beat, 0.85 * beat, p, 0.90);
+    });
+
+    const m6 = 6 * bar;
+    const peals = [72, 74, 76, 74, 72, 69, 67, 69, 72, 74, 76, 77, 76, 74, 72, 67];
+    peals.forEach((p, idx) => {
+      addNote(bells, m6 + idx * 0.25 * beat, 0.45 * beat, p, 0.88);
+    });
+
+    const m7 = 7 * bar;
+    addNote(bells, m7 + 0 * beat, 0.9 * beat, 72, 0.94);
+    addNote(bells, m7 + 1 * beat, 0.9 * beat, 74, 0.95);
+    addNote(bells, m7 + 2 * beat, 0.9 * beat, 76, 0.96);
+    addNote(bells, m7 + 3 * beat, 0.95 * beat, 77, 1.0);
+
+    // =========================================================================
+    // SECTION 3: TRIUMPHANT 1812 FINALE & ALL BELLS TOLLING (Bars 8 - 15)
+    // =========================================================================
+    for (let b = 8; b < 16; b++) {
+      const bStart = b * bar;
+      const step = b - 8;
+
+      addNote(timpani, bStart + 0 * beat, 0.8 * beat, 36, 1.0);
+      addNote(timpani, bStart + 2 * beat, 0.8 * beat, 43, 0.95);
+
+      const melodyPitches = [60, 64, 67, 72, 72, 71, 69, 67, 65, 64, 62, 60, 67, 72, 76, 72];
+      const mPitch = melodyPitches[step * 2];
+      const mPitch2 = melodyPitches[step * 2 + 1];
+      addNote(trumpet, bStart + 0 * beat, 1.8 * beat, mPitch, 0.98);
+      addNote(trumpet, bStart + 2 * beat, 1.8 * beat, mPitch2, 1.0);
+      addNote(frenchHorn, bStart + 0 * beat, 3.8 * beat, mPitch - 12, 0.92);
+
+      [60, 64, 67, 72].forEach(p => {
+        addNote(violin, bStart, 3.8 * beat, p, 0.85);
+      });
+      addNote(cello, bStart, 3.8 * beat, 36, 0.90);
+
+      if (b < 14) {
+        addNote(bells, bStart + 0 * beat, 1.8 * beat, 60, 1.0);
+        addNote(bells, bStart + 1 * beat, 1.6 * beat, 67, 0.95);
+        addNote(bells, bStart + 2 * beat, 1.8 * beat, 72, 1.0);
+        addNote(bells, bStart + 3 * beat, 1.6 * beat, 76, 0.95);
+      }
+    }
+
+    const m14 = 14 * bar;
+    [60, 64, 67, 72, 64, 67, 72, 76].forEach((p, idx) => {
+      addNote(bells, m14 + idx * 0.5 * beat, 1.2 * beat, p, 1.0);
+    });
+
+    const m15 = 15 * bar;
+    addNote(bells, m15 + 0 * beat, 5.0 * beat, 60, 1.0);
+    addNote(bells, m15 + 0.05 * beat, 5.0 * beat, 67, 1.0);
+    addNote(bells, m15 + 0.10 * beat, 5.0 * beat, 72, 1.0);
+
+    for (let r = 0; r < 12; r++) {
+      addNote(timpani, m15 + r * 0.20 * beat, 0.25 * beat, 36, 0.88 + r * 0.01);
+    }
+    addNote(timpani, m15 + 2.5 * beat, 2.0 * beat, 36, 1.0);
+
+    return this._formatMidiStructure('🔔 Tchaikovsky - 1812 Overture & Symphonic Chimes (Campanas Tubulares)', bpm, totalDuration, tracks);
+  }
+
+  /**
+   * 12. DUKE & BASIE - BIG BAND SWING JAM (TROMBÓN DE VARAS)
+   */
+  static createJazzTromboneJam() {
+    const bpm = 126;
+    const beat = 60 / bpm; // ~0.476s
+    const bar = 4 * beat;   // ~1.905s
+    const totalBars = 16;
+    const totalDuration = totalBars * bar + 2.0;
+
+    const trombone = [];
+    const trumpet = [];
+    const sax = [];
+    const piano = [];
+    const doubleBass = [];
+    const drums = [];
+
+    const tracks = [
+      { name: 'Trombón de Varas Solista', instrument: 'trombone', channel: 0, programNumber: 57, notes: trombone },
+      { name: 'Trompeta Big Band', instrument: 'trumpet', channel: 1, programNumber: 56, notes: trumpet },
+      { name: 'Saxofón Tenor', instrument: 'sax', channel: 2, programNumber: 66, notes: sax },
+      { name: 'Piano Jazz Comping', instrument: 'piano', channel: 3, programNumber: 0, notes: piano },
+      { name: 'Contrabajo Walking Bass', instrument: 'doubleBass', channel: 4, programNumber: 32, notes: doubleBass },
+      { name: 'Batería Jazz Swing', instrument: 'drums', channel: 9, notes: drums }
+    ];
+
+    const addNote = (trackArray, timeSec, durSec, midiPitch, vel = 0.85) => {
+      trackArray.push({
+        time: timeSec,
+        duration: durSec,
+        midi: midiPitch,
+        name: midiToNote(midiPitch),
+        velocity: vel
+      });
+    };
+
+    // 1. DRUMS & WALKING BASS GROOVE (Bars 0 to 15)
+    // Blues in F
+    const bluesRoots = [
+      [41, 45, 48, 51], // Bar 0: F2, A2, C3, Eb3
+      [46, 50, 53, 56], // Bar 1: Bb2, D3, F3, Ab3
+      [41, 45, 48, 50], // Bar 2: F2, A2, C3, D3
+      [41, 44, 45, 47], // Bar 3: F2, Ab2, A2, B2
+      [46, 50, 53, 55], // Bar 4: Bb2, D3, F3, G3
+      [47, 50, 53, 56], // Bar 5: B2, D3, F3, Ab3 (Bdim)
+      [41, 45, 48, 50], // Bar 6: F2, A2, C3, D3
+      [50, 48, 45, 44], // Bar 7: D3, C3, A2, Ab2 (D7)
+      [43, 46, 50, 52], // Bar 8: G2, Bb2, D3, E3 (Gm7)
+      [48, 52, 55, 53], // Bar 9: C3, E3, G3, F3 (C7)
+      [41, 45, 48, 50], // Bar 10: F2, A2, C3, D3
+      [50, 48, 45, 43], // Bar 11: D3, C3, A2, G2
+      [43, 46, 50, 47], // Bar 12: G2, Bb2, D3, B2
+      [48, 52, 55, 57], // Bar 13: C3, E3, G3, A3
+      [41, 45, 48, 51], // Bar 14: F2, A2, C3, Eb3
+      [41, 41, 41, 41]  // Bar 15: F2 final stabs
+    ];
+
+    for (let b = 0; b < totalBars; b++) {
+      const bStart = b * bar;
+
+      // WALKING BASS: 4 beats per bar
+      const barRoots = bluesRoots[b];
+      for (let beatIdx = 0; beatIdx < 4; beatIdx++) {
+        const pitch = barRoots[beatIdx] || 41;
+        addNote(doubleBass, bStart + beatIdx * beat, 0.85 * beat, pitch, 0.88);
+      }
+
+      // JAZZ DRUMS: Ride Cymbal (MIDI 51) Swing pattern + Hi-Hat pedal (MIDI 44) on 2 & 4
+      for (let beatIdx = 0; beatIdx < 4; beatIdx++) {
+        const tBeat = bStart + beatIdx * beat;
+        addNote(drums, tBeat, 0.3 * beat, 51, 0.75);
+        if (beatIdx === 0 || beatIdx === 2) {
+          addNote(drums, tBeat + 0.66 * beat, 0.25 * beat, 51, 0.65);
+        }
+        if (beatIdx === 1 || beatIdx === 3) {
+          addNote(drums, tBeat, 0.15 * beat, 44, 0.85);
+        }
+      }
+      addNote(drums, bStart + 0 * beat, 0.2 * beat, 36, 0.60);
+      addNote(drums, bStart + 2 * beat, 0.2 * beat, 36, 0.55);
+
+      // PIANO COMPING
+      const pianoChords = [
+        [53, 57, 60, 63],
+        [58, 62, 65, 68],
+        [53, 57, 60, 63],
+        [53, 57, 60, 65],
+        [58, 62, 65, 68],
+        [59, 62, 65, 68],
+        [53, 57, 60, 63],
+        [50, 54, 57, 60],
+        [55, 58, 62, 65],
+        [52, 55, 58, 60],
+        [53, 57, 60, 63],
+        [50, 54, 57, 60],
+        [55, 58, 62, 65],
+        [52, 55, 58, 64],
+        [53, 57, 60, 65],
+        [53, 57, 60, 65]
+      ];
+      const pChord = pianoChords[b];
+      if (b % 2 === 0) {
+        pChord.forEach(pitch => {
+          addNote(piano, bStart + 0.0 * beat, 0.45 * beat, pitch, 0.78);
+          addNote(piano, bStart + 1.5 * beat, 0.60 * beat, pitch, 0.82);
+        });
+      } else {
+        pChord.forEach(pitch => {
+          addNote(piano, bStart + 1.5 * beat, 0.50 * beat, pitch, 0.80);
+          addNote(piano, bStart + 3.0 * beat, 0.50 * beat, pitch, 0.78);
+        });
+      }
+    }
+
+    // =========================================================================
+    // 2. TROMBONE SOLOS & BRASS SECTION ARRANGEMENT
+    // =========================================================================
+    // SECTION A (Bars 0 - 3): Trombone opening swing theme across slide positions!
+    const b0 = 0 * bar;
+    addNote(trombone, b0 + 0.0 * beat, 0.8 * beat, 53, 0.90); // F3 (pos 1)
+    addNote(trombone, b0 + 1.0 * beat, 0.4 * beat, 56, 0.85); // Ab3 (pos 3)
+    addNote(trombone, b0 + 1.66 * beat, 0.6 * beat, 57, 0.88); // A3 (pos 2)
+    addNote(trombone, b0 + 2.5 * beat, 1.2 * beat, 60, 0.95); // C4 (pos 6/1)
+
+    const b1 = 1 * bar;
+    addNote(trombone, b1 + 0.0 * beat, 0.5 * beat, 62, 0.90); // D4 (pos 4)
+    addNote(trombone, b1 + 0.66 * beat, 0.5 * beat, 60, 0.88); // C4 (pos 6)
+    addNote(trombone, b1 + 1.5 * beat, 1.8 * beat, 58, 0.95); // Bb3 (pos 1)
+    addNote(trumpet, b1 + 3.0 * beat, 0.4 * beat, 65, 0.85); // F4
+    addNote(sax, b1 + 3.0 * beat, 0.4 * beat, 57, 0.80);     // A3
+
+    const b2 = 2 * bar;
+    addNote(trombone, b2 + 0.0 * beat, 0.8 * beat, 53, 0.92); // F3 (pos 1)
+    addNote(trombone, b2 + 1.0 * beat, 0.4 * beat, 57, 0.85); // A3 (pos 2)
+    addNote(trombone, b2 + 1.66 * beat, 0.6 * beat, 60, 0.90); // C4 (pos 6)
+    addNote(trombone, b2 + 2.5 * beat, 1.3 * beat, 65, 0.98); // F4 (pos 1)
+
+    const b3 = 3 * bar;
+    addNote(trombone, b3 + 0.0 * beat, 0.5 * beat, 64, 0.88); // E4 (pos 2)
+    addNote(trombone, b3 + 0.66 * beat, 0.5 * beat, 63, 0.88); // Eb4 (pos 3)
+    addNote(trombone, b3 + 1.5 * beat, 1.2 * beat, 62, 0.92); // D4 (pos 4)
+    addNote(trombone, b3 + 3.0 * beat, 0.8 * beat, 60, 0.90); // C4 (pos 6)
+
+    // SECTION B (Bars 4 - 7): Chromatic slide glissando workout!
+    const b4 = 4 * bar;
+    addNote(trombone, b4 + 0.0 * beat, 0.4 * beat, 54, 0.88); // F#3 (pos 5)
+    addNote(trombone, b4 + 0.5 * beat, 0.4 * beat, 55, 0.90); // G3 (pos 4)
+    addNote(trombone, b4 + 1.0 * beat, 0.4 * beat, 56, 0.90); // Ab3 (pos 3)
+    addNote(trombone, b4 + 1.5 * beat, 0.4 * beat, 57, 0.92); // A3 (pos 2)
+    addNote(trombone, b4 + 2.0 * beat, 1.8 * beat, 58, 0.98); // Bb3 (pos 1)
+
+    [b4 + 2.0 * beat, b4 + 3.0 * beat].forEach(t => {
+      addNote(trumpet, t, 0.3 * beat, 70, 0.90);
+      addNote(sax, t, 0.3 * beat, 62, 0.85);
+    });
+
+    const b5 = 5 * bar;
+    addNote(trombone, b5 + 0.0 * beat, 0.5 * beat, 59, 0.88); // B3 (pos 7)
+    addNote(trombone, b5 + 0.66 * beat, 0.5 * beat, 60, 0.92); // C4 (pos 6)
+    addNote(trombone, b5 + 1.5 * beat, 0.5 * beat, 61, 0.92); // C#4 (pos 5)
+    addNote(trombone, b5 + 2.0 * beat, 1.5 * beat, 62, 0.95); // D4 (pos 4)
+
+    const b6 = 6 * bar;
+    addNote(trombone, b6 + 0.0 * beat, 0.6 * beat, 65, 0.95); // F4 (pos 1)
+    addNote(trombone, b6 + 1.0 * beat, 0.4 * beat, 62, 0.88); // D4 (pos 4)
+    addNote(trombone, b6 + 1.5 * beat, 0.6 * beat, 60, 0.90); // C4 (pos 6)
+    addNote(trombone, b6 + 2.5 * beat, 1.2 * beat, 57, 0.92); // A3 (pos 2)
+
+    const b7 = 7 * bar;
+    addNote(trombone, b7 + 0.0 * beat, 0.5 * beat, 56, 0.88); // Ab3 (pos 3)
+    addNote(trombone, b7 + 0.66 * beat, 0.5 * beat, 55, 0.88); // G3 (pos 4)
+    addNote(trombone, b7 + 1.5 * beat, 1.8 * beat, 53, 0.95); // F3 (pos 1)
+    addNote(trumpet, b7 + 3.0 * beat, 0.8 * beat, 69, 0.90);
+    addNote(sax, b7 + 3.0 * beat, 0.8 * beat, 60, 0.85);
+
+    // SECTION C (Bars 8 - 11): High register melodic agility
+    const b8 = 8 * bar;
+    addNote(trombone, b8 + 0.0 * beat, 0.4 * beat, 55, 0.90); // G3
+    addNote(trombone, b8 + 0.5 * beat, 0.4 * beat, 58, 0.92); // Bb3
+    addNote(trombone, b8 + 1.0 * beat, 0.4 * beat, 62, 0.92); // D4
+    addNote(trombone, b8 + 1.66 * beat, 0.5 * beat, 65, 0.95); // F4
+    addNote(trombone, b8 + 2.5 * beat, 1.2 * beat, 67, 0.98); // G4
+
+    const b9 = 9 * bar;
+    addNote(trombone, b9 + 0.0 * beat, 0.6 * beat, 65, 0.92); // F4
+    addNote(trombone, b9 + 1.0 * beat, 0.5 * beat, 64, 0.88); // E4
+    addNote(trombone, b9 + 1.66 * beat, 0.5 * beat, 62, 0.90); // D4
+    addNote(trombone, b9 + 2.5 * beat, 1.2 * beat, 60, 0.95); // C4
+
+    const b10 = 10 * bar;
+    addNote(trombone, b10 + 0.0 * beat, 0.8 * beat, 53, 0.95); // F3
+    addNote(trombone, b10 + 1.0 * beat, 0.5 * beat, 57, 0.88); // A3
+    addNote(trombone, b10 + 1.66 * beat, 0.5 * beat, 60, 0.92); // C4
+    addNote(trombone, b10 + 2.5 * beat, 1.2 * beat, 65, 0.98); // F4
+
+    const b11 = 11 * bar;
+    addNote(trombone, b11 + 0.0 * beat, 0.5 * beat, 67, 0.95); // G4
+    addNote(trombone, b11 + 0.66 * beat, 0.5 * beat, 69, 0.98); // A4
+    addNote(trombone, b11 + 1.5 * beat, 2.0 * beat, 70, 1.0);  // Bb4
+
+    // SECTION D (Bars 12 - 15): Big Band Tutti Climax
+    for (let b = 12; b < 15; b++) {
+      const bStart = b * bar;
+      [bStart, bStart + 1.5 * beat].forEach(t => {
+        addNote(trombone, t, 0.45 * beat, 53, 0.98);
+        addNote(trumpet, t, 0.45 * beat, 65, 1.0);
+        addNote(sax, t, 0.45 * beat, 60, 0.92);
+      });
+
+      addNote(trombone, bStart + 2.5 * beat, 0.4 * beat, 58, 0.92);
+      addNote(trombone, bStart + 3.0 * beat, 0.4 * beat, 60, 0.95);
+      addNote(trombone, bStart + 3.5 * beat, 0.4 * beat, 62, 0.95);
+    }
+
+    // Bar 15: Grand Final Stabs & Sustain
+    const m15 = 15 * bar;
+    [0, 1, 2].forEach(st => {
+      addNote(trombone, m15 + st * beat, 0.25 * beat, 53, 1.0);
+      addNote(trumpet, m15 + st * beat, 0.25 * beat, 65, 1.0);
+      addNote(sax, m15 + st * beat, 0.25 * beat, 60, 0.95);
+      addNote(drums, m15 + st * beat, 0.25 * beat, 38, 0.98);
+      addNote(drums, m15 + st * beat, 0.25 * beat, 49, 1.0);
+    });
+
+    const tEnd = m15 + 2.66 * beat;
+    addNote(trombone, tEnd, 4.0 * beat, 53, 1.0);
+    addNote(trumpet, tEnd, 4.0 * beat, 69, 1.0);
+    addNote(sax, tEnd, 4.0 * beat, 62, 0.95);
+    addNote(piano, tEnd, 4.0 * beat, 60, 0.90);
+    addNote(piano, tEnd, 4.0 * beat, 67, 0.90);
+    addNote(doubleBass, tEnd, 4.0 * beat, 41, 1.0);
+    addNote(drums, tEnd, 4.0 * beat, 49, 1.0);
+
+    return this._formatMidiStructure('🎺 Duke & Basie - Big Band Swing Jam (Trombón de Varas)', bpm, totalDuration, tracks);
   }
 
   static _formatMidiStructure(name, bpm, duration, tracks) {

@@ -462,8 +462,8 @@ export class UIManager {
         const inst = btn.dataset.inst;
         const allInsts = [
           'piano', 'drums', 'guitar', 'acousticGuitar', 'banjo', 'bass', 'doubleBass',
-          'trumpet', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute',
-          'xylophone', 'synth', 'cabasa', 'congas', 'timbales', 'timpani',
+          'trumpet', 'trombone', 'frenchHorn', 'sax', 'clarinet', 'violin', 'cello', 'flute',
+          'xylophone', 'tubularBells', 'synth', 'cabasa', 'congas', 'timbales', 'timpani',
           'tambourine', 'maracas', 'whistle', 'guiro', 'triangle',
           'harp', 'harmonica', 'accordion', 'recorder', 'clap'
         ];
@@ -956,6 +956,7 @@ export class UIManager {
       { id: 'acousticGuitar', label: isEs ? '🎼 Guitarra Acústica' : '🎼 Acoustic Guitar' },
       { id: 'banjo', label: isEs ? '🪕 Banjo de 5 Cuerdas' : '🪕 5-String Banjo' },
       { id: 'trumpet', label: isEs ? '🎺 Trompeta / Metales' : '🎺 Trumpet / Brass' },
+      { id: 'trombone', label: isEs ? '🎺 Trombón de Varas' : '🎺 Tenor Trombone' },
       { id: 'frenchHorn', label: isEs ? '📯 Corno Francés' : '📯 French Horn' },
       { id: 'sax', label: isEs ? '🎷 Saxofón Tenor/Alto' : '🎷 Tenor/Alto Saxophone' },
       { id: 'clarinet', label: isEs ? '🪵 Clarinete' : '🪵 Clarinet' },
@@ -964,6 +965,7 @@ export class UIManager {
       { id: 'flute', label: isEs ? '🪈 Flauta Travesera' : '🪈 Concert Flute' },
       { id: 'recorder', label: isEs ? '🪈 Flauta Dulce Barroca' : '🪈 Baroque Recorder' },
       { id: 'xylophone', label: isEs ? '🪵 Xilófono / Marimba' : '🪵 Xylophone / Marimba' },
+      { id: 'tubularBells', label: isEs ? '🔔 Campanas Tubulares' : '🔔 Tubular Bells' },
       { id: 'synth', label: isEs ? '🎹 Sintetizador Workstation' : '🎹 Synthesizer Workstation' },
       { id: 'cabasa', label: isEs ? '🪇 Cabasa / Percusión Latina' : '🪇 Cabasa / Latin Percussion' },
       { id: 'tambourine', label: isEs ? '🪘 Pandereta' : '🪘 Tambourine' },
@@ -1223,6 +1225,9 @@ export class UIManager {
       this._applyActiveInstruments(activeList);
       this._refreshMixerControls();
       this.sceneManager.updatePianoMidiPrograms(this.midiPlayer.trackInfos);
+      if (typeof this.sceneManager.updateCowbellVisibility === 'function') {
+        this.sceneManager.updateCowbellVisibility(activeList.includes('cowbell'));
+      }
     };
     this.midiPlayer.onTrackUpdate = (tracks) => {
       this._renderTracksTable();

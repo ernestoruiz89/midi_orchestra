@@ -52,6 +52,8 @@ export class CameraController {
       doubleBass_2: { pos: new THREE.Vector3(-3.10, 1.45, 2.85), target: new THREE.Vector3(-3.10, 1.20, -0.35) },
       trumpet: { pos: new THREE.Vector3(4.10, 1.52, 1.55), target: new THREE.Vector3(4.45, 1.45, 0.40) },
       trumpet_closeup: { pos: new THREE.Vector3(3.95, 1.48, 1.25), target: new THREE.Vector3(4.40, 1.45, 0.40) },
+      trombone: { pos: new THREE.Vector3(4.20, 1.55, 2.25), target: new THREE.Vector3(4.55, 1.40, 1.05) },
+      trombone_closeup: { pos: new THREE.Vector3(4.10, 1.50, 1.85), target: new THREE.Vector3(4.50, 1.40, 0.95) },
       frenchHorn: { pos: new THREE.Vector3(4.35, 1.51, 2.45), target: new THREE.Vector3(4.16, 1.29, 1.22) },
       frenchHorn_closeup: { pos: new THREE.Vector3(4.30, 1.45, 2.05), target: new THREE.Vector3(4.16, 1.29, 1.22) },
       sax: { pos: new THREE.Vector3(3.90, 1.41, 3.13), target: new THREE.Vector3(3.48, 1.23, 1.81) },
@@ -89,7 +91,8 @@ export class CameraController {
       timbales_closeup: { pos: new THREE.Vector3(-1.65, 1.55, -0.15), target: new THREE.Vector3(-1.65, 1.30, -1.15) },
       timpani: { pos: new THREE.Vector3(0.00, 2.25, 3.20), target: new THREE.Vector3(0.00, 1.00, -0.05) },
       timpani_topdown: { pos: new THREE.Vector3(0.00, 3.50, 1.10), target: new THREE.Vector3(0.00, 0.95, -0.10) },
-      timpani_closeup: { pos: new THREE.Vector3(-0.45, 1.65, 1.35), target: new THREE.Vector3(-0.35, 1.05, 0.05) },
+      tubularBells: { pos: new THREE.Vector3(0.00, 1.55, -0.15), target: new THREE.Vector3(0.00, 1.15, -2.85) },
+      tubularBells_closeup: { pos: new THREE.Vector3(0.00, 2.05, -1.50), target: new THREE.Vector3(0.00, 1.76, -2.85) },
       synth: { pos: new THREE.Vector3(-3.00, 1.75, 3.15), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
       synth_topdown: { pos: new THREE.Vector3(-3.37, 2.40, 2.38), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
       synth_closeup: { pos: new THREE.Vector3(-3.23, 1.35, 2.75), target: new THREE.Vector3(-3.54, 1.00, 2.00) },
@@ -327,6 +330,18 @@ export class CameraController {
       return;
     }
 
+    if (name.startsWith('tubularBells')) {
+      this.presets[name] = {
+        pos: localToWorld(0.0, 1.55, 2.70),
+        target: localToWorld(0.0, 1.15, 0.0)
+      };
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(0.0, 2.05, 1.35),
+        target: localToWorld(0.0, 1.76, 0.0)
+      };
+      return;
+    }
+
     if (name === 'drums') {
       // Entire drum kit: all 7 cymbals, 4 rack toms, 2 floor toms, snare, 22" bass drum, pedals and stands
       this.presets.drums = {
@@ -428,6 +443,20 @@ export class CameraController {
       this.presets[`${name}_closeup`] = {
         pos: localToWorld(-0.25, 0.06, 0.85),
         target: localToWorld(0.0, 0.0, 0.0)
+      };
+      return;
+    }
+
+    if (name.startsWith('trombone')) {
+      // Complete concert framing: entire bell, slide, tuning crook & counterweight
+      this.presets[name] = {
+        pos: localToWorld(-0.08, 0.18, 1.50),
+        target: localToWorld(-0.08, 0.06, 0.0)
+      };
+      // Intimate close-up: mouthpiece inserted in leadpipe, inner brace and slide mechanics
+      this.presets[`${name}_closeup`] = {
+        pos: localToWorld(0.04, 0.06, 0.55),
+        target: localToWorld(0.06, -0.02, 0.0)
       };
       return;
     }

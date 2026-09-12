@@ -28,6 +28,8 @@ import { Banjo3D } from './Banjo3D.js';
 import { Timpani3D } from './Timpani3D.js';
 import { Recorder3D } from './Recorder3D.js';
 import { Clap3D } from './Clap3D.js';
+import { TubularBells3D } from './TubularBells3D.js';
+import { Trombone3D } from './Trombone3D.js';
 
 // Models are constructed only for assigned MIDI instances.
 export const instrumentFactories = {
@@ -154,6 +156,14 @@ export const instrumentFactories = {
   },
   clap: (scene) => {
     const instrument = new Clap3D(scene);
+    return instrument;
+  },
+  tubularBells: (scene) => {
+    const instrument = new TubularBells3D(scene);
+    return instrument;
+  },
+  trombone: (scene) => {
+    const instrument = new Trombone3D(scene);
     return instrument;
   },
   guitar_2: (scene) => {
