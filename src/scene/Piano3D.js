@@ -1942,9 +1942,8 @@ export class Piano3D {
 
     this.grandPianoGroup.add(benchGroup);
 
-    // Initially hidden until solo piano mode is enabled
+    // Initially hidden until solo piano mode is enabled (do not add to this.group until grand mode)
     this.grandPianoGroup.visible = false;
-    this.group.add(this.grandPianoGroup);
   }
 
   setGrandPianoMode(isGrand) {
@@ -1966,6 +1965,9 @@ export class Piano3D {
       // Show Grand Piano
       if (this.grandPianoGroup) {
         this.grandPianoGroup.visible = true;
+        if (this.grandPianoGroup.parent !== this.group) {
+          this.group.add(this.grandPianoGroup);
+        }
         // Mount 88 keys flush into Grand Piano keybed
         if (this.keybedGroup) {
           this.grandPianoGroup.add(this.keybedGroup);
@@ -1989,6 +1991,9 @@ export class Piano3D {
       // Hide Grand Piano
       if (this.grandPianoGroup) {
         this.grandPianoGroup.visible = false;
+        if (this.grandPianoGroup.parent === this.group) {
+          this.group.remove(this.grandPianoGroup);
+        }
       }
 
       // Return 88 keys to electronic keyboard chassis shelf

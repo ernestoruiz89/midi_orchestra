@@ -903,6 +903,9 @@ export class SceneManager {
       const placement = placements.get(unit.id);
       if (!placement) return;
 
+      const isKeyboardStack = (unit.family === 'piano' || unit.family === 'synth') && unit.keys.length > 1;
+      const primaryKey = unit.keys[0];
+
       unit.keys.forEach((key) => {
         const instrument = this.allInstruments[key];
         const home = this.instrumentHomeTransforms.get(key);
@@ -919,10 +922,10 @@ export class SceneManager {
         if (isRiserInstrument) {
           riserInstruments.add(key);
 
-          // Clamping pass: Guarantee that any instrument placed on the tarima
-          // NEVER sticks out of the tarima ("que los instrumentos que se pongan dentro no salgan")
-          instrument.group.updateWorldMatrix(true, true);
-          const box = new THREE.Box3().setFromObject(instrument.group);
+          // For keyboard stacks, use the primary instrument (with stand) to compute the safe bounds
+          const measureInst = isKeyboardStack ? this.allInstruments[primaryKey] : instrument;
+          measureInst.group.updateWorldMatrix(true, true);
+          const box = new THREE.Box3().setFromObject(measureInst.group);
           const size = box.getSize(new THREE.Vector3());
           const halfWidth = Math.max(0.20, size.x * 0.5);
           const halfDepth = Math.max(0.20, size.z * 0.5);
@@ -955,12 +958,43 @@ export class SceneManager {
       const placement = placements.get(unit.id);
       if (!placement) return;
 
+      const isKeyboardStack = (unit.family === 'piano' || unit.family === 'synth') && unit.keys.length > 1;
+      const primaryKey = unit.keys[0];
+      const primaryInstrument = this.allInstruments[primaryKey];
+
+      // For keyboard stacks sharing a stand, compute the floor clearance ONCE based on the primary stand
+      let stackTargetPosition = null;
+      if (isKeyboardStack && primaryInstrument) {
+        stackTargetPosition = computedTargets.get(primaryKey)?.clone() || new THREE.Vector3(placement.x, 0, placement.z);
+        if (!riserInstruments.has(primaryKey) && !isSoloPiano) {
+          primaryInstrument.group.updateWorldMatrix(true, true);
+          const box = new THREE.Box3().setFromObject(primaryInstrument.group);
+          const size = box.getSize(new THREE.Vector3());
+          const halfWidth = Math.max(0.20, size.x * 0.5);
+          const halfDepth = Math.max(0.20, size.z * 0.5);
+
+          if (stackTargetPosition.z > riserMaxZ) {
+            stackTargetPosition.z = Math.max(stackTargetPosition.z, riserMaxZ + halfDepth + 0.12);
+          } else if (stackTargetPosition.z >= (riserMinZ - halfDepth)) {
+            if (stackTargetPosition.x < 0) {
+              stackTargetPosition.x = Math.min(stackTargetPosition.x, riserMinX - halfWidth - 0.20);
+            } else {
+              stackTargetPosition.x = Math.max(stackTargetPosition.x, riserMaxX + halfWidth + 0.20);
+            }
+          } else {
+            stackTargetPosition.z = Math.min(stackTargetPosition.z, riserMinZ - halfDepth - 0.12);
+          }
+        }
+      }
+
       unit.keys.forEach((key) => {
         const instrument = this.allInstruments[key];
-        const targetPosition = computedTargets.get(key) || new THREE.Vector3(placement.x, 0, placement.z);
+        const targetPosition = isKeyboardStack
+          ? stackTargetPosition.clone()
+          : (computedTargets.get(key) || new THREE.Vector3(placement.x, 0, placement.z));
 
         // For instruments on the floor, ensure they maintain clean clearance without being thrown sideways
-        if (!riserInstruments.has(key)) {
+        if (!isKeyboardStack && !riserInstruments.has(key)) {
           if (!isSoloPiano) {
             instrument.group.updateWorldMatrix(true, true);
             const box = new THREE.Box3().setFromObject(instrument.group);
@@ -987,6 +1021,11 @@ export class SceneManager {
               targetPosition.z = Math.min(targetPosition.z, riserMinZ - halfDepth - 0.12);
             }
           }
+        }
+
+        // For keyboard stacks, synchronize rotation with primary instrument
+        if (isKeyboardStack && primaryInstrument) {
+          instrument.group.rotation.y = primaryInstrument.group.rotation.y;
         }
 
         const currentFloorElevation = riserInstruments.has(key)
